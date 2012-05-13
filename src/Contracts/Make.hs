@@ -85,7 +85,7 @@ mkStatement v e = do
                 Just (Var f,[]) -> do write $ "Contract is really for " ++ show f ++ "."
                                       return f
                 _               -> throw $ "Invalid lhs of statement" ++ showExpr f_app
-            (f :::) <$> mkContract (Var f) c
+            Statement v f <$> mkContract (Var f) c
         _ -> throw $ "Error: Invalid statement " ++ show v ++ "."
 
 mkContract :: CoreExpr -> CoreExpr -> MakerM Contract
