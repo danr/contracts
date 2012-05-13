@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs, KindSignatures, RankNTypes #-}
-module Contract where
+module Nat where
 
 import Contracts
 
@@ -14,7 +14,7 @@ idNat :: Nat -> Nat
 idNat x = x
 
 contr_idNat :: Statement
-contr_idNat = idNat ::: CF :-> \x -> CF :&: (\y -> eq x y)
+contr_idNat = idNat ::: CF :-> \x -> CF :&: Pred (\y -> eq x y)
 --   $[contr| idNat ::: ( x ) -> ( y | eq x y )]
 
 contr_eq :: Statement
