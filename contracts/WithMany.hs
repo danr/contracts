@@ -13,8 +13,8 @@ withMany :: (a -> (b -> res) -> res)  -- withXXX combinator for one object
          -> ([b] -> res)              -- action on list of marshalled obj.s
          -> res
 withMany _       []     f = f []
-withMany withFoo (x:xs) f = withFoo x $ \x' ->
-                              withMany withFoo xs (\xs' -> f (x':xs'))
+withMany withFoo (x:xs) f = withFoo x (\x2 ->
+                              withMany withFoo xs (\xs2 -> f (x2:xs2)))
 
 -- This function is interesting because it has higher order depth 2
 
