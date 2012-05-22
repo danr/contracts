@@ -10,10 +10,9 @@ import Halt.ExprTrans
 import Halt.Common
 import Halt.Monad
 
+import Halt.FOL.Abstract
 
 import Control.Monad.Reader
-
-import Halt.FOL.Abstract
 
 trStatement :: Statement -> HaltM [VarClause]
 trStatement (Statement n v c) =
@@ -25,7 +24,7 @@ trPos :: CoreExpr -> Contract -> HaltM VarFormula
 trPos e c = case c of
     Pred p -> do
         p_tr <- trExpr p
-        return $ min' p_tr ==> (p_tr === fun0 trueDataConId
+        return $ min' p_tr ==> (p_tr === con trueDataConId
                              \/ p_tr === constant UNR)
     CF -> do
         e_tr <- trExpr e
@@ -41,7 +40,7 @@ trNeg :: CoreExpr -> Contract -> HaltM VarFormula
 trNeg e c = case c of
     Pred p -> do
         p_tr <- trExpr p
-        return $ min' p_tr /\ (p_tr === fun0 falseDataConId
+        return $ min' p_tr /\ (p_tr === con falseDataConId
                             \/ p_tr === constant BAD)
     CF -> do
         e_tr <- trExpr e
