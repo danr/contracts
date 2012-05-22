@@ -13,7 +13,7 @@ import Halt.Monad
 
 import Control.Monad.Reader
 
-import Halt.AbstractFOL hiding (App,And,CF)
+import Halt.FOL.Abstract
 
 trStatement :: Statement -> HaltM [VarClause]
 trStatement (Statement n v c) =
@@ -45,7 +45,7 @@ trNeg e c = case c of
                             \/ p_tr === constant BAD)
     CF -> do
         e_tr <- trExpr e
-        return $ min' e_tr /\ Neg (cf e_tr)
+        return $ min' e_tr /\ neg (cf e_tr)
     And c1 c2 -> (\/) <$> trNeg e c1 <*> trNeg e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
          l <- trPos (Var v) c1
