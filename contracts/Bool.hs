@@ -24,4 +24,4 @@ contr_not :: Statement
 contr_not = not ::: CF --> CF
 
 contr_imp :: Statement
-contr_imp = implies :: CF --> CF --> CF
+contr_imp = (==>) ::: CF --> CF --> CF

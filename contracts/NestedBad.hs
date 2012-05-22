@@ -4,7 +4,7 @@ import Contracts
 
 -- w is obviously bad
 w :: ()
-w = undefined
+w = error "bad!"
 
 -- v is not immediately bad, but it's not crash free
 v :: [()]
