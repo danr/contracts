@@ -719,8 +719,9 @@ $\sigma : \FVarCpo =>_c D_{\infty}$ we let:
 \[\begin{array}{rcll}
   \interp{x}{\sigma}{\rho} & = & \rho(x) \\ 
   \interp{f\;[\taus]}{\sigma}{\rho} & = & \sigma(f) \\
-  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll\;(\ret(\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle))) \\ 
-  \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle)
+  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll(\ret(\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle))) \\ 
+  \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle) \\ 
+  \interp{@BAD@}{\sigma}{\rho} & = & \roll(\ret(\inj{bad}1))
 \end{array}\]
 A small technical remark: we write this with pattern matching notation (instead of using $\pi_1$ for projecting 
 out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine, since $\times$ is not a lifted construction. 
