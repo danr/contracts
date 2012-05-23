@@ -1,0 +1,186 @@
+\RequirePackage{amsthm}
+\RequirePackage{amsfonts} 
+\RequirePackage{amssymb} 
+\RequirePackage{enumerate}
+% \RequirePackage{xspace}
+\RequirePackage{float}
+\RequirePackage{url}
+\RequirePackage{color} 
+\RequirePackage[x11names]{xcolor}
+\RequirePackage{cancel}
+\RequirePackage[normalem]{ulem}
+\RequirePackage{latexsym}
+\RequirePackage{mdwlist} 
+\RequirePackage{textcomp} % for \sim
+
+% Local packages
+\RequirePackage{code}
+\RequirePackage{prooftree}
+\RequirePackage{abbrev}
+
+% Hyperref
+\RequirePackage{hyperref}
+
+% Rename everything \autoref generates to just "Section"
+\def\sectionautorefname{Section}
+\def\subsectionautorefname{Section}
+\def\subsubsectionautorefname{Section}
+
+
+\newcommand{\text}[1]{\mbox{#1}}
+
+\newcommand{\reach}[2]{\widehat{#1}(#2)}
+\newcommand{\ftv}[2]{ftv^{#1}(#2)}
+
+\usepackage{color} 
+%% \newcommand{\color}[1]{}
+\newcommand{\kvar}{\chi}
+
+% \newcommand{\scf}{\sigma^\dagger}
+% \newcommand{\rcf}{\rho^\dagger}
+% \newcommand{\tcf}{\tau^\dagger}
+
+\def\fiddle#1{\hspace*{-0.8ex}\raisebox{0.1ex}{$\scriptscriptstyle#1$}}
+
+\usepackage{color}
+\newcommand{\highlight}[1]{\colorbox{yellow}{\ensuremath{#1}}}
+\newcommand{\formula}[1]{\colorbox{Azure1}{\ensuremath{#1}}}
+
+\hyphenation{light-weight}
+
+
+\newtheorem{theorem}{Theorem}[section]
+%% \newtheorem{proof}{Proof}[]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+%% bibliography guidelines 
+\usepackage{natbib}
+\bibpunct();A{},
+\let\cite=\citep
+
+\def\rulename#1{\textsc{#1}}
+\def\ruleform#1{\fbox{$#1$}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Floats
+
+%% \renewcommand{\textfraction}{0.1}
+%% \renewcommand{\topfraction}{0.95}
+%% \renewcommand{\dbltopfraction}{0.95}
+%% \renewcommand{\floatpagefraction}{0.8}
+%% \renewcommand{\dblfloatpagefraction}{0.8}
+
+%% \setlength{\floatsep}{16pt plus 4pt minus 4pt}
+%% \setlength{\textfloatsep}{16pt plus 4pt minus 4pt}
+
+% Figures should be boxed
+%    *** Uncomment the next two lines to box the floats *** 
+\floatstyle{boxed}
+\restylefloat{figure}
+
+% Keep footnotes on one page
+\interfootnotelinepenalty=10000 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Indentation
+\setlength{\parskip}{0.35\baselineskip plus 0.2\baselineskip minus 0.1\baselineskip}
+\setlength{\parsep}{\parskip}
+\setlength{\topsep}{0cm}
+\setlength{\parindent}{0cm}
+
+\renewcommand{\phi}{\varphi}
+
+\newcommand{\FC}{FC}
+\renewcommand{\FC}{F$_{\mathrm{C}}^{\uparrow}$}
+
+\newcommand{\E}{{\cal E}}
+\newcommand{\ol}[1]{\overline{#1}}
+\newcommand{\sym}[1]{\mathop{sym} #1}
+\newcommand{\bnd}{\mathop{bnd}}
+\newcommand{\cval}{\textsf{cv}}
+\newcommand{\nfval}{\textsf{nf}}
+\newcommand{\tval}{\textsf{tv}}
+\newcommand{\val}{\textsf{val}}
+\newcommand{\clift}[1]{\lfloor#1\rfloor}
+\newcommand{\lifting}[2]{[#1]{\uparrow}(#2)} 
+\newcommand{\erase}[2]{\{#2\}_{#1}}
+\newcommand{\nth}[2]{\mathop{nth} #1\;#2}
+\newcommand{\inst}[2]{#1[#2]}
+\newcommand{\refl}[1]{\langle#1\rangle}  % Reflexivity
+
+\newcommand{\tcase}[2]{\mathbf{case}\;#1\;\mathbf{of}\;\ol{#2}}
+\newcommand{\tlet}[4]{\mathbf{let}\;#1{:}#2 = #3\;\mathbf{in}\;#4}
+\newcommand{\tcast}[2]{#1\;\triangleright\;#2}
+\newcommand{\rsa}[1]{\rightsquigarrow_{#1}}
+\newcommand{\as}{\ol{a}}
+\newcommand{\bs}{\ol{b}}
+\newcommand{\cs}{\ol{c}}
+\newcommand{\ds}{\ol{d}}
+\newcommand{\es}{\ol{e}}
+\newcommand{\fs}{\ol{f}}
+\newcommand{\gs}{\ol{g}}
+
+\newcommand{\alphas}{\ol{\alpha}}
+\newcommand{\betas}{\ol{\beta}}
+\newcommand{\gammas}{\ol{\gamma}}
+\newcommand{\deltas}{\ol{\delta}}
+\newcommand{\epsilons}{\ol{\epsilon}}
+\newcommand{\zetas}{\ol{\zeta}}
+\newcommand{\etas}{\ol{\eta}}
+
+\newcommand{\phis}{\ol{\phi}}
+
+\newcommand{\sigmas}{\ol{\sigma}}
+\newcommand{\taus}{\ol{\tau}}
+
+\newcommand{\xs}{\ol{x}}
+
+\theoremstyle{plain} 
+\newtheorem{definition}{Definition}[section]
+
+
+\newcommand{\OK}[2]{#1 \vdash^{\fiddle{\sf{E}}} #2}
+\newcommand{\wfe}{\vdash^{\fiddle{\sf{E}}}}
+\newcommand{\wfco}{\vdash^{\fiddle{\sf{co}}}}
+\newcommand{\wftm}{\vdash^{\fiddle{\sf{tm}}}}
+\newcommand{\wfty}{\vdash^{\fiddle{\sf{ty}}}}
+\newcommand{\wfk}{\vdash^{\fiddle{\sf{k}}}}
+\newcommand{\unboxed}[1]{\mathop{unboxed}(#1)}
+%\newcommand{\Conid}[1]{\mathit{#1}}
+%\newcommand{\Varid}[1]{\mathit{#1}}
+
+\def\Tiny{ \font\Tinyfont = cmr10 at 1.0pt \relax  \Tinyfont}
+% \eqt:  Equality         s ~# t
+% \leqt: Lifted equalty   s ~ t
+%\newcommand{\psim}{\mathrel{\sim\!\text{\tiny\#}}}
+\newcommand{\psim}{\mathrel{\sim_\#}}
+%% lalala {\Tiny a\#} \stackrel{\Tiny \#}{\sim}}
+% \newcommand{\psim}{\sim^{\vspace{3pt}\hspace{-6pt}\t{\#}}}
+% \newcommand{\psim}{\approx}
+\newcommand{\lsim}{\sim}
+\newcommand{\peqt}[2]{#1 \psim #2}
+\newcommand{\leqt}[2]{#1 \sim  #2}
+
+
+\newcommand{\tmsubst}[3]{[#1{\mapsto}#2]^{\sf{tm}}(#3)}
+\newcommand{\cosubst}[3]{[#1{\mapsto}#2]^{\sf{co}}(#3)}
+\newcommand{\strict}[2]{\textsf{strict}(#1,#2)}
+\newcommand{\vexp}{\mathrel{val}}
+
+\newcommand{\static}{\textsf{$Constraint_{\#}$}}
+
+% Code formatting
+\newcommand{\ty}[1]{\mathit{#1}}
+\newcommand{\con}[1]{\mathit{#1}}
+\newcommand{\consym}[1]{\mathrel{\con{\mathord{#1}}}}
+\newcommand{\id}[1]{\mathit{#1}}
+\newcommand{\idsym}[1]{\mathrel{\id{\mathord{#1}}}}
+\newcommand{\tyid}[1]{\ty{#1}}
+\newcommand{\keyw}[1]{\mathbf{#1}}
+\newcommand{\tycon}[1]{\ty{#1}}
+\newcommand{\tyconsym}[1]{\mathrel{\tycon{\mathord{#1}}}}
+\newcommand{\tycls}[1]{\ty{#1}}
+\newcommand{\kind}[1]{\ty{#1}}
