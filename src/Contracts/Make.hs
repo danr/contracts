@@ -22,7 +22,6 @@ import Data.Maybe
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.Error
-import Control.Monad.Trans.Error (listMsg)
 import Control.Monad.State
 
 
@@ -68,7 +67,7 @@ write :: String -> MakerM ()
 write = tell . (:[])
 
 throw :: String -> MakerM a
-throw = throwError . listMsg
+throw = throwError . strMsg
 
 trimTyApp :: CoreExpr -> Maybe (CoreExpr,[CoreExpr])
 trimTyApp e@App{} = Just (second trimTyArgs (collectArgs e))
