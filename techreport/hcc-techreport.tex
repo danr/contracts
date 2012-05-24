@@ -727,14 +727,15 @@ A small technical remark: we write this with pattern matching notation (instead 
 out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine, since $\times$ is not a lifted construction. 
 
 Proceeding in the same way for $[\![u]\!]$ we get:
-\[\begin{array}{rcll}
+\[\setlength{\arraycolsep}{2pt}
+  \begin{array}{rcll}
   \interp{e}{\sigma}{\rho} & = & \multicolumn{2}{l}{\interp{e}{\sigma}{\rho}} \\ 
   \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} & = & \multicolumn{2}{l}{\roll(\bind_{g} (\unroll(\interp{e}{\sigma}{\rho})))} \\ \\ 
   \text{ where } g  & = & [ & h_{K_1} \\
                     &   & , & \ldots \\
                     &   & , & h_{K_k} \\
                     &   & , & \bot \\ 
-                    &   & , & \dlambda b @.@ \ret(b) \quad ] \\ 
+                    &   & , & \dlambda b @.@ \ret(b) \hspace{2pt} ] \\ 
               h_{K} & =  & \multicolumn{2}{l}{\dlambda d @.@ \unroll(\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}})} \\ 
                     &   & \multicolumn{2}{l}{\text{when } K \text{ is in the branches}} \\
               h_{K}  & = & \multicolumn{2}{l}{\bot } \\ 
@@ -761,7 +762,43 @@ Then
      \qquad \text{ else } \bot
 \end{array}\]
 
-Since $[\![D]\!]$ is continuous, its limit exists and is an element of the cpo $\FVarCpo =>_c D_{\infty}$.
+Since $[\![D]\!]$ is continuous, its limit exists and is an element of the cpo $\FVarCpo =>_c D_{\infty}$, 
+we will call this $\sigma_{D}$ in what follows.
+
+\begin{lemma}[Type irrelevance]
+It is the case that $\interp{u}{\sigma}{\rho} = \interp{u[\ol{\tau}/\as]}{\sigma}{\rho}$ 
+and $\interp{e}{\sigma}{\rho} = \interp{e[\ol{\tau}/\as]}{\sigma}{\rho}$.
+\end{lemma}
+\begin{proof} Straightforward induction. \end{proof}
+
+\begin{lemma}[Substitutivity]
+If $\Sigma;\Delta,x{:}\tau |- e : \tau$ and $\rho$ is a semantic environment 
+and $\Sigma;\Delta |- e' : \tau'$ then 
+\[ \interp{e}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{e[e'/x]}{\sigma}{\rho} \]
+and if $\Sigma;\Delta,x{:}\tau |- u : \tau$ then 
+\[ \interp{u}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{u[e'/x]}{\sigma}{\rho} \]
+\end{lemma}
+
+\begin{lemma}[Denotational semantics soundness]
+Assume $\Sigma |- D$. 
+\begin{itemize*} 
+  \item If $\Sigma;\cdot |- e : \tau$ and $D |- e \Downarrow v$ then $\interp{e}{\sigma_{D}}{\cdot} = \interp{v}{\sigma_{D}}{\cdot}$.
+  \item If $\Sigma;\cdot |- u : \tau$ and $D |- u \Downarrow v$ then $\interp{u}{\sigma_{D}}{\cdot} = \interp{v}{\sigma_{D}}{\cdot}$.
+\end{itemize*} 
+\end{lemma} 
+\begin{proof} The two statements are proved simultaneously by induction on the height of the evaluation derivation, making use
+of the type irrelevance lemma and substitutivity.
+\end{proof}
+
+\begin{lemma}[Computational adequacy]
+Assume $\Sigma |- D$ and $\Sigma;\cdot |- e : \tau$. Then, 
+if $\unroll \interp{e}{\sigma_D}{\cdot} = \ret(d)$ for some 
+element $d$ of $V_{\inf}$ then there exists a $v$ such 
+that $D |- e \Downarrow v$.
+\end{lemma}
+
+\begin{proof} {\bf TODO} \end{proof}
+
 
 
 %% \begin{lemma}[Evaluation preserves equality]
