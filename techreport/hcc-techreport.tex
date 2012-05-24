@@ -683,12 +683,12 @@ function on the appropriate cpo):
 We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as: 
 {\setlength{\arraycolsep}{2pt}
 \[\begin{array}{rcll}
-   \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \eval (\langle \bind_g (\unroll(\pi_1(d))), \pi_2(d) \rangle)} \\ 
-   \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c D_\infty \\
+   \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll(\bind_g (\unroll (\pi_1(d))))} \\
+   \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
                     &   &  , & \ldots \\
-                    &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c D_\infty \\
-                    &   &  , & \dlambda d @.@ d \\
-                    &   &  , & \dlambda b @.@ \dlambda d. \ret(b)\hspace{2pt} ] 
+                    &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
+                    &   &  , & \dlambda d' @.@ \unroll(d'(\pi_2(d))) \\
+                    &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ] 
 \end{array}\]}%
 where we have used notation $\langle , \rangle$ to introduce pairs. and $[\ldots]$ to eliminate ($n$-ary) sums.
 The projections $\pi_1$ and $\pi_2$ are the obvious continues projections from the binary product space of $D_{\infty}$. 
@@ -729,13 +729,13 @@ out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine, since $\ti
 Proceeding in the same way for $[\![u]\!]$ we get:
 \[\begin{array}{rcll}
   \interp{e}{\sigma}{\rho} & = & \multicolumn{2}{l}{\interp{e}{\sigma}{\rho}} \\ 
-  \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} & = & \multicolumn{2}{l}{\bind_{g} (\unroll(\interp{e}{\sigma}{\rho}))} \\ \\ 
+  \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} & = & \multicolumn{2}{l}{\roll(\bind_{g} (\unroll(\interp{e}{\sigma}{\rho})))} \\ \\ 
   \text{ where } g  & = & [ & h_{K_1} \\
                     &   & , & \ldots \\
                     &   & , & h_{K_k} \\
                     &   & , & \bot \\ 
                     &   & , & \dlambda b @.@ \ret(b) \quad ] \\ 
-              h_{K} & =  & \multicolumn{2}{l}{\dlambda d @.@ \interp{e_K}{\sigma}{\rho \uplus [\ol{y |-> \pi_i(d)}]}} \\ 
+              h_{K} & =  & \multicolumn{2}{l}{\dlambda d @.@ \unroll(\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}})} \\ 
                     &   & \multicolumn{2}{l}{\text{when } K \text{ is in the branches}} \\
               h_{K}  & = & \multicolumn{2}{l}{\bot } \\ 
                     &   & \multicolumn{2}{l}{\text{otherwise}}                  
