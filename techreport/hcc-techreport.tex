@@ -693,7 +693,7 @@ We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\in
 where we have used notation $\langle , \rangle$ to introduce pairs. and $[\ldots]$ to eliminate ($n$-ary) sums.
 The projections $\pi_1$ and $\pi_2$ are the obvious continues projections from the binary product space of $D_{\infty}$. 
 We use notation $\inj{K}$ to denote the continues map that injects some $\alpha$-ary product of $D_{\infty}$ into the sum $V_{\infty}$.
-We use notation $\inj{fun}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
+We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
 $\inj{bad}$ for the unit injection into $V_{\infty}$.
 
 
@@ -701,6 +701,8 @@ $\inj{bad}$ for the unit injection into $V_{\infty}$.
 \newcommand{\VarCpo}{\textit{Var}}
 \newcommand{\FVarCpo}{\textit{FunVar}}
 \newcommand{\interp}[3]{[\![#1]\!]_{\langle {#2},{#3}\rangle}}
+\newcommand{\dbrace}[1]{[\![#1]\!]}
+
 
 We have now defined the domain-theoretic language and combinators that we will use. 
 We proceed to give interpretations of terms and definitions. 
@@ -757,13 +759,14 @@ Then
    [\![D]\!]_{\sigma} f =  \\ 
      \qquad\text{ if } (f |-> \Lambda\as @.@ \lambda\oln{x:\tau}{n} @.@ u) \in D \\
      \qquad\text{ then } \\
-     \qquad\quad\quad \roll(\ret(\inj{fun}(\dlambda d_1 @.@ \ldots  \\
-     \qquad\quad\quad\quad \roll(\ret(\inj{fin}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})))\ldots))) \\
+     \qquad\quad\quad \roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
+     \qquad\quad\quad\quad \roll(\ret(\inj{->}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})))\ldots))) \\
      \qquad \text{ else } \bot
 \end{array}\]
 
 Since $[\![D]\!]$ is continuous, its limit exists and is an element of the cpo $\FVarCpo =>_c D_{\infty}$, 
-we will call this $\sigma_{D}$ in what follows.
+we will call this $\dbrace{D}^{\infty}$ in what follows.
+
 
 \begin{lemma}[Type irrelevance]
 It is the case that $\interp{u}{\sigma}{\rho} = \interp{u[\ol{\tau}/\as]}{\sigma}{\rho}$ 
@@ -782,24 +785,155 @@ and if $\Sigma;\Delta,x{:}\tau |- u : \tau$ then
 \begin{lemma}[Denotational semantics soundness]
 Assume $\Sigma |- D$. 
 \begin{itemize*} 
-  \item If $\Sigma;\cdot |- e : \tau$ and $D |- e \Downarrow v$ then $\interp{e}{\sigma_{D}}{\cdot} = \interp{v}{\sigma_{D}}{\cdot}$.
-  \item If $\Sigma;\cdot |- u : \tau$ and $D |- u \Downarrow v$ then $\interp{u}{\sigma_{D}}{\cdot} = \interp{v}{\sigma_{D}}{\cdot}$.
+  \item If $\Sigma;\cdot |- e : \tau$ and $D |- e \Downarrow v$ then $\interp{e}{\sigma_{D}}{\cdot} = \interp{v}{\dbrace{D}^{\infty}}{\cdot}$.
+  \item If $\Sigma;\cdot |- u : \tau$ and $D |- u \Downarrow v$ then $\interp{u}{\sigma_{D}}{\cdot} = \interp{v}{\dbrace{D}^{\infty}}{\cdot}$.
 \end{itemize*} 
 \end{lemma} 
 \begin{proof} The two statements are proved simultaneously by induction on the height of the evaluation derivation, making use
 of the type irrelevance lemma and substitutivity.
 \end{proof}
 
-\begin{lemma}[Computational adequacy]
+\subsection{Adequacy}
+The goal of this section is to prove the following lemma: 
+
+\begin{theorem}[Computational adequacy]
 Assume $\Sigma |- D$ and $\Sigma;\cdot |- e : \tau$. Then, 
-if $\unroll \interp{e}{\sigma_D}{\cdot} = \ret(d)$ for some 
+if $\unroll(\interp{e}{\dbrace{D}^{\infty}}{\cdot}) = \ret(d)$ for some 
 element $d$ of $V_{\inf}$ then there exists a $v$ such 
 that $D |- e \Downarrow v$.
+\end{theorem}
+
+To do this we define a {\em logical relation} first between semantics 
+and syntax. Let $Rel \subseteq D_\infty \times Expr$ be the space of 
+{\em admissible} and {\em equality-respecting} relations between 
+denotations and closed (non-necessarily well-typed) terms. Some explanations:
+\begin{itemize}
+  \item $R \in Rel$ is {\em admissible} iff whenever 
+  $R(d_i,e)$ for every element of a chain $d_1\ldots$ then also $R(\sqcup_{\omega}d_i,e)$. 
+  \item $R \in Rel$ is {\em equality-respecting} iff for every 
+  $R(d,e)$ and $d' = d$ (according to the equality on $D_{\infty}$) it also is
+  $R(d',e)$. 
+\end{itemize}
+
+Let use define the following bi-functor on the space of $Rel$ relations:
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{lcl}
+   F_{D}(R^{-},R^{+}) & = & \{ (d,e)\;\mid\;\forall \ol{d} @.@ \unroll(d) = \ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) ==> \\
+                   &   & \quad \exists \oln{e}{\ar} @.@ D |- e \Downarrow K_1[\taus](\ol{e}) \land (d_i,e_i) \in R^{+} \} \\ 
+                   & \cup & \ldots \\ 
+                   & \cup & \{ (d,e)\;\mid\;\forall d_0 @.@ \unroll(d) = \ret(\inj{->}(d_0)) ==> \\ 
+                   &   & \quad \exists v @.@ D |- e \Downarrow v \;\land \\ 
+                   &  & \quad\quad \forall (d',e') \in R^{-} @.@ (\dapp(d,d'),v\;e') \in R^{+} \}  \\
+                   & \cup & \{ (d,e)\;\mid\; \unroll(d) = \ret(\inj{bad}(1)) ==> \\ 
+                   &   & \quad D |- e \Downarrow @BAD@ \} 
+\end{array}\]}
+It is easy to confirm that this is indeed a bifunctor. Moreover the intersection of admissible relations
+is also admissible, so we may apply {\em minimal invariance} [Pitts, Freyd] to show that there exists a 
+unique fixpoint of this functor, call it $F_{D}^\infty$ and this fixpoint is isomorphic to $F_{D}(F_D^\infty,F_D^\infty)$.
+We proceed with some auxiliary lemmas about $F_{D}^\infty$. 
+
+\begin{lemma}\label{lem:bot-in-fix}
+$(\roll(\bot),e) \in F_{D}^\infty$. \end{lemma}
+
+\begin{lemma}\label{lem:eval-respecting}
+If $(d,e) \in F_{D}^\infty$ and $D |- e \Downarrow v$ then $(d,v) \in F_{D}^\infty$.
+Moreover, if $(d,v) \in F_{D}^\infty$ and $D |- e \Downarrow v$ then $(d,e) \in F_{D}^\infty$.
 \end{lemma}
+\begin{proof}
+For the first part, 
+if $(d,e) \in F_{D}^\infty$ then $(d,e) \in F_{D}(F_{D}^\infty,F_{D}^\infty)$. 
+By the definition of $F_{D}(\cdot,\cdot)$ and by rule \rulename{EVal} the 
+result follows. The second part is a similar case analysis.
+\end{proof}
 
-\begin{proof} {\bf TODO} \end{proof}
+\begin{lemma}[Fundamental theorem for expressions]\label{lem:fund-thm-exp}
+For all $\sigma$ such that $(\sigma(f),f\;[\taus]) \in F_D^\infty$ and 
+all $\rho$ and vectors of closed terms $\ol{e}$ such that $(\rho(x_i),e_i) \in F_D^\infty$ 
+and all $e$ with free variables in $\ol{x}$ it must be the case 
+that $(\interp{e}{\sigma}{\rho},e[\ol{e}/\ol{x}]) \in F_D^\infty$.
+\end{lemma}
+\begin{proof} The proof is by induction on $e$. 
+\begin{itemize}
+  \item Case $e = x_i$ for some $x_i \in \ol{x}$ follows by the assumptions.
+  \item Case $e = f\;[\taus]$ for some $f$ follows by assumptions.
+  \item Case $e = K^\ar[\taus](\oln{e'}{\ar})$. By induction hypothesis we 
+  have that for each $e'_i$ it is $(\interp{e'_i}{\sigma}{\rho},e'_i[\ol{e}/\ol{x}]) \in F_D^\infty$ and 
+  by using rule \rulename{EVal} we are done since 
+      \[ \interp{K^{\ar}[\taus](\oln{e'}{\ar})}{\sigma}{\rho} = \roll(\ret(\inj{K}(\langle\ol{\interp{e'_i}{\sigma}{\rho}}\rangle))) \]
+  \item Case $e = @BAD@$ follows by unfolding definitions.
+  \item Case $e = e_1\;e_2$. We need to show that
+     \[ (\interp{e_1\;e_2}{\sigma}{\rho},e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}]) \in F_D^\infty \] 
+  By induction hypothesis we have that 
+  \begin{eqnarray}
+     (\interp{e_1}{\sigma}{\rho},e_1[\ol{e}/\ol{x}]) \in F_D^\infty \label{eqn:e1} \\ 
+     (\interp{e_2}{\sigma}{\rho},e_2[\ol{e}/\ol{x}]) \in F_D^\infty \label{eqn:e2}
+  \end{eqnarray}
+  Equation~\ref{eqn:e1} gives four cases: First, if $\interp{e_1}{\sigma}{\rho} = \roll(\bot)$ then we 
+  are done since $\dapp(\bot,\_) = \roll(\bot)$ and $(\roll(\bot), e_1\;e_2) \in F_D^\infty$ by Lemma~\ref{lem:bot-in-fix}.
+  Second, if $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{K}(\langle\ol{d}\rangle)))$ for some constructor
+  $K$ then $\dapp(\interp{e_1}{\sigma}{\rho},\_) = \roll(\bot)$ and by similar reasoning as above we are done.
+  Third, if $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{bad}(1)))$ then it must be that $D |- e_1[\ol{e}/\ol{x}] \Downarrow @BAD@$ by
+  induction hypothesis, and by rule \rulename{EBadApp} we know that $D |- e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}] \Downarrow @BAD@$ hence, 
+  by Lemma~\ref{lem:eval-respecting} we are done. The final case is the interesting one, where
+  $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{->}(d_0)))$ in which case by induction hypothesis we know that 
+  $(d_0(\interp{e_2}{\sigma}{\rho}), v\;e_2[\ol{e}/\ol{x}]) \in F_D^\infty$ for $D |- e_1[\ol{e}/\ol{x}] \Downarrow v$. But we know that 
+  $v\;e_2[\ol{e}/\ol{x}]$ evaluates to a value {\em iff} $e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}]$ evaluates to a value and by 
+  Lemma~\ref{lem:eval-respecting} we are done.
+\end{itemize}
+\end{proof}
 
 
+\begin{lemma}[Fundamental theorem for top-level expressions]\label{lem:fund-thm-case}
+For all $\sigma$ such that $(\sigma(f),f\;[\taus]) \in F_D^\infty$ and 
+all $\rho$ and vectors of closed terms $\ol{e}$ such that $(\rho(x_i),e_i) \in F_D^\infty$ 
+and all $u$ with free variables in $\ol{x}$ it must be the case 
+that $(\interp{u}{\sigma}{\rho},u[\ol{e}/\ol{x}]) \in F_D^\infty$.
+\end{lemma}
+\begin{proof} By induction on $u$. If $u$ is a term $e$ then we are immediately done
+by Lemma~\ref{lem:fund-thm-exp}. If $u = @case@\;e\;@of@\;\ol{K\;\ys -> e'}$ then the 
+result follows by appealing to the induction hypothesis for $e$ and performing a case 
+analysis on $\interp{e}{\sigma}{\rho}$ -- in the interesting case we appeal further to
+Lemma~\ref{lem:fund-thm-exp} for a matching $e_K$ and the evaluation-respecting lemma, 
+Lemma~\ref{lem:eval-respecting}.
+\end{proof}
+
+Finally, for the recursive functions environment $D$ we prove the following.
+\begin{lemma} For any $f$, $(\dbrace{D}^\infty(f),f\;[\taus]) \in F_D^\infty$. \end{lemma}
+\begin{proof}
+Since $F_D^\infty$ is itself an {\em admissible} relation, we need only prove that:
+\[ \forall i @.@ \forall f @.@ (\dbrace{D}^i(f),f\;[\taus]) \in F_D^\infty \] 
+which we do by induction on $i$. For $i = 0$ we are immediately done by Lemma~\ref{lem:bot-in-fix}.
+Let us assume that the property is true for $i$. We must show it is true for $i+1$. That is, 
+we must show that $(\dbrace{D}^{i+1}(f),f\;[\taus]) \in F_D^\infty$. Hence, if $f$ has arity $n$, by
+the definition of $\dbrace{D}$ and the definition of the logical relation it is enough to show that
+for all $(\oln{d}{n},\oln{e}{n}) \in F_D^\infty$ it must be the case that 
+\[    (\interp{u}{\dbrace{D}^i}{\ol{x |-> d}}, u[\ol{e}/\ol{x}]) \in F_D^\infty \] 
+for $f |-> (\Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D$. But that follows by 
+Lemma~\ref{lem:fund-thm-case}, since by induction hypothesis it is the case that for 
+every $f$ we have $(\dbrace{D}^i(f),f\;[\ol{\tau}]) \in F_D^\infty$.
+\end{proof} 
+
+\begin{corollary}\label{cor:fund-thm-top}
+For every closed expression $e$ in $D$ (not-necessarily well-typed) we have that 
+$(\interp{e}{\dbrace{D}^\infty}{\cdot}, e) \in F_D^\infty$. 
+\end{corollary}
+
+From this corollary, adequacy follows by unfolding definitions.
+
+\begin{corollary}[Model-based-reasoning]
+If $\Sigma |- D$ and $\Sigma;\cdot |- e_1 : \tau$ and $\Sigma;\cdot |- e_2 : \tau$, 
+then for every closed $e$ such that $\Sigma |- D$ and $\Sigma;\cdot |- e : \tau -> Bool$,
+if $\interp{e_1}{\dbrace{D}^\infty}{\cdot} = \interp{e_2}{\dbrace{D}^\infty}{\cdot}$ then  
+$D |- e\;e_1 \Downarrow$ iff $D |- e\;e_2 \Downarrow$. 
+\end{corollary}
+\begin{proof}
+For one direction assume that $D |- e\;e_1 \Downarrow w$, hence by computational soundness it must be that 
+$\interp{e\;e_1}{\dbrace{D}^\infty}{\cdot} = \roll(\ret(d))$. By assumptions we must also 
+have that $\interp{e\;e_2}{\dbrace{D}^\infty}{\cdot} = \roll(\ret(d))$. By the fundamental theorem 
+we know that 
+\[ (\interp{e\;e_2}{\dbrace{D}^\infty}{\cdot}, e\;e_2) \in F_{D}^\infty \] 
+and hence $D |- e\;e_2 \Downarrow$. The other direction is symmetric.
+\end{proof}
 
 %% \begin{lemma}[Evaluation preserves equality]
 %% If $\Sigma;\cdot |- e : \tau \rightsquigarrow t$ and 
