@@ -388,7 +388,7 @@ semantics for contract satisfaction in the same figure.
   (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma
   \end{array}
   --------------------------------------{TFVar}
-  \etrans{\Sigma}{\Delta}{f[\oln{\tau}{n}]} = \formula{x_{f}}
+  \etrans{\Sigma}{\Delta}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
   ~~~~ 
   (x{:}\tau) \in \Delta 
   --------------------------------------{TVar}
@@ -575,7 +575,7 @@ In addition to contract translation we have an axiomatization in Figure~\ref{fig
                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
  \textsc{AxDisjC} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
- \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(x_f,\xs)} \\
+ \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D \\
  %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
  %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
@@ -584,13 +584,13 @@ In addition to contract translation we have an axiomatization in Figure~\ref{fig
  %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
  %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
  %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
- \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(x_f,\xs) \neq \unr} \\
-                  & \formula{\quad\land\; app(x_f,\xs) \neq \bad} \\
-                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(x_f,\xs) \neq K(\ol{y})} \\
+ \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+                  & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in D  \\
                   & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
-                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\ \\ 
  \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
  \textsc{AxCfB}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
@@ -692,7 +692,7 @@ We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\in
 \end{array}\]}%
 where we have used notation $\langle , \rangle$ to introduce pairs. and $[\ldots]$ to eliminate ($n$-ary) sums.
 The projections $\pi_1$ and $\pi_2$ are the obvious continues projections from the binary product space of $D_{\infty}$. 
-We use notation $\inj{K}$ to denote the continues map that injects some $\alpha$-ary product of $D_{\infty}$ into the sum $V_{\infty}$.
+We use notation $\inj{K}$ to denote the continuous map that injects some $\alpha$-ary product of $D_{\infty}$ into the sum $V_{\infty}$.
 We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
 $\inj{bad}$ for the unit injection into $V_{\infty}$.
 
@@ -797,9 +797,9 @@ of the type irrelevance lemma and substitutivity.
 The goal of this section is to prove the following lemma: 
 
 \begin{theorem}[Computational adequacy]
-Assume $\Sigma |- D$ and $\Sigma;\cdot |- e : \tau$. Then, 
-if $\unroll(\interp{e}{\dbrace{D}^{\infty}}{\cdot}) = \ret(d)$ for some 
-element $d$ of $V_{\inf}$ then there exists a $v$ such 
+Assume $\Sigma |- D$ and $\Sigma;\cdot |- e : \tau$. 
+If $\unroll(\interp{e}{\dbrace{D}^{\infty}}{\cdot}) = \ret(d)$ for some 
+element $d$ of $V_{\infty}$ then there exists a $v$ such 
 that $D |- e \Downarrow v$.
 \end{theorem}
 
@@ -988,6 +988,27 @@ and hence $D |- e\;e_2 \Downarrow$. The other direction is symmetric.
 %% $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} /\ \neg \phi$ is unsatisfiable then 
 %% $\neg (\Th{\Sigma}{D} /\ \phi_{\Sigma,D}) \lor \phi$ must be valid, and by completeness of FOL, 
 %% $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- \phi$.  
+
+\section{Denotational semantics as FOL models} 
+\newcommand{\linterp}[1]{{\cal I}(#1)}
+\newcommand{\lassign}[1]{\mu(#1)}
+
+For a given program $D$ and expression $e$, we will view the denotational 
+semantics $\dbrace{D}^{\infty}$ and $\interp{e}{\dbrace{D}^\infty}{\cdot}$ as first-order 
+logic {\em models}. We use the elements of $D_{\infty}$ as the underlying set. We define
+an interpretation of functions on the image of translation into FOL as: 
+\[\begin{array}{rcl}
+   \linterp{f^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \dapp(\dbrace{D}^{\infty}(f),\oln{\pi_i(d)}{i \in 1..\ar}) \\ 
+   \linterp{f_{ptr}}  & = & \dbrace{D}^{\infty}(f) \\ 
+   \linterp{app}     & = & \dapp \\ 
+   \linterp{K^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \roll(\ret(\inj{K}(d))) \\ 
+   \linterp{\sel{K}{i}} & = & \dlambda (d {:} D_{\infty}) @.@ \roll(\bind_g(\unroll(d))) \\ 
+     \text{where } g  & = & [\;\bot \\ 
+                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for constructor } K) \\ 
+                      &   & ,\;\bot \\ 
+                      &   & ,\;\ldots\\ 
+                      &   & ,\;\bot\; ]
+\end{array}\]
 
 
 \section{Induction and admissibility}
