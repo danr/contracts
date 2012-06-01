@@ -8,7 +8,7 @@ import Contracts.Types
 
 import Halt.PrimCon
 import Halt.ExprTrans
-import Halt.Common
+import Halt.Util
 import Halt.Monad
 
 import Halt.FOL.Abstract
