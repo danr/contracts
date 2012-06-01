@@ -2,6 +2,7 @@ module Contracts.Trans where
 
 import CoreSyn
 import TysWiredIn
+import Var
 
 import Contracts.Types
 
@@ -14,9 +15,10 @@ import Halt.FOL.Abstract
 
 import Control.Monad.Reader
 
-trStatement :: Statement -> HaltM [Clause']
-trStatement (Statement n v c) =
-    sequence [namedClause (show n) NegatedConjecture <$> trNeg (Var v) c]
+trStatement :: Statement -> HaltM ([Clause'],[Var])
+trStatement stm@(Statement n v c deps) = do
+    cls <- sequence [namedClause (show n) NegatedConjecture <$> trNeg (Var v) c]
+    return $ (comment (show stm):cls,deps)
 
 trPos :: CoreExpr -> Contract -> HaltM Formula'
 trPos e c = case c of
