@@ -20,7 +20,9 @@ data Statement = Statement
     { statement_name :: Var
     , statement_fun  :: Var
     , statement_con  :: Contract
+    , statement_deps :: [Var]
     }
 
 instance Show Statement where
-    show (Statement n f c) = show n ++ " = " ++ show f ++ " ::: " ++ show c
+    show (Statement n f c d) = show n ++ " = " ++ show f ++ " ::: " ++ show c
+                               ++ " (dependencies: " ++ unwords (map show d) ++ ")"

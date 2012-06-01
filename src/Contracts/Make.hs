@@ -10,6 +10,8 @@ import CoreSyn
 import Outputable
 import CoreSubst
 import UniqSupply
+import CoreFVs
+import UniqSet
 
 import Contracts.SrcRep
 import Contracts.Types
@@ -84,7 +86,9 @@ mkStatement v e = do
                 Just (Var f,[]) -> do write $ "Contract is really for " ++ show f ++ "."
                                       return f
                 _               -> throw $ "Invalid lhs of statement" ++ showExpr f_app
-            Statement v f <$> mkContract (Var f) c
+            contr <- mkContract (Var f) c
+            let deps = uniqSetToList (exprFreeVars e)
+            return $ Statement v f contr deps
         _ -> throw $ "Error: Invalid statement " ++ show v ++ "."
 
 mkContract :: CoreExpr -> CoreExpr -> MakerM Contract
