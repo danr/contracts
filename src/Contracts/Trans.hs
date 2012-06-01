@@ -14,13 +14,11 @@ import Halt.FOL.Abstract
 
 import Control.Monad.Reader
 
-trStatement :: Statement -> HaltM [VarClause]
+trStatement :: Statement -> HaltM [Clause']
 trStatement (Statement n v c) =
-    sequence [Clause NegatedConjecture (show n) <$> trNeg (Var v) c
-             -- ,FDecl Axiom (show n) <$> trPos (Var v) c
-             ]
+    sequence [namedClause (show n) NegatedConjecture <$> trNeg (Var v) c]
 
-trPos :: CoreExpr -> Contract -> HaltM VarFormula
+trPos :: CoreExpr -> Contract -> HaltM Formula'
 trPos e c = case c of
     Pred p -> do
         p_tr <- trExpr p
@@ -36,7 +34,7 @@ trPos e c = case c of
          r <- trPos (e `App` Var v) c2
          return $ forall' [v] (min' fx ==> (l \/ r))
 
-trNeg :: CoreExpr -> Contract -> HaltM VarFormula
+trNeg :: CoreExpr -> Contract -> HaltM Formula'
 trNeg e c = case c of
     Pred p -> do
         p_tr <- trExpr p
