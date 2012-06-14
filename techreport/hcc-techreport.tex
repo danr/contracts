@@ -63,6 +63,13 @@ the top-level and (iii) case expressions can only occur at top level. It is easy
 Haskell to this intermediate form, which simplifies our translation and formal metatheory. The 
 syntax of the language is given in Figure~\ref{fig:syntax}. 
 
+We also define an erasure on $\Delta$ which gives $\Gamma$ environments, $\Delta^{-} = \Gamma$ below:
+\[\begin{array}{lrll}
+(\cdot)^{-}            & = & \cdot \\
+(\Delta,a)^{-}         & = & \Delta^{-} \\
+(\Delta,(x{:}\tau)^{-} & = & \Delta^{-},x 
+\end{array}\]
+
 \newcommand{\ar}{\alpha}
 
 \begin{figure}\small
@@ -95,6 +102,7 @@ dec & ::= & @data@\;T\;\ol{a} = \ol{K\;\taus}
 \end{array}\\ \\ 
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Type environments and signatures}} \\
+\Gamma & ::=  & \cdot \mid \Gamma,x \\
 \Delta & ::=  & \cdot \mid \Delta,a \mid \Delta,x{:}\tau \\
 \Sigma & ::=  & \cdot \mid \Sigma,T{:}n \mid \Sigma,f{:}\forall\ol{a} @.@ \tau \mid \Sigma,K^{\ar}{:}\forall\ol{a} @.@ \oln{\tau}{\ar} -> @T@\;\as
 \end{array}\\ \\
@@ -116,7 +124,7 @@ constrs(\Delta,T) & = & \{ K \mid (K{:}\forall \as @.@ \taus -> T\;\as) \in \Del
   & \mid &  (x{:}\Ct_1) -> \Ct_2        & \text{Arrow contracts} \\ 
   & \mid & \Ct_1 \& \Ct_2               & \text{Conjunctions}    \\ 
   & \mid & \CF                          & \text{Crash-freedom}  \\
-\end{array}
+\end{array} \\
 \end{array}\]
 \caption{Syntax}\label{fig:syntax}
 \end{figure}
@@ -294,9 +302,6 @@ If $P |- e \Downarrow w$ then $P |- value(w)$ and $\Sigma;\cdot |- w : \tau$.
 \newcommand{\utrans}[3]{{\cal U}[\![#3]\!]_{#2}^{#1}}
 \newcommand{\dtrans}[2]{{\cal D}[\![#2]\!]^{#1}}
 \newcommand{\Dtrans}[2]{{\cal D}[\![#2]\!]^{#1}}
-
-
-\section{Basic facts about operational semantics}
 %% Gadgets of domain theory 
 \newcommand{\roll}{\mathsf{roll}}
 \newcommand{\unroll}{\mathsf{unroll}}
@@ -804,52 +809,52 @@ and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
 
 \begin{figure}\small
 \[\begin{array}{c} 
-\ruleform{\etrans{\Sigma}{\Delta}{e} = \formula{t} } \\ \\
+\ruleform{\etrans{\Sigma}{\Gamma}{e} = \formula{t} } \\ \\
 \prooftree
   \begin{array}{c}
   (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma
   \end{array}
   --------------------------------------{TFVar}
-  \etrans{\Sigma}{\Delta}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
+  \etrans{\Sigma}{\Gamma}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
   ~~~~ 
-  (x{:}\tau) \in \Delta 
+  x \in \Gamma 
   --------------------------------------{TVar}
-  \etrans{\Sigma}{\Delta}{x} = \formula{x}
+  \etrans{\Sigma}{\Gamma}{x} = \formula{x}
   ~~~~~ 
   \begin{array}{c}
   (K{:}\forall\oln{a}{n} @.@ \ol{\tau} -> T\;\as) \in \Sigma \quad
-  \ol{\etrans{\Sigma}{\Delta}{e} = \formula{t}}
+  \ol{\etrans{\Sigma}{\Gamma}{e} = \formula{t}}
   \end{array}
   --------------------------------------{TCon}
-  \etrans{\Sigma}{\Delta}{K[\oln{\tau}{n}](\ol{e})} = \formula{K(\ol{t})}
+  \etrans{\Sigma}{\Gamma}{K[\oln{\tau}{n}](\ol{e})} = \formula{K(\ol{t})}
   ~~~~~
-  \phantom{\Delta}
+  \phantom{\Gamma}
   --------------------------------------{TBad}
-  \etrans{\Sigma}{\Delta}{@BAD@} = \formula{\bad}
+  \etrans{\Sigma}{\Gamma}{@BAD@} = \formula{\bad}
   ~~~~
-  \etrans{\Sigma}{\Delta}{e_1} = \formula{t_1} \quad 
-  \etrans{\Sigma}{\Delta}{e_2} = \formula{t_2}
+  \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \quad 
+  \etrans{\Sigma}{\Gamma}{e_2} = \formula{t_2}
   --------------------------------------{TApp}
-  \etrans{\Sigma}{\Delta}{e_1\;e_2} = \formula{app(t_1,t_2)}
+  \etrans{\Sigma}{\Gamma}{e_1\;e_2} = \formula{app(t_1,t_2)}
 \endprooftree \\ \\ 
-\ruleform{\utrans{\Sigma}{\Delta}{t \sim u} = \formula{\phi}} \\ \\ 
+\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
 \prooftree
-   \etrans{\Sigma}{\Delta}{e} = \formula{t}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
    ----------------------------------------{TUTm}
-   \utrans{\Sigma}{\Delta}{s \sim e } = \formula{s = t} 
+   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{s = t} 
    ~~~~~
   \begin{array}{l}
-  \etrans{\Sigma}{\Delta}{e} = \formula{t} \quad
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
   constrs(\Sigma,T) = \ol{K} \\
   \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
   \begin{array}{l}
            (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
-           \etrans{\Sigma}{\Delta,\ol{y{:}\sigma[\taus/\cs]}}{e'} = \formula{ t_K }
+           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
   \end{array}
   \end{array}
   ------------------------------------------{TUCase}
   \begin{array}{l}
-  \utrans{\Sigma}{\Delta}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
+  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
   \;\;\formula{ \begin{array}{l} (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
@@ -861,14 +866,14 @@ and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
 \prooftree
      \begin{array}{l}       
        \text{for each} (f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\ 
-          \quad \utrans{\Sigma}{\as,\ol{x{:}\tau}}{f(\ol{x}) \sim u} = \formula{\phi}
+          \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
      \end{array}
      --------------------{TDefs}
-     \Dtrans{\Sigma}{P} = \formula{\phi}
+     \Dtrans{\Sigma}{P} = \formula{\forall \ol{x} @.@ \phi}
 \endprooftree 
 
 \end{array}\]
-\caption{Typed elaboration to FOL terms}\label{fig:etrans}
+\caption{Well-scoped elaboration to FOL terms}\label{fig:etrans}
 \end{figure}
 
 %% \begin{figure}\small
@@ -910,70 +915,70 @@ and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
 
 \begin{figure}\small
 \[\begin{array}{c} 
-\ruleform{\ctrans{\Sigma}{\Delta}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
 \prooftree
   \begin{array}{c}
-   \etrans{\Sigma}{\Delta}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Delta,(x{:}\tau)}{e'} = \formula{t'}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
   \end{array}
   ------------------------------------------{CTransBase}
   \begin{array}{l}
-   \ctrans{\Sigma}{\Delta}{e \in \{(x{:}\tau) \mid e' \}} = \\
-  %% \Sigma;\Delta |- e \in \{(x{:}\tau \mid e' \}
+   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
+  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
   \;\;\formula{(t{=}\unr) \lor (t'[t/x] = \unr) \lor (t'[t/x] = \True)}
   \end{array}
   ~~~~~ 
   \begin{array}{c}
-  \ctrans{\Sigma}{\Delta,(x{:}\tau)}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-  \ctrans{\Sigma}{\Delta,(x{:}\tau)}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
   \end{array} 
   ------------------------------------------{CTransArr}
   \begin{array}{l} 
-  \ctrans{\Sigma}{\Delta}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
   \formula{\forall x @.@ \neg \phi_1 \lor \phi_2} 
   \end{array}
   ~~~~~
   \begin{array}{c}
-  \ctrans{\Sigma}{\Delta}{e \in \Ct_1} = \formula{ \phi_1} \quad
-  \ctrans{\Sigma}{\Delta}{e \in \Ct_2} = \formula{ \phi_2}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
   \end{array}
   ------------------------------------------{CTransConj}
-  \ctrans{\Sigma}{\Delta}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
   ~~~~~
-  \etrans{\Sigma}{\Delta}{e} =  \formula{t}
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
   -------------------------------------------{CTransCf}
-  \ctrans{\Sigma}{\Delta}{e \in \CF} = \formula{\lcf{t}}
+  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\lcf{t}}
  \endprooftree 
 %% \\ \\ 
-%% \ruleform{\Sigma;\Delta |- e \notin \Ct \elab{ \phi} } \\ \\
+%% \ruleform{\Sigma;\Gamma |- e \notin \Ct \elab{ \phi} } \\ \\
 %% \prooftree
 %%   \begin{array}{c}
-%%    \Sigma;\Delta |- e : \tau \elab{ t}  \quad
-%%    \Sigma;\Delta,(x{:}\tau) |- e' : \Bool \elab{ t'}
+%%    \Sigma;\Gamma |- e : \tau \elab{ t}  \quad
+%%    \Sigma;\Gamma,(x{:}\tau) |- e' : \Bool \elab{ t'}
 %%   \end{array}
 %%   ------------------------------------------{CNTransBase}
 %%   \begin{array}{l}
-%%   \Sigma;\Delta |- e \notin \{(x{:}\tau) \mid e' \} 
+%%   \Sigma;\Gamma |- e \notin \{(x{:}\tau) \mid e' \} 
 %%   \elab{(t'[t/x] = \bad) \lor (t'[t/x] = \False)}
 %%   \end{array}
 %%   ~~~~~ 
 %%   \Sigma;\cdot |- \Ct_1 : \tau
 %%   ------------------------------------------{CNTransArr}
 %%   \begin{array}{l} 
-%%   \Sigma;\Delta |- e \notin (x{:}\Ct_1) -> \Ct_2 
-%%   \elab{\exists x @.@ (\Sigma;\Delta,(x{:}\tau) |- x \in \Ct_1) /\ (\Sigma;\Delta,(x{:}\tau) |- e\;x \notin \Ct_2)}
+%%   \Sigma;\Gamma |- e \notin (x{:}\Ct_1) -> \Ct_2 
+%%   \elab{\exists x @.@ (\Sigma;\Gamma,(x{:}\tau) |- x \in \Ct_1) /\ (\Sigma;\Gamma,(x{:}\tau) |- e\;x \notin \Ct_2)}
 %%   \end{array}
 %%   ~~~~~
 %%   \begin{array}{c}
-%%   \Sigma;\Delta |- e \notin \Ct_1 \elab{ \phi_1} \quad
-%%   \Sigma;\Delta |- e \notin \Ct_2 \elab{ \phi_2}
+%%   \Sigma;\Gamma |- e \notin \Ct_1 \elab{ \phi_1} \quad
+%%   \Sigma;\Gamma |- e \notin \Ct_2 \elab{ \phi_2}
 %%   \end{array}
 %%   ------------------------------------------{CNTransConj}
-%%   \Sigma;\Delta |- e \notin \Ct_1 \& \Ct_2 \elab{ \phi_1 \lor \phi_2}
+%%   \Sigma;\Gamma |- e \notin \Ct_1 \& \Ct_2 \elab{ \phi_1 \lor \phi_2}
 %%   ~~~~
-%%   \Sigma;\Delta |- e : \tau \elab{ t}
+%%   \Sigma;\Gamma |- e : \tau \elab{ t}
 %%   -------------------------------------------{CNTransCf}
-%%   \Sigma;\Delta |- e \notin \CF \elab{ \lncf{t}}
+%%   \Sigma;\Gamma |- e \notin \CF \elab{ \lncf{t}}
 %%  \endprooftree
 \end{array}\]
 \caption{Baseline contract elaboration}\label{fig:typing}
@@ -1043,11 +1048,33 @@ If $\Sigma |- P$ then we have that $\langle D_{\infty},{\cal I}\rangle \models \
 \end{theorem} 
 \begin{proof} It is straightforward to confirm that every axiom in $\Th{\Sigma}{P}$ is true in the model. \end{proof}
 
-\subsection{Crash-freedom}\label{sect:cf}
+
+\subsection{Definitions}\label{sect:defs} 
+
+It is straightforward unfolding of definitions to show that:
+
+\begin{theorem}
+If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
+\end{theorem}
+
+
+\subsection{Contract satisfaction and crash-freedom}\label{sect:cf}
 \newcommand{\Fcf}{F_{\lcfZ}} 
 
-Ideally we would like to define crash-freedom using the following strict bifunctor on 
-admissible sets $S^{-},S^{+} \subseteq D_{\infty}$.
+We would like to define a set of contract-satisfying denotations and also a set of contract-satisfying terms, 
+characterized by $P |- e \in \Ct$, such that the following claim becomes true:
+
+\begin{proposition} Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
+Then: $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \Ct}$ iff $P |- e \in \Ct$.
+\end{proposition}
+
+Now there are several problems with coming up with a good definition of $P |- e \in \Ct$, 
+which we elaborate in the following sections.
+
+\subsubsection{Problem I: Crash-freedom} 
+
+Ideally we would like to define crash-freedom {\em semantically} using the following 
+strict bifunctor on admissible sets $S^{-},S^{+} \subseteq D_{\infty}$.
 {\setlength{\arraycolsep}{2pt}
 \[\begin{array}{rcl}
    F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad}(1))\;\land\; \\ 
@@ -1097,7 +1124,6 @@ must be that $d \in G_{\lcfZ}^{min}$. This means that the two fixpoints coincide
 hence there is only a unique fixpoint of $G_{\lcfZ}$, call it $G_{\lcfZ}^\infty$.
 \end{proof} 
 
-
 Now, we would like to define operationally the set of {\em crash-free} terms as a set $\Ecf$ of 
 closed terms that satisfies:
 {\setlength{\arraycolsep}{2pt}
@@ -1135,12 +1161,10 @@ fixpoint of $G_{\lcfZ}$ and since there is only one such fixpoint, this is uniqu
 %% $\interp{e}{\dbrace{P}^\infty}{\cdot} = \interp{e'}{\dbrace{P}^\infty}{\cdot}$ 
 %% \end{proof} 
 
-
 Let us extend the interpretation function above $\linterp{\cdot}$ so that: 
 \[\begin{array}{rcl}
    \linterp{\lcfZ}  & = & G_{\lcfZ}^{\infty} 
 \end{array}\]
-
 
 \begin{theorem}
 If $\Sigma |- P$ then we have that $\langle D_{\infty},{\cal I}\rangle \models \Th{\Sigma}{P}^{\lcfZ}$.
@@ -1148,108 +1172,148 @@ If $\Sigma |- P$ then we have that $\langle D_{\infty},{\cal I}\rangle \models \
 
 Notice that the axiom:
 \[  \textsc{AxCfC}  \quad \formula{\forall x y @.@ \lcf{x} /\ \lcf{y} => \lcf{app(x,y)}} \]
-is {\em not validated} by this interpretation of crash-freedom we have given.
+is {\em not validated} by this interpretation of crash-freedom we have given. 
 
 
-Finally we have the following:
-\begin{theorem}
-If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
-\end{theorem}
+\subsubsection{Problem II: the absense of full-abstraction}
 
-\section{Contract checking soundness} 
+Unfortunately higher-orderness bites again. Having defined the set $\Ecf$ we might define formally
+the predicate $P |- e \in \Ct$ where $fv(e) \subseteq dom(P)$ and $fv(\Ct) \subseteq dom(P)$ as 
+follows:
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{lcl}
+    P |- e \in \{ x\;\mid\;e_p\} & <=> & P |- e \not\Downarrow \text{ or } P |- e_p[e/x] \not\Downarrow \text{ or} \\ 
+                                 &     & P |- e_p[e/x] \Downarrow True \\
+    P |- e \in (x{:}\Ct_1) -> \Ct_2 & <=> & 
+                                 \text{for all } P' e' \text{ s.t. } fv(e') \subseteq dom(P{\uplus}P')  \\ 
+                                   &   &  \text{it is } P\uplus P' |- e\;e' \in \Ct_2[e'/x] \\
+    P |- e \in \Ct_1 \& \Ct_2 & <=> & P |- e \in \Ct_1 \text{ and } P |- e \in \Ct_2 \\
+    P |- e \in \CF            & <=> & e \in \Ecf 
+\end{array}\]}
 
-\section{Contracts}
+Note we made the definition above well-scoped but not necessarily well-typed; let's ignore that for now (making everything
+well-typed includes extra difficulties in the proof but hopefully not surmountable).
 
-The syntax that we use for contracts is in Figure~\ref{fig:contract-syntax}. 
-Contracts are typed (here, just monomorphically), and we give an operational 
-semantics for contract satisfaction in the same figure. 
+The interesting case is the case for arrow contracts, where we have extended the set of definitions $P$ with more 
+definitions $P'$ -- that is to allow for tests $e'$ which can have arbitrary computational power, and not only those
+that can be constructed in the current environment. That is expected the way we have set up things, so let us examine
+what happens when we try to prove the proposition below:
 
-\begin{figure*}\small
-\[\begin{array}{c} 
-\ruleform{\Sigma;\Delta |- \Ct } \\ \\ 
-\prooftree
-\Sigma;\Delta,x{:}\tau |- e : \Bool
----------------------------------------{TCBase}
-\Sigma;\Delta |- \{ (x{:}\tau) \mid e \} : \tau
-~~~~ 
-\begin{array}{c}
-\Sigma;\Delta |- \Ct_1 : \tau \\
-\Sigma;\Delta,(x{:}\tau) |- \Ct_2 : \tau' 
-\end{array}
----------------------------------------{TCArr}
-\Sigma;\Delta |- (x{:}\Ct_1) -> \Ct_2 : \tau -> \tau'
-~~~~ 
-\Sigma;\Delta |- \Ct_1 : \tau \quad \Sigma;\Delta |- \Ct_2 : \tau 
----------------------------------------{TCConj}
-\Sigma;\Delta |- \Ct_1 \& \Ct_2 : \tau
-~~~~ 
-\phantom{\Gamma}
----------------------------------------{TCf}
-\Sigma;\Delta |- \CF : \tau
-\endprooftree \\ \\ 
-\ruleform{\Sigma;P |- e \in \Ct} \\ \\
-\prooftree
- P \not|- e \Downarrow 
------------------------------------------------{ECDiv}
- \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \}
- ~~~~
- P |- e'[e/x] \Downarrow \True 
--------------------------------------------{ECTrue}
- \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \}
- ~~~~
- P \not|- e'[e/x] \Downarrow 
- ------------------------------------------{ECCDiv}
- \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \} 
- ~~~~~
- \begin{array}{c} 
- \Sigma;\cdot |- \Ct_1 : \tau \\
- \text{for all } u, \Sigma;\cdot |- u : \tau ==> \Sigma;P |- e\;u \in \Ct_2[u/x]
- \end{array}
- --------------------------------------------{ECArr}
- \Sigma;P |- e \in (x{:}\Ct_1) -> \Ct_2 
- ~~~~
- \begin{array}{c}
- \Sigma,\cdot |- e : \tau  \\ 
- e \in \Ecf \quad \text{(See Section~\ref{sect:cf})}
- %% \text{for all } u, (\Sigma;\cdot |- u : \tau -> \Bool) /\ (@BAD@ \notin u) ==> \neg (P |- u\;e \Downarrow @BAD@)
- \end{array}
- --------------------------------------------------------------------------------------------{ECf}
- \Sigma;P |- e \in \CF 
- ~~~~~ 
- \Sigma;P |- e \in \Ct_1 \quad \Sigma;P |- e \in \Ct_2
- --------------------------------------------------------------------------------------------{ECConj}
- \Sigma;P |- e \in \Ct_1 \& \Ct_2
-\endprooftree
-\end{array}\]
-\caption{Contract syntax and semantics}\label{fig:contract-syntax}
-\end{figure*}
+\begin{proposition} Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
+Then: $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \Ct}$ iff $P |- e \in \Ct$.
+\end{proposition}
+
+{\flushleft{\em Failed proof}:}
+The base case and the case of $\CF$ follow from computational adequacy so we are good. However
+let's try to prove the arrow case and in particular the $(<=)$ direction. 
+
+Let us assume that for all $P'$ and $e'$ such that $fv(e') \subseteq dom(P\uplus P')$ it is the case that
+$P |- e\;e' \in \Ct_2[e'/x]$. We need to show that $\langle D_\infty,{\cal I}\rangle$ is a model of the 
+formula $\forall x. \ctrans{\Sigma}{x}{x \in \Ct_1} => \ctrans{\Sigma}{x}{e\;x \in \Ct_2}$. Let us fix
+a denotation $d \in D_{\infty}$ and let us assume 
+that $\langle D_{\infty},{\cal I} \rangle \models \ctrans{\Sigma}{x}{x \in \Ct_1}[d/x]$. However, this does not 
+necessarily mean that we can find a closed $e'$ and $P'$, such 
+that $\interp{e'}{\dbrace{P{\uplus}P'}^\infty}{\cdot} = d$ to be able to use the assumptions, unless some sort
+of full-abstraction property is true. So we are stuck.
+
+Now it may be the case that for all denotations that semantically satisfy a contract, these denotations {\em are} 
+realizable by a term $e'$ and a context $P'$ but it is not entirely clear how to prove this (or if this is a good
+idea). I am not sure if this is true either.
+
+The other idea out of this situation is to compile the arrow contract differently by not quantifying over all 
+denotations but rather some kind of {\em definable} denotations -- but I do not know how exactly to do this.
 
 
 
+%% \newpage
 
-\begin{lemma} Assume that $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau$. 
-If $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \Ct}$ then 
-$\Sigma;P |- e \in \Ct$. 
-\end{lemma} 
+%% \section{Contract checking soundness} 
+
+%% \section{Contracts}
+
+%% The syntax that we use for contracts is in Figure~\ref{fig:contract-syntax}. 
+%% Contracts are typed (here, just monomorphically), and we give an operational 
+%% semantics for contract satisfaction in the same figure. 
+
+%% \begin{figure*}\small
+%% \[\begin{array}{c} 
+%% \ruleform{\Sigma;\Gamma |- \Ct } \\ \\ 
+%% \prooftree
+%% \Sigma;\Delta,x{:}\tau |- e : \Bool
+%% ---------------------------------------{TCBase}
+%% \Sigma;\Delta |- \{ (x{:}\tau) \mid e \} : \tau
+%% ~~~~ 
+%% \begin{array}{c}
+%% \Sigma;\Delta |- \Ct_1 : \tau \\
+%% \Sigma;\Delta,(x{:}\tau) |- \Ct_2 : \tau' 
+%% \end{array}
+%% ---------------------------------------{TCArr}
+%% \Sigma;\Delta |- (x{:}\Ct_1) -> \Ct_2 : \tau -> \tau'
+%% ~~~~ 
+%% \Sigma;\Delta |- \Ct_1 : \tau \quad \Sigma;\Delta |- \Ct_2 : \tau 
+%% ---------------------------------------{TCConj}
+%% \Sigma;\Delta |- \Ct_1 \& \Ct_2 : \tau
+%% ~~~~ 
+%% \phantom{\Gamma}
+%% ---------------------------------------{TCf}
+%% \Sigma;\Delta |- \CF : \tau
+%% \endprooftree \\ \\ 
+%% \ruleform{\Sigma;P |- e \in \Ct} \\ \\
+%% \prooftree
+%%  P \not|- e \Downarrow 
+%% -----------------------------------------------{ECDiv}
+%%  \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \}
+%%  ~~~~
+%%  P |- e'[e/x] \Downarrow \True 
+%% -------------------------------------------{ECTrue}
+%%  \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \}
+%%  ~~~~
+%%  P \not|- e'[e/x] \Downarrow 
+%%  ------------------------------------------{ECCDiv}
+%%  \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \} 
+%%  ~~~~~
+%%  \begin{array}{c} 
+%%  \Sigma;\cdot |- \Ct_1 : \tau \\
+%%  \text{for all } u, \Sigma;\cdot |- u : \tau ==> \Sigma;P |- e\;u \in \Ct_2[u/x]
+%%  \end{array}
+%%  --------------------------------------------{ECArr}
+%%  \Sigma;P |- e \in (x{:}\Ct_1) -> \Ct_2 
+%%  ~~~~
+%%  \begin{array}{c}
+%%  \Sigma,\cdot |- e : \tau  \\ 
+%%  e \in \Ecf \quad \text{(See Section~\ref{sect:cf})}
+%%  %% \text{for all } u, (\Sigma;\cdot |- u : \tau -> \Bool) /\ (@BAD@ \notin u) ==> \neg (P |- u\;e \Downarrow @BAD@)
+%%  \end{array}
+%%  --------------------------------------------------------------------------------------------{ECf}
+%%  \Sigma;P |- e \in \CF 
+%%  ~~~~~ 
+%%  \Sigma;P |- e \in \Ct_1 \quad \Sigma;P |- e \in \Ct_2
+%%  --------------------------------------------------------------------------------------------{ECConj}
+%%  \Sigma;P |- e \in \Ct_1 \& \Ct_2
+%% \endprooftree
+%% \end{array}\]
+%% \caption{Contract syntax and semantics}\label{fig:contract-syntax}
+%% \end{figure*}
 
 
 
 
 
 
-\section{Induction and admissibility}
-{\bf TODO} 
+
+%% \section{Induction and admissibility}
+%% {\bf TODO} 
 
 
-\section{Minimization}
-{\bf TODO} 
+%% \section{Minimization}
+%% {\bf TODO} 
 
-\section{Some ideas}
-Sometimes the $\CF$ contract stands in our way e.g. for library stuff. It might 
-be interesting to explore some user-defined pragma to side-step the $\bad$ case
-in some pattern matches (i.e. make it on demand, pretty much as $F^{\star}$ does, where
-only the user's assertions matter.
-%% \acks
-%% Acknowledgements here
+%% \section{Some ideas}
+%% Sometimes the $\CF$ contract stands in our way e.g. for library stuff. It might 
+%% be interesting to explore some user-defined pragma to side-step the $\bad$ case
+%% in some pattern matches (i.e. make it on demand, pretty much as $F^{\star}$ does, where
+%% only the user's assertions matter.
+%% %% \acks
+%% %% Acknowledgements here
 
 \end{document}
