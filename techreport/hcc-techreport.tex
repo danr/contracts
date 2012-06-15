@@ -1240,23 +1240,60 @@ we may define the following:
 \end{array}\]}
 Notice that the difference with the previous version of $P |- e \in \Ct$ is that we {\em do not} extend the 
 definitions $P'$ so we don't get the full power of higher-order tests. We show that {\em in the current signature
-only} does the program satisfies the contract. 
+only} does the program satisfy the contract. 
 
-\newcommand{\definable}[1]{{\mathop{definable}}_P(#1)}
+\newcommand{\definable}[1]{{\mathop{def}}(#1)}
 
 Why did we do this change? Because denotationally this is not terribly hard to support -- instead of translating 
 \[\begin{array}{l}
-  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = \\ 
-  \quad \forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} =  
+  \formula{\forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
 \end{array}\] 
 we use the following:
 \[\begin{array}{l}
   \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = \\ 
-  \quad \forall x @.@ \definable{x} \land \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}
+  \qquad\qquad\quad 
+\formula{\forall x @.@ \definable{x} \land \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
 \end{array}\] 
 where $\definable{x}$ could be axiomatized as containing all terms 
-made up of the functions in $P$, applications, data constructors 
-and @BAD@. 
+made up of the functions in $P$, applications, and data constructors:
+
+\[\begin{array}{lll} 
+ \textsc{DefCons} & \formula{\forall \xs @.@ \definable{K(\xs)} <=> \definable{\xs}} \\
+                        & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{DefFun}  & \formula{\definable{f_{ptr}}}  \\
+                        & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+ \textsc{DefApp}  & \formula{\forall x y @.@ \definable{x}\land\definable{y} => \definable{app(x,y)}}
+%% \formula{\bad \neq \unr}  \\ 
+%%  \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
+%%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+%%                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+%%  \textsc{AxDisjC} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
+%%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+%%  \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+%%                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+%%  %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+%%  %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+%%  \textsc{AxAppC}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ \\
+%%  %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+%%  %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+%%  %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+%%  %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+%%  \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+%%                   & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+%%                   & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+%%                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
+%%                   & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
+%%  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+%%                   & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+%% \end{array} \\
+%% \ruleform{\Th{\Sigma}{P}^{\lcfZ}} \\ \\ 
+%% \begin{array}{lll} 
+%%  \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+%%  \textsc{AxCfB}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+%%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
+\end{array}\]
+
 
 In the model, $\definable{\cdot}$ should be possible to define, as a
 predicate on denotations. The disadvantage to this approach is that
@@ -1264,7 +1301,8 @@ arrow contracts will only hold for whatever is in your context, not
 arbitrary expressions, which might be what we want, but might not be
 modular enough.
 
-
+The other {\em potential} problem (i.e. I have not yet checked) might be in the 
+proof of admissibility of induction. 
 
 
 
