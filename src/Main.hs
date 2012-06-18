@@ -8,16 +8,16 @@ import Outputable
 import TysWiredIn
 import UniqSupply
 
-import Halt.Conf
-import Halt.Entry
-import Halt.FOL.Linearise
-import Halt.FOL.Rename
-import Halt.FOL.Style
-import Halt.Lift
-import Halt.Monad
-import Halt.Subtheory
-import Halt.Trans
-import Halt.Trim
+import Halo.Conf
+import Halo.Entry
+import Halo.FOL.Linearise
+import Halo.FOL.Rename
+import Halo.FOL.Style
+import Halo.Lift
+import Halo.Monad
+import Halo.Subtheory
+import Halo.Trans
+import Halo.Trim
 
 import Contracts.Make
 import Contracts.Trans
@@ -64,8 +64,8 @@ main = do
 
         cnf = "-cnf" `elem` opts
 
-        halt_conf :: HaltConf
-        halt_conf  = sanitizeConf $ HaltConf
+        halt_conf :: HaloConf
+        halt_conf  = sanitizeConf $ HaloConf
                         { use_min      = "-no-min" `notElem` opts
                         , use_cf       = True
                         , unr_and_bad  = True
@@ -112,7 +112,7 @@ main = do
                  putStrLn tptp
 
         Just stmts -> forM_ stmts $ \stmt@(Statement{..}) -> do
-             let ((tr_contract,deps),msgs_tr_contr) = runHaltM halt_env (trStatement stmt)
+             let ((tr_contract,deps),msgs_tr_contr) = runHaloM halt_env (trStatement stmt)
              flagged "-dbtrcontr" (printMsgs msgs_tr_contr)
              print statement_name
              let subtheories' = trim deps subtheories

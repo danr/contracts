@@ -6,21 +6,21 @@ import Var
 
 import Contracts.Types
 
-import Halt.PrimCon
-import Halt.ExprTrans
-import Halt.Util
-import Halt.Monad
+import Halo.PrimCon
+import Halo.ExprTrans
+import Halo.Util
+import Halo.Monad
 
-import Halt.FOL.Abstract
+import Halo.FOL.Abstract
 
 import Control.Monad.Reader
 
-trStatement :: Statement -> HaltM ([Clause'],[Var])
+trStatement :: Statement -> HaloM ([Clause'],[Var])
 trStatement stm@(Statement n v c deps) = do
     cls <- sequence [namedClause (show n) NegatedConjecture <$> trNeg (Var v) c]
     return $ (comment (show stm):cls,deps)
 
-trPos :: CoreExpr -> Contract -> HaltM Formula'
+trPos :: CoreExpr -> Contract -> HaloM Formula'
 trPos e c = case c of
     Pred p -> do
         p_tr <- trExpr p
@@ -36,7 +36,7 @@ trPos e c = case c of
          r <- trPos (e `App` Var v) c2
          return $ forall' [v] (min' fx ==> (l \/ r))
 
-trNeg :: CoreExpr -> Contract -> HaltM Formula'
+trNeg :: CoreExpr -> Contract -> HaloM Formula'
 trNeg e c = case c of
     Pred p -> do
         p_tr <- trExpr p
