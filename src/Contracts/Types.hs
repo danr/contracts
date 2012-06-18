@@ -3,7 +3,7 @@ module Contracts.Types where
 import Var
 import CoreSyn
 
-import Halt.Shared
+import Halo.Shared
 
 data Contract = CF
               | Pred CoreExpr

@@ -16,8 +16,8 @@ import UniqSet
 import Contracts.SrcRep
 import Contracts.Types
 
-import Halt.Util
-import Halt.Shared
+import Halo.Util
+import Halo.Shared
 
 import Data.Maybe
 
