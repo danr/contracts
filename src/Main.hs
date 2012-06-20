@@ -58,8 +58,10 @@ main = do
 
         ty_cons_with_builtin :: [TyCon]
         ty_cons_with_builtin = listTyCon : boolTyCon : unitTyCon
-                             : map (tupleTyCon BoxedTuple) [2..2]
-                               -- ^ choice: only tuples of size 2 supported!!
+                             : [ tupleTyCon BoxedTuple size
+                               | size <- [0..8]
+                               -- ^ choice: only tuples of size 0 to 8 supported!!
+                               ]
                              ++ ty_cons
 
         cnf = "-cnf" `elem` opts
@@ -115,7 +117,7 @@ main = do
              let ((tr_contract,deps),msgs_tr_contr) = runHaloM halt_env (trStatement stmt)
              flagged "-dbtrcontr" (printMsgs msgs_tr_contr)
              print statement_name
-             let subtheories' = trim deps subtheories
+             let subtheories' = trimFuns halt_conf deps subtheories
                  tptp = linTPTP (strStyle cnf)
                                 (renameClauses $ concatMap toClauses subtheories'
                                                  ++ tr_contract)
