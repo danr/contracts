@@ -1360,6 +1360,121 @@ a similar predicate on the evaluation relation, call it $Arg(e)$ and modify the 
 predicate through. 
 
 
+\subsection{Contract satisfaction for base contracts}\label{sect:cf}
+
+In this section we will attempt to ignore the higher-order case and just talk about 
+base contracts. Let us use:
+
+The following are true: 
+\begin{lemma}[Base contract adequacy]\label{lem:base-contract-adequacy}
+Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
+If $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \CF}$ then $P |- e \in \CF$. If $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \{ x \mid e' \}}$ then $P |- e \in \{x \mid e' \}$.
+\end{lemma}
+{\bf DV: Generalize this to a notion of base contracts that includes conjuctions.}
+
+In fact the above two statements hold if we extend the interpretation 
+of crash-freedom in the model to contain elements from the function 
+space as well. 
+
+Because of the full-abstraction problems we have observed above it 
+is not possible to state similar statements for arrow contracts. 
+
+
+\subsection{Invocation of a theorem prover}\label{sect:infocation}
+
+Given a program $P$ with signature $\Sigma$, that is $\Sigma |- P$, we may define the theory
+${\cal T}$ as follows:
+     \[ \Th{\Sigma}{P}\;\land\;\Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P} \]
+we know that $\langle D_\infty,{\cal I}\rangle \models {\cal T}$ from the previous sections. 
+Assume below that $f$ is a function such that $f \in dom(P)$ and $fv(\Ct) \subseteq dom(P)$.
+
+\begin{theorem}[Soundness]\label{thm:prover-soundess}
+If ${\cal T}\;\land\;\neg(\ctrans{\Sigma}{P}{f \in \Ct})$ is 
+unsatisfiable then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct}$.
+\end{theorem}
+\begin{proof}
+If there is no model for this formula (i.e. the theorem prover returns ``unsatisfiable'') then
+its negation must be valid (true in all models), that 
+is ${\cal T} -> \ctrans{\Sigma}{P}{f \in \Ct}$ is valid. By completeness
+of first-order logic ${\cal T} |- \ctrans{\Sigma}{P}{f \in \Ct}$. This means in 
+turn that all models of ${\cal T}$ validate $\ctrans{\Sigma}{P}{f \in \Ct}$. In particular 
+for the denotational model we have that $\langle D_\infty,{\cal I}\rangle \models {\cal T}$ 
+and hence $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct}$.
+\end{proof}
+
+\subsubsection{End-goal and incremental verification}\label{sect:incremental}
+
+Assume that we are given a program $P$ with a function $f \in dom(P)$, for which we have 
+already showed that $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct_f}$. 
+Suppose next that we are presented with a ``next'' goal, to prove that 
+$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{h \in \Ct}$. 
+We may consider the following three variations of how to do this:
+
+\begin{itemize}
+  \item Simply ask for the unsatisfiability of: 
+    \[  \Th{\Sigma}{P}\;\land\;
+        \Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P}\;\land\;\neg\ctrans{\Sigma}{P}{h \in \Ct_h} \] 
+        The soundness of this query follows directly from Theorem~\ref{thm:prover-soundess} above.
+
+  \item Ask for the unsatisfiability of:
+    \[  \Th{\Sigma}{P}\;\land\;
+        \Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f}\;\land\;\neg\ctrans{\Sigma}{P}{h \in \Ct_h}     \] 
+        This query adds the {\em already proven} contract for $f$ in the theory. If this formula
+        is unsatisfiable, then its negation is valid, and we know that the denotational model is 
+        a model of the theory {\em and} of $\ctrans{\Sigma}{P}{f \in \Ct_f}$ and hence it must also
+        be a model of $\ctrans{\Sigma}{P}{h \in \Ct_h}$. 
+  \item Ask for the unsatisfiability of:
+    \[  \Th{\Sigma}{P}\;\land\;
+        \Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P \setminus f}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f}\;\land\;
+        \neg\ctrans{\Sigma}{P}{h \in \Ct_h}     \] 
+        This query removes the axioms associated with the definition of $f$ since we may only have 
+        its signature and contract available. Via a similar reasoning as before, such an invocation 
+        is sound.
+\end{itemize}
+
+Our final goal is going to show that a program does not crash, that
+is the final contract will be of the form $e \in \Ct$ where $\Ct$ is
+going to be some {\em base contract}. Note that by base contract adequacy
+(Lemma~\ref{lem:base-contract-adequacy}) if we manage to show a base contract 
+denotationally, then the contract holds in operational terms.
+
+To the extend that in the end we are only interested in base contracts, giving a 
+denotational semantics of full-higher-order contracts is not really interesting 
+but we do this anyway. For a given denotation $d$, we define the 
+predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
+of the contract $\Ct$, such that:
+
+\[\begin{array}{l}
+    \interp{\{x \mid e\}}{\dbrace{P}^\infty}{\rho}(d) \text{ iff } \\
+        \quad \unroll(d) = \bot \text{ or } 
+        \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
+        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \ret(\inj{\mathop{True}}(1)) \\ \\
+    \interp{\dbrace{(x{:}\Ct_1) -> \Ct_2}{P}^\infty}{\rho}(d) \text{ iff } \\
+        \quad \text{for all } d_x \in D_\infty \\ 
+        \quad\quad \text{if }
+                     \interp{\Ct_1}{\dbrace{P}^\infty}{\rho}(d_x)\text{ then }
+                     \interp{\Ct_2}{\dbrace{P}^\infty}{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
+    \interp{\CF}{\dbrace{P}^\infty}{\rho}(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\ 
+    \interp{\Ct_1 \& \Ct_2}{\dbrace{P}^\infty}{\rho}(d) \text{ iff } 
+       \interp{\Ct_1}{\dbrace{P}^\infty}{\rho}(d) \text{ and } 
+       \interp{\Ct_2}{\dbrace{P}^\infty}{\rho}(d)
+\end{array}\]
+
+Then we have the rather obvious theorem below.
+
+\begin{theorem}[Soundness and completeness for denotational semantics]
+Assume a program $P$ with signature $\Sigma$, and expression $e$ and contract $\Ct$ 
+such that $fv(e) \cup fv(\Ct) \subseteq dom(P)$. Then 
+$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ iff
+$\interp{\Ct}{\dbrace{P}^{\infty}}{\cdot}(\interp{e}{\dbrace{P}^\infty}{\cdot})$.
+\end{theorem}
+
+
+{\bf DV: So basically this is Simon's strategy of side-stepping the lack of full abstraction
+and the associated problems with it: In the end of the day we only care about base contracts,
+in fact really only about the contract ``is this program crash-free'', so we don't have to make
+a big fuss about higher-order contracts and their operational semantics. We have to motivate it
+carefully and also be clear that for the intellectually curious reader who really wants to know what statement we have proved for a function contract when the prover says ``unsat'' we might want to give a full definition of the denotational meaning of contracts including both base and higher-order. I think we do not have the time luxury to look for more elaborate solutions (such as definable denotations and all that crazy stuff) to match the operational and the denotational semantics for higher-order contracts. Fullstop.}
 
 
 %% \newpage
