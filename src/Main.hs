@@ -31,9 +31,10 @@ main :: IO ()
 main = do
     file:opts <- getArgs
     let flagged x = when (x `elem` opts)
-        dsconf    = DesugarConf { debug_float_out = "-debug-float-out" `elem` opts
-                                , core2core_pass  = False
-                                }
+        dsconf    = DesugarConf
+                        { debug_float_out = "-debug-float-out" `elem` opts
+                        , core2core_pass  = False
+                        }
     (modguts,dflags) <- desugar dsconf file
     let core_binds = mg_binds modguts
 
@@ -45,10 +46,12 @@ main = do
                  let ((r,msgs),_us') = collectContracts us core_binds
                  flagged "-dbmkcontr" (mapM_ putStrLn msgs)
                  case r of
-                      Right (stmts,bs) -> do flagged "-dbmkcontr" (mapM_ print stmts)
-                                             return (bs,Just stmts)
-                      Left err         -> do putStrLn err
-                                             exitFailure
+                      Right (stmts,bs) -> do
+                          flagged "-dbmkcontr" (mapM_ print stmts)
+                          return (bs,Just stmts)
+                      Left err         -> do
+                          putStrLn err
+                          exitFailure
 
     floated_prog <- lambdaLift dflags program
     us <- mkSplitUniqSupply 'f'
@@ -60,7 +63,7 @@ main = do
         ty_cons_with_builtin = listTyCon : boolTyCon : unitTyCon
                              : [ tupleTyCon BoxedTuple size
                                | size <- [0..8]
-                               -- ^ choice: only tuples of size 0 to 8 supported!!
+                               -- ^ choice: only tuples of size 0 to 8 supported!
                                ]
                              ++ ty_cons
 
@@ -71,6 +74,8 @@ main = do
                         { use_min      = "-no-min" `notElem` opts
                         , use_cf       = True
                         , unr_and_bad  = True
+                        , ext_eq       = False
+                        -- ^ False for now, no good story about min and ext-eq
                         }
 
         ((lifted_prog,msgs_lift),_us) = caseLetLift floated_prog us
@@ -108,19 +113,20 @@ main = do
 
     case m_stmts of
         Nothing -> do
-             unless ("-no-tptp" `elem` opts) $ do
-                 let tptp = linTPTP (strStyle cnf)
-                                    (renameClauses (concatMap toClauses subtheories))
-                 putStrLn tptp
+            unless ("-no-tptp" `elem` opts) $ do
+                let tptp = linTPTP (strStyle cnf)
+                               (renameClauses (concatMap toClauses subtheories))
+                putStrLn tptp
 
         Just stmts -> forM_ stmts $ \stmt@(Statement{..}) -> do
-             let ((tr_contract,deps),msgs_tr_contr) = runHaloM halt_env (trStatement stmt)
-             flagged "-dbtrcontr" (printMsgs msgs_tr_contr)
-             print statement_name
-             let subtheories' = trimFuns halt_conf deps subtheories
-                 tptp = linTPTP (strStyle cnf)
-                                (renameClauses $ concatMap toClauses subtheories'
-                                                 ++ tr_contract)
-             putStrLn tptp
-             writeFile (show statement_name ++ ".tptp") tptp
+            let ((tr_contract,deps),msgs_tr_contr)
+                    = runHaloM halt_env (trStatement stmt)
+            flagged "-dbtrcontr" (printMsgs msgs_tr_contr)
+            print statement_name
+            let subtheories' = trim (PrimConAxioms:deps) subtheories
+                tptp = linTPTP (strStyle cnf)
+                               (renameClauses $ concatMap toClauses subtheories'
+                                                ++ tr_contract)
+            putStrLn tptp
+            writeFile (show statement_name ++ ".tptp") tptp
 
