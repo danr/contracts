@@ -10,15 +10,21 @@ import Halo.PrimCon
 import Halo.ExprTrans
 import Halo.Util
 import Halo.Monad
+import Halo.Subtheory
 
 import Halo.FOL.Abstract
 
 import Control.Monad.Reader
 
-trStatement :: Statement -> HaloM ([Clause'],[Var])
+trStatement :: Statement -> HaloM ([Clause'],[Content])
 trStatement stm@(Statement n v c deps) = do
-    cls <- sequence [namedClause (show n) NegatedConjecture <$> trNeg (Var v) c]
-    return $ (comment (show stm):cls,deps)
+    (tr_contr,ptrs) <- capturePtrs $ trNeg (Var v) c
+
+    let clause = namedClause (show n) NegatedConjecture tr_contr
+
+    return $
+        ([comment (show stm),clause]
+        ,map Function deps ++ map Pointer ptrs)
 
 trPos :: CoreExpr -> Contract -> HaloM Formula'
 trPos e c = case c of
