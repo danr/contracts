@@ -32,3 +32,24 @@ loop_isnt_zero = loop ::: Pred (\x -> not (isZero x))
 -- functions.
 --
 -- What about predicates for recursive functions?
+
+loop_pred :: a -> Bool
+loop_pred = loop_pred
+
+id x = x
+
+-- This is satisfiable, even though loop_pred *should* be UNR
+id_loop_pred = id ::: CF --> Pred loop_pred
+
+recursive_true :: Nat -> Bool
+recursive_true Z     = True
+recursive_true (S x) = recursive_true x
+
+-- This is satisfiable,
+-- but we need CF --> CF && {x | True} to recursive_true (untested)
+id_recursive_true = id ::: CF --> Pred recursive_true
+
+id_four = id (S (S (S (S Z))))
+
+-- A small unit test, four is recursive_true (and crash-free!)
+id_four_rec_true = id_four ::: CF :&: Pred recursive_true
