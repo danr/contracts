@@ -11,6 +11,7 @@ import UniqSupply
 import Halo.Conf
 import Halo.Entry
 import Halo.FOL.Linearise
+import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
 import Halo.FOL.Style
 import Halo.Lift
@@ -18,6 +19,7 @@ import Halo.Monad
 import Halo.Subtheory
 import Halo.Trans
 import Halo.Trim
+import Halo.Util ((?))
 
 import Contracts.Make
 import Contracts.Trans
@@ -69,9 +71,11 @@ main = do
 
         cnf = "-cnf" `elem` opts
 
+        remove_min = "-no-min" `elem` opts
+
         halt_conf :: HaloConf
         halt_conf  = sanitizeConf $ HaloConf
-                        { use_min      = "-no-min" `notElem` opts
+                        { use_min      = not remove_min
                         , use_cf       = True
                         , unr_and_bad  = True
                         , ext_eq       = False
@@ -115,7 +119,10 @@ main = do
         Nothing -> do
             unless ("-no-tptp" `elem` opts) $ do
                 let tptp = linTPTP (strStyle cnf)
-                               (renameClauses (concatMap toClauses subtheories))
+                               ( renameClauses
+                               . (remove_min ? removeMins)
+                               . concatMap toClauses
+                               $ subtheories)
                 putStrLn tptp
 
         Just stmts -> forM_ stmts $ \stmt@(Statement{..}) -> do
@@ -125,8 +132,11 @@ main = do
             print statement_name
             let subtheories' = trim (PrimConAxioms:deps) subtheories
                 tptp = linTPTP (strStyle cnf)
-                               (renameClauses $ concatMap toClauses subtheories'
-                                                ++ tr_contract)
+                               ( renameClauses
+                               . (remove_min ? removeMins)
+                               . (++ tr_contract)
+                               . concatMap toClauses
+                               $ subtheories')
             putStrLn tptp
             writeFile (show statement_name ++ ".tptp") tptp
 
