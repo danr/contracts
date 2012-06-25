@@ -16,12 +16,15 @@ executable          hcc
 
     build-depends:
         -- Shared
-        base                          >= 4    && < 5,
-        mtl                           >= 2.0,
-        containers                    >= 0.3,
+        base           >= 4    && < 5,
+        mtl            >= 2.0,
+        containers     >= 0.3,
+
+        -- Command-line Arguments
+        cmdargs        >= 0.9,
 
         -- Halo
-        uniplate                      >= 1.6,
-        bimap                         >= 0.2,
-        ghc-paths                     >= 0.1,
-        filepath                      >= 1.0
+        uniplate       >= 1.6,
+        bimap          >= 0.2,
+        ghc-paths      >= 0.1,
+        filepath       >= 1.0
