@@ -869,7 +869,7 @@ and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
           \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
      \end{array}
      --------------------{TDefs}
-     \Dtrans{\Sigma}{P} = \formula{\forall \ol{x} @.@ \phi}
+     \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
 \endprooftree 
 
 \end{array}\]
@@ -1475,6 +1475,194 @@ and the associated problems with it: In the end of the day we only care about ba
 in fact really only about the contract ``is this program crash-free'', so we don't have to make
 a big fuss about higher-order contracts and their operational semantics. We have to motivate it
 carefully and also be clear that for the intellectually curious reader who really wants to know what statement we have proved for a function contract when the prover says ``unsat'' we might want to give a full definition of the denotational meaning of contracts including both base and higher-order. I think we do not have the time luxury to look for more elaborate solutions (such as definable denotations and all that crazy stuff) to match the operational and the denotational semantics for higher-order contracts. Fullstop.}
+
+
+
+\section{Counterexamples and minimization}
+
+For a query of the form ${\cal T}\;\land\;\neg(\ctrans{\Sigma}{P}{e \in \Ct})$, a satisfiability checker will search for
+a model. When such a model exists, it will include tables for the function symbols in the formula. Notice that functions 
+in FOL are total over the domain of the terms in the model. This means that function tables may be {\em infinite} if the 
+terms in the model are infinite. Several (very useful!) axioms such as the discrimination axioms \textsc{AxDisjB} may in 
+fact force the domains of functions operating e.g. on lists to be infinite. For instance consider the following devinitions:
+\begin{code}
+length [] = Z
+length (x:xs) = S (length xs)
+
+isZero Z = True
+isZero _ = False
+\end{code}
+Suppose that we would like to check that 
+   \[ @length@ \in \CF -> \{ x \mid @isZero@\;x\} \]
+which is a falsifiable contract.  A satisfiability-based checker (such as \textsc{Eprover})
+will simply diverge trying to construct a counter model for the negation of the above query.
+Indeed the table for @length@ is infinite since @[]@ is always disjoint from @Cons x x@ for 
+any @x@ and @xs@.
+
+From a practical point of view this is not acceptable: After all, there exists a very simple 
+counterexample that demonstrates the problem, namely @Cons Z []@, and we only need the 
+functions of our program to be defined on a {\em finite} number of values (those that appear 
+during the evaluation of this problematic counterexample) to be able to demonstrate 
+the problem. We simply {\em do not care} about values that a function may take outside the set 
+of expressions that appear during the finite evaluation of a counterexample.
+
+Hence we need a way to minimize the set of terms to only the {\em interesting ones} for 
+the evaluation of a counterexample. In FOL we introduce the predicate $min(\cdot)$ to serve
+this goal. We update our Prelude theory axiom \textsc{AxDisjB} as follows:
+\[\begin{array}{c}
+%% \ruleform{\Th{\Sigma}{P}} \\ \\ 
+\begin{array}{lll} 
+ \textsc{AxDisjA} & \formula{\bad \neq \unr}  \\ 
+ \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@} \\ 
+                  & \formula{\quad\highlight{min(K(\ol{x})){\land}min(J(\ol{y}))} =>
+                                  K(\ol{x}){\neq}J(\ol{y})} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+ \textsc{AxDisjC} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+ \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+ %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxAppC}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ \\
+ %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+ %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+ %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+ %% \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+ %%                  & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+ %%                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+ %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
+ %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+\end{array}
+\end{array}\]
+
+In other words, we ensure that constructor applications are disjoint
+only for values we are interested in. What about function definitions?
+Figure~\ref{fig:etrans} has to be modified slightly as well:
+
+\begin{figure}\small
+\[\begin{array}{c}
+\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
+\prooftree
+   \begin{array}{c} \ \\ \ \\ 
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+   \end{array}
+   ----------------------------------------{TUTm}
+   \begin{array}{l} 
+   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{(\highlight{min(s)} => s = t) \lor \highlight{s = \unr}} 
+      \ \\ \ \\ \ \\ \ \\
+   \end{array}
+   ~~~~~
+  \begin{array}{l}
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+  constrs(\Sigma,T) = \ol{K} \\
+  \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+  \begin{array}{l}
+           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+  \end{array}
+  \end{array}
+  ------------------------------------------{TUCase}
+  {       \setlength{\arraycolsep}{2pt} 
+  \begin{array}{l}
+  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
+  \;\;\formula{
+       \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
+                            \;\; (\highlight{min(s) => min(t)}\;\land  \\
+                            \quad((t = \bad /\ s = \bad)\;\lor \\
+                            \quad\quad \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+                                           s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])))
+                   \end{array}
+           }
+  \end{array}}
+\endprooftree
+\end{array}\]
+\end{figure}
+
+%% \\ \\ 
+%% \ruleform{ \Dtrans{\Sigma}{P} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%      \begin{array}{l}       
+%%        \text{for each} (f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\ 
+%%           \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
+%%      \end{array}
+%%      --------------------{TDefs}
+%%      \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
+%% \endprooftree 
+
+\newcommand{\curly}{\rightsquigarrow}
+Now operationally we may instrument the evaluation relation to keep track of the set of 
+closed terms that appear during evaluation. The instrumented relation appears in 
+Figure~\ref{fig:opsem-instrumented}. Observe that if $P |- e \Downarrow w \curly S$ then 
+$S$ is a {\em finite set} of terms.
+
+
+\begin{figure}\small
+\[\begin{array}{c} 
+\ruleform{P |- e \Downarrow v \curly S} \\ \\ 
+\prooftree
+\begin{array}{c} \ \\ 
+\end{array}
+-------------------------------------{EVal}
+P |- v \Downarrow v \curly \{ v \} 
+~~~~
+\begin{array}{c}
+(f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v \curly S
+\end{array}
+-------------------------------------{EFun}
+P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow \{ v \} \cup S
+~~~~~
+\begin{array}{c}  
+P |- e_1 \Downarrow v_1 \curly S_1 \quad
+P |- v_1\;e_2 \Downarrow w \curly S_2
+\end{array}
+------------------------------------------------{EApp}
+P |- e_1\;e_2 \Downarrow w \curly S_1 \cup S_2 \cup \{ e_1\;e_2 \}
+~~~~~
+\begin{array}{c}  
+P |- e_1 \Downarrow @BAD@ \curly S 
+\end{array}
+------------------------------------------------{EBadApp}
+P |- e_1\;e_2 \Downarrow @BAD@ \curly S \cup \{ e_1\;e_2 \} 
+\endprooftree \\ \\ 
+\ruleform{P |- u \Downarrow v \curly S} \\ \\
+\prooftree
+P |- e \Downarrow v \curly S 
+-------------------------------------{EUTm}
+P |- e \Downarrow v \curly S 
+~~~~~
+\begin{array}{c}
+P |- e \Downarrow K_i[\ol{\sigma}_i](\ol{e}_i) \curly S_1 \quad
+P |- e'_i[\ol{e}_i/\ol{y}_i] \Downarrow w \curly S_2 
+\end{array}
+------------------------------------{ECase}
+P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow w \curly S_1 \cup S_2
+~~~~~
+\begin{array}{c}
+P |- e \Downarrow @BAD@ \curly S \\
+\end{array}
+------------------------------------{EBadCase}
+P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@ \curly S
+%% \begin{array}{c}
+%% (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}) \in D \\
+%% D |- e[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow @BAD@ \\
+%% \end{array}
+%% -------------------------------------{EBadCase}
+%% D |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow @BAD@
+\endprooftree
+\end{array}\]
+\caption{Redex-instrumented operational semantics}\label{fig:opsem-instrumented}
+\end{figure}
+
+{\bf DV: I have not finished this off yet: need to show that if an expression does not
+satisfy a contract then there is a finite satisfying model, and in fact a ``well-typed'' one.}
+
+
+
 
 
 %% \newpage
