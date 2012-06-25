@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards,ViewPatterns #-}
 module Main where
 
 import BasicTypes
@@ -24,119 +24,107 @@ import Halo.Util ((?))
 import Contracts.Make
 import Contracts.Trans
 import Contracts.Types
+import Contracts.Params
 
 import Control.Monad
+
 import System.Environment
 import System.Exit
+import System.FilePath
+
+import System.Console.CmdArgs
 
 main :: IO ()
 main = do
-    file:opts <- getArgs
-    let flagged x = when (x `elem` opts)
-        dsconf    = DesugarConf
-                        { debug_float_out = "-debug-float-out" `elem` opts
-                        , core2core_pass  = False
-                        }
-    (modguts,dflags) <- desugar dsconf file
-    let core_binds = mg_binds modguts
 
-    (program,m_stmts) <-
-         if "-only-translate" `elem` opts
-             then return (core_binds,Nothing)
-             else do
-                 us <- mkSplitUniqSupply 'c'
-                 let ((r,msgs),_us') = collectContracts us core_binds
-                 flagged "-dbmkcontr" (mapM_ putStrLn msgs)
-                 case r of
-                      Right (stmts,bs) -> do
-                          flagged "-dbmkcontr" (mapM_ print stmts)
-                          return (bs,Just stmts)
-                      Left err         -> do
-                          putStrLn err
-                          exitFailure
+    params@Params{..} <- cmdArgs defParams
 
-    floated_prog <- lambdaLift dflags program
-    us <- mkSplitUniqSupply 'f'
+    when (null files) $ do
+        putStrLn "No input files!"
+        putStrLn ""
 
-    let ty_cons :: [TyCon]
-        ty_cons = mg_tcs modguts
+    forM_ files $ \(dropExtension -> file) -> do
 
-        ty_cons_with_builtin :: [TyCon]
-        ty_cons_with_builtin = listTyCon : boolTyCon : unitTyCon
-                             : [ tupleTyCon BoxedTuple size
-                               | size <- [0..8]
-                               -- ^ choice: only tuples of size 0 to 8 supported!
-                               ]
-                             ++ ty_cons
+        let dsconf = DesugarConf
+                         { debug_float_out = db_float_out
+                         , core2core_pass  = core_optimise
+                         }
 
-        cnf = "-cnf" `elem` opts
+        (modguts,dflags) <- desugar dsconf file
 
-        remove_min = "-no-min" `elem` opts
+        let core_binds = mg_binds modguts
 
-        halt_conf :: HaloConf
-        halt_conf  = sanitizeConf $ HaloConf
-                        { use_min      = not remove_min
-                        , use_cf       = True
-                        , unr_and_bad  = True
-                        , ext_eq       = False
-                        -- ^ False for now, no good story about min and ext-eq
-                        }
+        us <- mkSplitUniqSupply 'c'
 
-        ((lifted_prog,msgs_lift),_us) = caseLetLift floated_prog us
+        let ((r,msgs_collect_contr),us1) = collectContracts us core_binds
 
-        halt_env = mkEnv halt_conf ty_cons_with_builtin lifted_prog
+        (program,stmts) <- case r of
+            Right (stmts,bs) -> do
+                when dump_contracts (mapM_ print stmts)
+                return (bs,stmts)
+            Left err -> do
+                putStrLn err
+                exitFailure
 
-        (subtheories,msgs_trans)
-            = translate halt_env ty_cons_with_builtin lifted_prog
+        floated_prog <- lambdaLift dflags program
 
-        printSrc = do
-            putStrLn $ "Original file, " ++ file ++ ":\n"
-            putStrLn =<< readFile (file ++ ".hs")
+        let ty_cons :: [TyCon]
+            ty_cons = mg_tcs modguts
 
-        printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
+            ty_cons_with_builtin :: [TyCon]
+            ty_cons_with_builtin
+                = listTyCon : boolTyCon : unitTyCon
+                : [ tupleTyCon BoxedTuple size
+                  | size <- [0..8]
+                  -- ^ choice: only tuples of size 0 to 8 supported!
+                  ]
+                ++ ty_cons
 
-        endl = putStrLn "\n"
+            halt_conf :: HaloConf
+            halt_conf = sanitizeConf $ HaloConf
+                { use_min      = not no_min
+                , use_cf       = True
+                , unr_and_bad  = True
+                , ext_eq       = False
+                -- ^ False for now, no good story about min and ext-eq
+                }
 
-        printCore msg core = do
-            putStrLn $ msg ++ ":\n"
-            mapM_ (printDump . ppr) core
-            endl
+            ((lifted_prog,msgs_lift),us2) = caseLetLift floated_prog us1
 
-    flagged "-src-before" printSrc
+            halt_env = mkEnv halt_conf ty_cons_with_builtin lifted_prog
 
-    flagged "-origcore" (printCore "Original core" core_binds)
+            (subtheories,msgs_trans)
+                = translate halt_env ty_cons_with_builtin lifted_prog
 
-    flagged "-lamlift" (printCore "Lambda lifted core" floated_prog)
+            printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
 
-    flagged "-dbcaseletlift" (printMsgs msgs_lift)
-    flagged "-caseletlift"   (printCore "Case/let lifted core" lifted_prog)
+            endl = putStrLn "\n"
 
-    flagged "-src" printSrc
+            printCore msg core = do
+                putStrLn $ msg ++ ":\n"
+                mapM_ (printDump . ppr) core
+                endl
 
-    flagged "-dbtptp" (printMsgs msgs_trans)
+        when dump_init_core (printCore "Original core" core_binds)
+        when dump_float_out (printCore "Lambda lifted core" floated_prog)
+        when db_lift        (printMsgs msgs_lift)
+        when dump_core      (printCore "Case/let lifted core" lifted_prog)
+        when db_halo        (printMsgs msgs_trans)
 
-    case m_stmts of
-        Nothing -> do
-            unless ("-no-tptp" `elem` opts) $ do
-                let tptp = linTPTP (strStyle cnf)
-                               ( renameClauses
-                               . (remove_min ? removeMins)
-                               . concatMap toClauses
-                               $ subtheories)
-                putStrLn tptp
+        when db_make_contracts (printMsgs msgs_collect_contr)
 
-        Just stmts -> forM_ stmts $ \stmt@(Statement{..}) -> do
+        forM_ stmts $ \stmt@(Statement{..}) -> do
             let ((tr_contract,deps),msgs_tr_contr)
                     = runHaloM halt_env (trStatement stmt)
-            flagged "-dbtrcontr" (printMsgs msgs_tr_contr)
-            print statement_name
+            when db_trans_contracts (printMsgs msgs_tr_contr)
             let subtheories' = trim (PrimConAxioms:deps) subtheories
-                tptp = linTPTP (strStyle cnf)
+                tptp = linTPTP (strStyle (not no_comments) cnf)
                                ( renameClauses
-                               . (remove_min ? removeMins)
+                               . (no_min ? removeMins)
                                . (++ tr_contract)
                                . concatMap toClauses
                                $ subtheories')
-            putStrLn tptp
-            writeFile (show statement_name ++ ".tptp") tptp
+            let filename = show statement_name ++ ".tptp"
+            putStrLn $ "Writing " ++ show statement_name
+            writeFile filename tptp
 
