@@ -20,6 +20,8 @@ data Params = Params
     , dump_init_core     :: Bool
     , dump_float_out     :: Bool
     , dump_core          :: Bool
+    , dump_fpi_core      :: Bool
+    , dump_tptp          :: Bool
     , dump_contracts     :: Bool
     }
   deriving (Show,Data,Typeable)
@@ -45,6 +47,8 @@ defParams = Params
     , dump_init_core     = False &= help "Dump initial core we get from GHC"
     , dump_float_out     = False &= help "Dump core after lambda-lifting"
     , dump_core          = False &= help "Dump final core after let-/case-lifting"
+    , dump_fpi_core      = False &= help "Dump core after fixpoint generation"
+    , dump_tptp          = False &= help "Dump all generated tptp"
     , dump_contracts     = False &= help "Dump the internal representation of contracts"
 
     }

@@ -25,6 +25,7 @@ import Contracts.Make
 import Contracts.Trans
 import Contracts.Types
 import Contracts.Params
+import Contracts.FixpointInduction
 
 import Control.Monad
 
@@ -89,12 +90,17 @@ main = do
                 -- ^ False for now, no good story about min and ext-eq
                 }
 
-            ((lifted_prog,msgs_lift),us2) = caseLetLift floated_prog us1
+            ((lifted_prog,msgs_lift),us2)
+                = caseLetLift floated_prog us1
 
-            halt_env = mkEnv halt_conf ty_cons_with_builtin lifted_prog
+            ((fpi_prog,fpi_info),us3)
+                = initUs us2 (fixpointCoreProgram lifted_prog)
+
+            halt_env
+                = mkEnv halt_conf ty_cons_with_builtin fpi_prog
 
             (subtheories,msgs_trans)
-                = translate halt_env ty_cons_with_builtin lifted_prog
+                = translate halt_env ty_cons_with_builtin fpi_prog
 
             printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
 
@@ -108,8 +114,17 @@ main = do
         when dump_init_core (printCore "Original core" core_binds)
         when dump_float_out (printCore "Lambda lifted core" floated_prog)
         when db_lift        (printMsgs msgs_lift)
-        when dump_core      (printCore "Case/let lifted core" lifted_prog)
+        when dump_core      (printCore "Final, case/let lifted core" lifted_prog)
+        when dump_fpi_core  (printCore "Fixpoint induction core" fpi_prog)
         when db_halo        (printMsgs msgs_trans)
+
+        when dump_tptp $ do
+            let tptp = linTPTP (strStyle (not no_comments) cnf)
+                                ( renameClauses
+                                . (no_min ? removeMins)
+                                . concatMap toClauses
+                                $ subtheories )
+            putStrLn tptp
 
         when db_make_contracts (printMsgs msgs_collect_contr)
 

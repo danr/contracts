@@ -20,7 +20,7 @@ risers_contr = risersBy ::: (CF --> CF --> CF)
                         --> CF :&: Pred full --> CF :&: Pred full
 
 risers_contr' :: Statement
-risers_contr' = risersBy ::: (CF :-> \_ -> CF :-> \_ -> CF)
-                         :-> \_ -> CF :&: Pred full
-                         :-> \_ -> CF :&: Pred (\ys -> full ys)
+risers_contr' = risersBy ::: (CF :-> \x -> CF :-> \y -> CF)
+                         :-> \le -> CF :&: Pred full
+                         :-> \xs -> CF :&: Pred (\ys -> full ys)
 
