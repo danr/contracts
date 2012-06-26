@@ -1508,8 +1508,9 @@ of expressions that appear during the finite evaluation of a counterexample.
 
 Hence we need a way to minimize the set of terms to only the {\em interesting ones} for 
 the evaluation of a counterexample. In FOL we introduce the predicate $min(\cdot)$ to serve
-this goal. We update our Prelude theory axiom \textsc{AxDisjB} as follows:
-\[\begin{array}{c}
+this goal. We update our Prelude theory axioms as follows:
+\[\setlength{\arraycolsep}{2pt}
+\begin{array}{c}
 %% \ruleform{\Th{\Sigma}{P}} \\ \\ 
 \begin{array}{lll} 
  \textsc{AxDisjA} & \formula{\bad \neq \unr}  \\ 
@@ -1518,8 +1519,11 @@ this goal. We update our Prelude theory axiom \textsc{AxDisjB} as follows:
                                   K(\ol{x}){\neq}J(\ol{y})} \\
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
- \textsc{AxDisjC} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
+ \textsc{AxDisjCUnr} & \formula{\forall \oln{x}{n} @.@ \highlight{\neg min(\unr)}} \\ 
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+ \textsc{AxDisjCBad} & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) \neq \bad} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+
  \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
  %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
@@ -1534,14 +1538,21 @@ this goal. We update our Prelude theory axiom \textsc{AxDisjB} as follows:
  %%                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
  %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
  %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
- \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{min(K(\ys))\;\land\;min(y_i)}} \\ 
+                  & \formula{\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
                   & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
 \end{array}
 \end{array}\]
 
 In other words, we ensure that constructor applications are disjoint
-only for values we are interested in. What about function definitions?
-Figure~\ref{fig:etrans} has to be modified slightly as well:
+only for values we are interested in. We will explain each axiom separately later. 
+Intuitively we wish to equate all terms that we are not interested in to $\unr$. We 
+can never be interested in $\unr$ in the intended model because that means that during
+the evaluation of a term, which completed, we encountered a divergent term -- clearly a 
+contradiction!
+
+What about function definitions? Figure~\ref{fig:etrans} has to be modified 
+slightly as well:
 
 \begin{figure}\small
 \[\begin{array}{c}
@@ -1658,8 +1669,105 @@ P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@ \curly S
 \caption{Redex-instrumented operational semantics}\label{fig:opsem-instrumented}
 \end{figure}
 
-{\bf DV: I have not finished this off yet: need to show that if an expression does not
-satisfy a contract then there is a finite satisfying model, and in fact a ``well-typed'' one.}
+\subsection{The intended min-imal model}
+
+Our goal is then going to be to establish the following result, stated in non-technical terms:
+\begin{quote}
+If there exists a counterexample to a contract, then the negation of the contract-translation
+formula is satisfiable not only on $\langle D_\infty,{\cal I}\rangle$ but it also has a {\em finite} 
+model. That finite model is a model of our $min$-enabled theory. 
+\end{quote}
+
+We start unfolding the story.
+For a given program $P$ in a signature $\Sigma$ we have already shown how to construct $D_\infty$ and how
+to give interpretations ${\cal I}$ to a first-order vocabulary. Let us assume that the 
+program and signature contains a polymorpic $loop$ function, 
+for convenience $undefined |-> udefined$. This is a realistic assumption to make (e.g.
+comes in the standard Haskell prelude). 
+
+Assume now that we are given a formula $\phi$ defined as: 
+\[  \phi = \ctrans{\Sigma}{\cdot}{e \in \Ct_1 -> \ldots \Ct_n -> @B@} \] 
+for @B@ a base contract. Assume moreover that there exist $\oln{e}{n}$ closed for the
+program $P$ such that for each $e_i$ it is true that:
+\[\interp{\Ct_i}{\dbrace{P}^\infty}{\cdot}(\interp{e_i}{\dbrace{P}^\infty}{\cdot})\]. 
+Assume however that it is {\em not} the case that 
+\[\interp{{\tt B}}{\dbrace{P}^\infty}{\cdot}(\interp{e\;\oln{e}{n}}{\dbrace{P}^\infty}{\cdot})\]
+There are two cases for the base constract @B@:
+\begin{itemize}
+  \item Let us now consider the case where @B@ = $\{ x \mid e_p \}$. By adequacy it must
+  be that: $P |- e\;\ol{e} \Downarrow w \curly S_1$ for some $w$ and set $S_1$ and moreover
+  $P |- e_p[e\;ol{e}/x] \Downarrow \{ @BAD@, False \} \curly S_2$ for some set $S_2$. 
+
+  Of course the following lemma is true:
+  \begin{lemma}\label{lem:curly} 
+    If $P |- e \Downarrow w \curly S$ then $S$ is a finite set. Moreover, 
+    for every $e' \in S$ there exists $w$ such that $P |- e' \Downarrow w$.
+  \end{lemma}
+  Moreover we have:
+  \begin{lemma}\label{lem:bot-not-redex} 
+     If $P |- e \Downarrow w \curly S$ then 
+     $\bot \notin \interp{S}{\dbrace{P}^{\infty}}{\cdot}$. 
+  \end{lemma}
+  \begin{proof} If $\bot \in \interp{S}{\dbrace{P}^{\infty}}{\cdot}$ then there exists
+  a term $e \in S$ such that $\interp{e}{\dbrace{P}^{\infty}}{\cdot} = \bot$. This means
+  that $P |- e \not\Downarrow$ but that is a contradiction to $e \in S$ by 
+  Lemma~\ref{lem:curly}.
+  \end{proof}
+
+  Let us now define the minimal sets operationally and denotationally: 
+\newcommand{\Min}{\cal M}
+  \[\begin{array}{lcl}
+           M        & \triangleq & S_1 \cup S_2 \\
+           {\cal M} & \triangleq & \interp{S_1\cup S_2}{\dbrace{P}^{\infty}}{\cdot}
+  \end{array}\]
+  Consider now the function $\mu : D_\infty -> D_\infty$ defined as: 
+  \[\begin{array}{lcl} 
+        \mu(d) & \triangleq & \left\{ \begin{array}{ll} 
+                   d           & \text{when } \unroll(d) = \ret(\inj{bad}(1)) \\
+                   d           & \text{when } d \in \Min \\ 
+                   \bot        & \text{otherwise } 
+                                      \end{array}\right.
+  \end{array}\] 
+  In other words $\mu(\cdot)$ conflates all the non-interested values to $\bot$. 
+  Now we may consider the {\em set} which is the image of $D_\infty$ through $\mu$: 
+  \[ D_\infty^\mu  \triangleq \mu(D_\infty) \] 
+
+  Notice that this set is {\em finite} with cardinality at most $card(M) + 2$. Also, 
+  we treat this is a {\em set}. Although $D_\infty$ has a domain structure, we do not 
+  care about $D_\infty^\mu$ being a domain. 
+
+  Now, in this $D_\infty^\mu$ we may redefine the interpretation of first-order constants
+  and variable symbols in our theories, using ${\cal I}^\mu$ below:
+
+%%    \newcommand{\mlinterp}[1]{{\cal I}^\mu(#1)}
+
+%%   \[\begin{array}{rcl}
+%%    \mlinterp{f^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}^\mu) @.@ 
+%%                       &   &   if there exist $\oln{e}{\ar}$ such that $f[\taus]\;ol{e} \in M$ and 
+%%                       &   &                  \interp{e}{\dbrace{P}^\infty}{\cdot} = d_i then 
+%%                       &   &         \mu(\dapp(\dbrace{P}^{\infty}(f),\oln{\pi_i(d)}{i \in 1..\ar})) \\ 
+%%    \mlinterp{f_{ptr}}  & = & \dbrace{P}^{\infty}(f) \\ 
+%%    \mlinterp{app}     & = & \dapp \\ 
+%%    \mlinterp{K^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \roll(\ret(\inj{K}(d))) \\ 
+%%    \mlinterp{\sel{K}{i}} & = & \dlambda (d {:} D_{\infty}) @.@ \roll(\bind_g(\unroll(d))) \\ 
+%%      \text{where } g  & = & [\;\bot \\ 
+%%                       &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for constructor } K) \\ 
+%%                       &   & ,\;\bot \\ 
+%%                       &   & ,\;\ldots\\ 
+%%                       &   & ,\;\bot\; ]
+%% \end{array}\]
+
+  
+  
+  
+
+
+
+
+  \item The other case is when $@B@ = \CF$. {\bf TODO}
+\end{itemize}
+
+
 
 
 
