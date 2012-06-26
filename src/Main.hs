@@ -141,7 +141,7 @@ main = do
 
             forM_ proofs $ \(proof_part,(clauses,deps)) -> do
 
-                let subtheories' = trim (PrimConAxioms:deps) subtheories
+                let subtheories' = trim (PrimConAxioms:Data boolTyCon:deps) subtheories
                     tptp = linTPTP (strStyle (not no_comments) cnf)
                                    ( renameClauses
                                    . (no_min ? removeMins)
