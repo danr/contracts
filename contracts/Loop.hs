@@ -49,6 +49,9 @@ recursive_true (S x) = recursive_true x
 -- but we need CF --> CF && {x | True} to recursive_true (untested)
 id_recursive_true = id ::: CF --> Pred recursive_true
 
+recursive_true_and_cf = recursive_true ::: CF --> CF :&: Pred id
+recursive_true_cf = recursive_true ::: CF --> CF
+
 id_four = id (S (S (S (S Z))))
 
 -- A small unit test, four is recursive_true (and crash-free!)
