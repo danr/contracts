@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Risers where
 
 import Prelude (Bool(..),otherwise)
@@ -9,18 +10,13 @@ risersBy (<=) [x] = [[x]]
 risersBy (<=) (x:y:xs)
   | x <= y    = (x:s):ss
   | otherwise = [x]:(s:ss)
-    where (s:ss) = risersBy (<=) (y:xs)
+    where !(s:ss) = risersBy (<=) (y:xs)
 
 full [] = False
 full _  = True
 
-
 risers_contr :: Statement
-risers_contr = risersBy ::: (CF --> CF --> CF)
-                        --> CF :&: Pred full --> CF :&: Pred full
-
-risers_contr' :: Statement
-risers_contr' = risersBy ::: (CF :-> \x -> CF :-> \y -> CF)
+risers_contr = risersBy ::: (CF :-> \x -> CF :-> \y -> CF)
                          :-> \le -> CF :&: Pred full
                          :-> \xs -> CF :&: Pred (\ys -> full ys)
 

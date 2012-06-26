@@ -93,14 +93,19 @@ main = do
             ((lifted_prog,msgs_lift),us2)
                 = caseLetLift floated_prog us1
 
-            ((fpi_prog,fpi_info),us3)
+            ((fix_prog,fix_info),us3)
                 = initUs us2 (fixpointCoreProgram lifted_prog)
 
-            halt_env
-                = mkEnv halt_conf ty_cons_with_builtin fpi_prog
+            halt_env_without_hyp_arities
+                = mkEnv halt_conf ty_cons_with_builtin fix_prog
+
+            halt_env = halt_env_without_hyp_arities
+                { arities = fpiFixHypArityMap fix_info
+                                (arities halt_env_without_hyp_arities)
+                }
 
             (subtheories,msgs_trans)
-                = translate halt_env ty_cons_with_builtin fpi_prog
+                = translate halt_env ty_cons_with_builtin fix_prog
 
             printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
 
@@ -115,7 +120,7 @@ main = do
         when dump_float_out (printCore "Lambda lifted core" floated_prog)
         when db_lift        (printMsgs msgs_lift)
         when dump_core      (printCore "Final, case/let lifted core" lifted_prog)
-        when dump_fpi_core  (printCore "Fixpoint induction core" fpi_prog)
+        when dump_fpi_core  (printCore "Fixpoint induction core" fix_prog)
         when db_halo        (printMsgs msgs_trans)
 
         when dump_tptp $ do
@@ -129,17 +134,25 @@ main = do
         when db_make_contracts (printMsgs msgs_collect_contr)
 
         forM_ stmts $ \stmt@(Statement{..}) -> do
-            let ((tr_contract,deps),msgs_tr_contr)
-                    = runHaloM halt_env (trStatement stmt)
+            let (proofs,msgs_tr_contr)
+                    = runHaloM halt_env (trStatement fix_info stmt)
+
             when db_trans_contracts (printMsgs msgs_tr_contr)
-            let subtheories' = trim (PrimConAxioms:deps) subtheories
-                tptp = linTPTP (strStyle (not no_comments) cnf)
-                               ( renameClauses
-                               . (no_min ? removeMins)
-                               . (++ tr_contract)
-                               . concatMap toClauses
-                               $ subtheories')
-            let filename = show statement_name ++ ".tptp"
-            putStrLn $ "Writing " ++ show statement_name
-            writeFile filename tptp
+
+            forM_ proofs $ \(proof_part,(clauses,deps)) -> do
+
+                let subtheories' = trim (PrimConAxioms:deps) subtheories
+                    tptp = linTPTP (strStyle (not no_comments) cnf)
+                                   ( renameClauses
+                                   . (no_min ? removeMins)
+                                   . (++ clauses)
+                                   . concatMap toClauses
+                                   $ subtheories')
+
+                let filename = show statement_name ++
+                               proofPartSuffix proof_part ++ ".tptp"
+
+                putStrLn $ "Writing " ++ show filename
+
+                writeFile filename tptp
 

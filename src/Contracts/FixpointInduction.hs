@@ -53,17 +53,18 @@ module Contracts.FixpointInduction
     , fpiApplicable
     , fpiFocusName
     , fpiFriendName
+    , fpiGetSubstList
+    , fpiFixHypArityMap
+    , focusToFriend
     , FocusCase(..)
     , FriendCase(..)
     ) where
 
 import CoreSyn
-import CoreSubst
 import CoreFVs
 import Var
 import Name hiding (varName)
 import OccName hiding (varName)
-import Outputable
 import UniqSet
 import UniqSupply
 import Unique
@@ -71,6 +72,7 @@ import Unique
 import Halo.Shared
 import Halo.PrimCon
 import Halo.Util
+import Halo.Monad (ArityMap)
 
 import Control.Monad
 
@@ -105,30 +107,54 @@ newtype FixInfo = FixInfo
     }
   deriving (Monoid,Show)
 
+
 -- | True if you can do fixed point induction on this function
 fpiApplicable :: FixInfo -> Var -> Bool
 fpiApplicable (FixInfo m) f = M.member f m
+
+fatalVar :: String -> Var -> a
+fatalVar s v = error $
+    s ++ ": Internal error, cannot do fixed point induction on " ++
+    show v ++ " (be sure to query fpiApplicable first)"
 
 -- | @fpiFocusName fix_info f case@ looks up what the function @f@
 --   is called in this case
 fpiFocusName :: FixInfo -> Var -> FocusCase -> Var
 fpiFocusName (FixInfo m) f fcase = case M.lookup f m of
+    Nothing -> fatalVar "fpiFocusName" f
     Just (m',_) -> fromMaybe err (M.lookup fcase m')
       where
         err = error $ "fpiFocusName: Internal error, cannot find " ++
                 show f ++ " in focal case " ++ show fcase
-    Nothing -> error $
-        "fpiFocusName: Internal error, cannot do fixed point induction on " ++
-        show f ++ " (be sure to query fpiApplicable first)"
 
 -- | @fpiFriendName fix_info f case g@ looks up what the function @g@
 --   is called in this case
 fpiFriendName :: FixInfo -> Var -> FriendCase -> Var -> Var
 fpiFriendName (FixInfo m) f gcase g = case M.lookup f m of
+    Nothing -> fatalVar "fpiFriendName" f
     Just (_,m') -> fromMaybe g (M.lookup (g,gcase) m')
-    Nothing -> error $
-        "fpiFriendName: Internal error, cannot do fixed point induction on " ++
-        show f ++ " (be sure to query fpiApplicable first)"
+
+-- | Gets the entire substitution list on this particular case
+fpiGetSubstList :: FixInfo -> Var -> FocusCase -> [(Var,Var)]
+fpiGetSubstList fi@(FixInfo m) f fcase = case M.lookup f m of
+    Nothing -> fatalVar "fpiGetSubstList" f
+    Just (focus,friends) -> (f,fpiFocusName fi f fcase):
+        [ (g,g') | ((g,c),g') <- M.toList friends , focusToFriend fcase == c ]
+
+focusToFriend :: FocusCase -> FriendCase
+focusToFriend ConstantUNR = Base
+focusToFriend _           = Step
+
+-- | We need to add the arities to all the hypothesis functions,
+--   since they have no implementation.
+fpiFixHypArityMap :: FixInfo -> ArityMap -> ArityMap
+fpiFixHypArityMap (FixInfo m) am = M.union am $ M.fromList
+    [ (f_hyp,arity)
+    | (f,(focus_map,_)) <- M.toList m
+    , (Hyp,f_hyp) <- M.toList focus_map
+    , Just arity <- [M.lookup f am]
+    ]
+
 
 -- | Lifts all the core binds to fixed point induction
 fixpointCoreProgram :: [CoreBind] -> UniqSM ([CoreBind],FixInfo)
@@ -231,19 +257,6 @@ fixate f e friends = do
             )
 
     return ([base_bind,step_bind],newFixInfo)
-
-
--- | @subst e x y@ substitutes as e[y/x]
-subst :: CoreExpr -> Var -> Var -> CoreExpr
-subst e x y = substExpr (text "fpi") s e
-  where
-    s = extendIdSubst emptySubst x (Var y)
-
--- | Substitute a list
-substList :: CoreExpr -> [(Var,Var)] -> CoreExpr
-substList e xs = substExpr (text "fpi") s e
-  where
-    s = extendIdSubstList emptySubst [ (x,Var y) | (x,y) <- xs ]
 
 -- | Makes a new variable from an existing one, but append a label
 newVarWithLabel :: Var -> String -> UniqSM Var
