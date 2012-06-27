@@ -10,6 +10,7 @@ data Params = Params
     , cnf                :: Bool
     , core_optimise      :: Bool
     , no_comments        :: Bool
+    , squishy_booleans   :: Bool
 
     , db_float_out       :: Bool
     , db_lift            :: Bool
@@ -35,6 +36,7 @@ defParams = Params
     , cnf                = False &= help "Generate theories in CNF rather than fof when possible"
     , core_optimise      = False &= help "Run the core2core optimising pass"
     , no_comments        = False &= help "Don't print comments in TPTP file (current default is on for debugging purposes)"
+    , squishy_booleans   = False &= help "Don't force true /= false, put min antecedent there"
 
     , db_float_out       = False &= groupname "\nDebugging output"
                                  &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
@@ -54,4 +56,3 @@ defParams = Params
     }
     &= summary "Haskell Contracts Checker v0.1 Dan Rosén danr@student.gu.se"
     &= program "hcc"
-

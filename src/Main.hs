@@ -84,11 +84,12 @@ main = do
 
             halt_conf :: HaloConf
             halt_conf = sanitizeConf $ HaloConf
-                { use_min      = not no_min
-                , use_cf       = True
-                , unr_and_bad  = True
-                , ext_eq       = False
+                { use_min           = not no_min
+                , use_cf            = True
+                , unr_and_bad       = True
+                , ext_eq            = False
                 -- ^ False for now, no good story about min and ext-eq
+                , disjoint_booleans = not squishy_booleans
                 }
 
             ((lifted_prog,msgs_lift),us2)
@@ -158,4 +159,3 @@ main = do
                 putStrLn $ "Writing " ++ show filename
 
                 writeFile filename tptp
-
