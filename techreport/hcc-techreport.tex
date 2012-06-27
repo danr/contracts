@@ -1525,7 +1525,7 @@ To achieve this effect, we update our Prelude theory axioms as follows:
 \begin{array}{lll} 
  \textsc{AxDisjA} & \formula{\bad \neq \unr}  \\ 
  \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@} \\ 
-                  & \formula{\;\;\highlight{K(\ol{x}){\neq}\unr\;\land\;J(\ol{y}){\neq}\unr} =>
+                  & \formula{\;\;\highlight{K(\ol{x}){\neq}\unr\;\lor\;J(\ol{y}){\neq}\unr} =>
                                   K(\ol{x}){\neq}J(\ol{y})} \\
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
@@ -1549,7 +1549,7 @@ To achieve this effect, we update our Prelude theory axioms as follows:
  %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
  %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{K(\ys) \neq \unr\;\land\; y_i \neq \unr}} \\ 
-                  & \formula{\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \formula{\quad\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
                   & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
 \end{array}
 \end{array}\]
@@ -1644,15 +1644,24 @@ $S$ is a {\em finite set} of terms.
 \prooftree
 \begin{array}{c} \ \\ 
 \end{array}
+%% \begin{array}{c}
+%% (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+%% P |- e_1 \Downarrow f\;[\taus]\;\oln{e}{m-1} \curly S_1 \\ 
+%% P |- u[\ol{\tau}/\ol{a}][\ol{e},e_2/\ol{x}] \Downarrow w \curly S
+%% \end{array}
+%% ------------------------------------{EBeta}
+%% P |- e_1\;e_2 \Downarrow w 
+  S = heads(v)
 -------------------------------------{EVal}
-P |- v \Downarrow v \curly \{ v \} 
+P |- v \Downarrow v \curly S
 ~~~~
 \begin{array}{c}
 (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
-P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v \curly S
+P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v \curly S_1 \\ 
+S_2 = heads(f[\ol{\tau}]\;\oln{e}{m}) 
 \end{array}
 -------------------------------------{EFun}
-P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow \{ v \} \cup S
+P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow v \curly S_1 \cup S_2
 ~~~~~
 \begin{array}{c}  
 P |- e_1 \Downarrow v_1 \curly S_1 \quad
@@ -1667,6 +1676,12 @@ P |- e_1 \Downarrow @BAD@ \curly S
 ------------------------------------------------{EBadApp}
 P |- e_1\;e_2 \Downarrow @BAD@ \curly S \cup \{ e_1\;e_2 \} 
 \endprooftree \\ \\ 
+\ruleform{heads(e) = S} \\ \\ 
+\begin{array}{lcl}
+   heads(f\;[\ol{\tau}]) & = & \{ f\;[\ol{\tau}] \} \\
+   heads(e_1\;e_2)       & = & \{ e_1\;e_2 \} \cup heads(e_1) \\
+   heads(\_)            & = & \emptyset 
+\end{array} \\ \\
 \ruleform{P |- u \Downarrow v \curly S} \\ \\
 \prooftree
 P |- e \Downarrow v \curly S 
@@ -1804,12 +1819,12 @@ There are two cases for the base constract @B@:
   {\bf DV: TODO: We need something like the definition below (but not quite, it does not type check yet)}: 
   {\setlength{\arraycolsep}{2pt}  
   \[\begin{array}{rcl}
-     \mlinterp{f_{ptr}} & = & \roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
-                       &   & \quad \roll(\ret(\inj{->}(\dlambda d_n @.@ \\ 
+     \mlinterp{f_{ptr}} & = & \mu(\roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
+                       &   & \quad \mu(\roll(\ret(\inj{->}(\dlambda d_n @.@ \\ 
                        &   & \quad\quad\text{ if there exist } \oln{e}{n} \text{ s.t. } f[\taus]\;\ol{e} \in M \\ 
                        &   & \quad\quad\quad\text{ and } \interp{e_i}{\dbrace{P}^\infty}{\cdot} = d_i\text{ then } \\
                        &   & \quad\quad\quad\quad \mu(\dapp(\dbrace{P}^{\infty}(f),\oln{d}{n})) \\ 
-                       &   & \quad\quad\text{ else } \bot)))\ldots))) \\ \\ 
+                       &   & \quad\quad\text{ else } \bot))))\ldots)))) \\ \\ 
    \mlinterp{f^{n}}  & = & \dlambda (d {:} \prod_{n}D_{\infty}^\mu) @.@  \\
                        &   & \quad\quad\text{ if there exist } \oln{e}{n} \text{ s.t. } f[\taus]\;\ol{e} \in M \\ 
                        &   & \quad\quad\quad\text{ and } \interp{e_i}{\dbrace{P}^\infty}{\cdot} = \pi_i(d)\text{ then } \\
