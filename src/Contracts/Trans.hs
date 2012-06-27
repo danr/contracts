@@ -80,7 +80,7 @@ trPos e c = case c of
     Pred p -> do
         x  <- trExpr e
         px <- trExpr p
-        return $ min' x ==> px === bad \/ px === true
+        return $ min' x ==> (px === unr \/ px === true)
     CF -> do
         e_tr <- trExpr e
         return $ cf e_tr
