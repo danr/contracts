@@ -1,7 +1,7 @@
 module Counterexample where
 
 import Contracts
-import Prelude (Bool(..),undefined)
+import Prelude (Bool(..),error)
 
 not True  = False
 not False = True
@@ -14,7 +14,7 @@ loop = loop
 
 f :: Bool -> (Bool -> Bool -> Bool) -> Bool
 f b h | h True b && h b True && not (h False False)
-         = if h True loop && h loop True then undefined else True
+         = if h True loop && h loop True then error "bad" else True
 f b h = True
 
 countercontract = f ::: CF --> (CF --> CF --> CF) --> CF

@@ -18,5 +18,9 @@ full _  = True
 risers_contr :: Statement
 risers_contr = risersBy ::: (CF :-> \x -> CF :-> \y -> CF)
                          :-> \le -> CF :&: Pred full
-                         :-> \xs -> CF :&: Pred (\ys -> full ys)
+                         :-> \xs -> CF :&: Pred full
 
+risers_contr_2 :: Statement
+risers_contr_2 = risersBy ::: (CF :-> \x -> CF :-> \y -> CF)
+                          :-> \le -> CF
+                          :-> \xs -> CF :&: Pred full
