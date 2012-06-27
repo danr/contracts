@@ -1519,6 +1519,7 @@ of expressions that appear during the finite evaluation of a counterexample. In 
 one step further and equate all the non-interesting values of the domain to $\bot$.
 
 To achieve this effect, we update our Prelude theory axioms as follows:
+{\small
 \[\setlength{\arraycolsep}{1pt}
 \begin{array}{c}
 %% \ruleform{\Th{\Sigma}{P}} \\ \\ 
@@ -1551,8 +1552,14 @@ To achieve this effect, we update our Prelude theory axioms as follows:
  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{K(\ys) \neq \unr\;\land\; y_i \neq \unr}} \\ 
                   & \formula{\quad\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
                   & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+ \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfB1}  & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ \textsc{AxCfB2}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})}\;\highlight{\land\;K(\ol{x}) \neq \unr} => \bigwedge\lcf{\ol{x}}} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
 \end{array}
-\end{array}\]
+\end{array}\]}
+
 
 We will explain the modifications to the axiomatization in more detail in later sections.
 %% In other words, we ensure that constructor applications are disjoint
