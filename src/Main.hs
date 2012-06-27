@@ -11,6 +11,7 @@ import UniqSupply
 import Halo.Conf
 import Halo.Entry
 import Halo.FOL.Linearise
+import Halo.FOL.MinAsNotUnr
 import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
 import Halo.FOL.Style
@@ -126,6 +127,7 @@ main = do
         when dump_tptp $ do
             let tptp = linTPTP (strStyle (not no_comments) cnf)
                                 ( renameClauses
+                                . map minAsNotUnr
                                 . (no_min ? removeMins)
                                 . concatMap toClauses
                                 $ subtheories )
@@ -144,6 +146,7 @@ main = do
                 let subtheories' = trim (PrimConAxioms:Data boolTyCon:deps) subtheories
                     tptp = linTPTP (strStyle (not no_comments) cnf)
                                    ( renameClauses
+                                   . map minAsNotUnr
                                    . (no_min ? removeMins)
                                    . (++ clauses)
                                    . concatMap toClauses
