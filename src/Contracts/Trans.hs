@@ -1,7 +1,6 @@
 module Contracts.Trans where
 
 import CoreSyn
-import TysWiredIn
 import Var
 
 import Contracts.Types
@@ -12,6 +11,7 @@ import Halo.ExprTrans
 import Halo.Util
 import Halo.Monad
 import Halo.Subtheory
+import Halo.Data (true,false,unr,bad)
 import Halo.FOL.Abstract
 
 import Control.Monad.Reader
@@ -63,7 +63,6 @@ trFPI fix_info stm@(Statement n f c deps)
 
     | otherwise = return []
 
-
 trPlain :: Statement -> HaloM (ProofPart,ProofContent)
 trPlain stm@(Statement n v c deps) = do
     (tr_contr,ptrs) <- capturePtrs $ trNeg (Var v) c
@@ -79,14 +78,9 @@ trPlain stm@(Statement n v c deps) = do
 trPos :: CoreExpr -> Contract -> HaloM Formula'
 trPos e c = case c of
     Pred p -> do
-        x    <- trExpr e
-        p_tr <- trExpr p
-        return $ ors
-            [p_tr === con trueDataConId
-            ,p_tr === constant UNR
-            -- ,x    === constant UNR
-            -- do we need this?
-            ]
+        x  <- trExpr e
+        px <- trExpr p
+        return $ min' x ==> px === bad \/ px === true
     CF -> do
         e_tr <- trExpr e
         return $ cf e_tr
@@ -100,14 +94,9 @@ trPos e c = case c of
 trNeg :: CoreExpr -> Contract -> HaloM Formula'
 trNeg e c = case c of
     Pred p -> do
-        x <- trExpr e
-        p_tr <- trExpr p
-        return $ ors
-            [p_tr === con falseDataConId
-            ,p_tr === constant BAD
-            -- ,x    === constant UNR
-            -- do we need this?
-            ]
+        x  <- trExpr e
+        px <- trExpr p
+        return $ min' x /\ (px === false \/ px === bad)
     CF -> do
         e_tr <- trExpr e
         return $ neg (cf e_tr)
@@ -116,6 +105,3 @@ trNeg e c = case c of
         l <- trPos (Var v) c1
         r <- trNeg (e `App` Var v) c2
         return $ exists' [v] (l /\ r)
-
-
-
