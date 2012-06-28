@@ -1488,9 +1488,7 @@ a big fuss about higher-order contracts and their operational semantics. We have
 carefully and also be clear that for the intellectually curious reader who really wants to know what statement we have proved for a function contract when the prover says ``unsat'' we might want to give a full definition of the denotational meaning of contracts including both base and higher-order. I think we do not have the time luxury to look for more elaborate solutions (such as definable denotations and all that crazy stuff) to match the operational and the denotational semantics for higher-order contracts. Fullstop.}
 
 
-
-\section{Counterexamples and minimization}
-
+\section{Minimizing countermodels}
 For a query of the form ${\cal T}\;\land\;\neg(\ctrans{\Sigma}{P}{e \in \Ct})$, a satisfiability checker will search for
 a model. When such a model exists, it will include tables for the function symbols in the formula. Notice that functions 
 in FOL are total over the domain of the terms in the model. This means that function tables may be {\em infinite} if the 
@@ -1515,7 +1513,139 @@ counterexample that demonstrates the problem, e.g. @[Z]@, and we only need the
 functions of our program to be defined on a {\em finite} number of values (those that appear 
 during the evaluation of this problematic counterexample) to be able to demonstrate 
 the problem. We simply {\em do not care} about values that a function may take outside the set 
-of expressions that appear during the finite evaluation of a counterexample. In fact we may take
+of expressions that appear during the finite evaluation of a counterexample.
+
+To achieve this effect, we update our Prelude theory axioms as follows:
+{\small
+\[\setlength{\arraycolsep}{1pt}
+\begin{array}{c}
+%% \ruleform{\Th{\Sigma}{P}} \\ \\ 
+\begin{array}{lll}
+ \textsc{AxDisjA} & \formula{\bad \neq \unr}  \\ 
+ \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@} \\ 
+                  & \formula{\;\;\highlight{min(K(\ol{x}))\;\lor\;min(J(\ol{y}))} =>
+                                  K(\ol{x}){\neq}J(\ol{y})} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+ %% \textsc{AxDisjCUnr} & \formula{\forall \oln{x}{n} @.@ \highlight{\neg min(\unr)}} \\ 
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+ \textsc{AxDisjCBad} & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) \neq \bad} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+
+ \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+ %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxAppC}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ 
+ \textsc{AxAppMin}& \formula{\highlight{\forall x, min(app(x,y)) => min(x)}} \\ 
+
+ %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+ %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+ %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+ %% \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+ %%                  & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+ %%                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+ %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
+ %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{min(K(\ys))\;\land\; min(y_i)}} \\ 
+                  & \formula{\quad\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+
+ \textsc{AxCfA}    & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfMin}  & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
+ \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
+                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ \textsc{AxCfB2}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})}  => \bigwedge\lcf{\ol{x}}} \\
+                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxNotMin} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
+                   & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
+\end{array}
+\end{array}\]}
+
+
+\begin{figure*}\small
+\[\begin{array}{c} 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\prooftree
+  \begin{array}{c}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+  \end{array}
+  ------------------------------------------{CTransBase}
+  \begin{array}{l}
+   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = 
+  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+   \formula{\highlight{min(t) => (min(t'[t/x])}
+                \land ((t = \unr) \lor (t'[t/x] = \unr) \lor (t'[t/x] = \True)))}
+  \end{array}
+  ~~~~~ 
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
+  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+  \end{array} 
+  ------------------------------------------{CTransArr}
+  \begin{array}{l} 
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+  \formula{\forall x @.@ \phi_1 \lor \phi_2}
+  \end{array}
+  ~~~~
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+  \end{array}
+  ------------------------------------------{CTransConj}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+  ~~~~~
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+  -------------------------------------------{CTransCf}
+  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t) => \lcf{t}}}
+ \endprooftree  \\ \\ 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\prooftree
+  \begin{array}{c}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+  \end{array}
+  ------------------------------------------{NCTransBase}
+  \begin{array}{l}
+   \ctrans{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = 
+  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+   \formula{\highlight{min(t) \land min(t'[t/x])}
+             \land\;((t \neq \unr) \land ((t'[t/x] \neq \unr) \land (t'[t/x] \neq \True)))}
+  \end{array}
+  ~~~~~ 
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+  \ctrans{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
+  \end{array} 
+  ------------------------------------------{NCTransArr}
+  \begin{array}{l} 
+  \ctrans{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
+  \formula{\exists x @.@ \phi_1 \land \phi_2}
+  \end{array}
+  ~~~~
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
+  \ctrans{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
+  \end{array}
+  ------------------------------------------{NCTransConj}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
+  ~~~~~
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+  -------------------------------------------{NCTransCf}
+  \ctrans{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t) \land \neg\lcf{t}}}
+ \endprooftree 
+\end{array}\]
+\caption{Min-based contract elaboration}\label{fig:min-typing}
+\end{figure*}
+
+
+
+
+\section{Min as unreachable}
+
+ In fact we may take
 one step further and equate all the non-interesting values of the domain to $\bot$.
 
 To achieve this effect, we update our Prelude theory axioms as follows:
@@ -1559,6 +1689,64 @@ To achieve this effect, we update our Prelude theory axioms as follows:
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
 \end{array}
 \end{array}\]}
+
+
+\begin{figure}\small
+\[\begin{array}{c}
+\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
+\prooftree
+   \begin{array}{c} \ \\ \ \\ 
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+   \end{array}
+   ----------------------------------------{TUTm}
+   \begin{array}{l} 
+   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{(s = t) \lor \highlight{\neg min(s)}} \ \\ \ \\ \ \\ 
+   \end{array}
+   ~~~~~
+  \begin{array}{l}
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+  constrs(\Sigma,T) = \ol{K} \\
+  \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+  \begin{array}{l}
+           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+  \end{array}
+  \end{array}
+  ------------------------------------------{TUCase}
+  {\setlength{\arraycolsep}{1pt} 
+  \begin{array}{l}
+  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
+  \;\;\formula{ \begin{array}{l} 
+     \highlight{min(s)} => \\
+     \begin{array}{ll}
+          ( & \highlight{min(t)}\;\land \\
+            & (t = \bad => s = \bad)\;\land \\ 
+            & (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots \land \\
+            & (t \neq \bad\;\land\;t \neq K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s = \unr) \\
+          )
+%% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
+%%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+%%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
+                   \end{array}
+     \end{array}}
+  \end{array}}
+  %% {       \setlength{\arraycolsep}{2pt} 
+  %% \begin{array}{l}
+  %% \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
+  %% \;\;\formula{
+  %%      \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
+  %%                           \;\; (\highlight{min(s) => min(t)}\;\land  \\
+  %%                           \quad((t = \bad /\ s = \bad)\;\lor \\
+  %%                           \quad\quad \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+  %%                                          s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])))
+  %%                  \end{array}
+  %%          }
+  %% \end{array}}
+\endprooftree
+\end{array}\]
+\caption{Minimality-enabled definition translation}\label{fig:min-def-trans-min}
+\end{figure}
+
 
 
 We will explain the modifications to the axiomatization in more detail in later sections.
