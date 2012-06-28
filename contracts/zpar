@@ -1,0 +1,39 @@
+# Run z3 and paradox in parallel on argument file
+# and when either terminates, kill the other
+#
+# Usage:
+#
+#    ./zpar FILE
+#
+# where FILE is a tptp file you want to use. A good idea can
+# be to use either of these greps:
+#
+#    ./zpar FILE | grep -i sat
+#    ./zpar FILE | grep -e (RESULT|status)
+#
+#!/bin/bash
+
+# Allow registering signals
+
+set -bm
+
+# Launch the theorem provers and store their pids.
+
+# Unfortunately you cannot pipe to grep here, because then the pid
+# stored in $! will refer to the program to the right of the pipe.
+
+paradox $1 &
+PARADOX_PID=$!
+
+z3 -tptp -nw $1 &
+Z3_PID=$!
+
+# Trap the signal that a child has terminated, and when this happens
+# kill both theorem provers, ignoring warnings.
+
+trap '(kill $PARADOX_PID 2> /dev/null); (kill $Z3_PID 2> /dev/null)' CHLD
+
+# Wait until all processes has been killed, ignoring warnings about
+# killed children
+
+wait 2> /dev/null
