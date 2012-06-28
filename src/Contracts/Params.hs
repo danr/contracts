@@ -7,10 +7,13 @@ data Params = Params
     { files              :: [FilePath]
 
     , no_min             :: Bool
+    , min_as_not_unr     :: Bool  
+      
     , cnf                :: Bool
     , core_optimise      :: Bool
     , no_comments        :: Bool
     , squishy_booleans   :: Bool
+    , or_discr           :: Bool
 
     , db_float_out       :: Bool
     , db_lift            :: Bool
@@ -33,10 +36,14 @@ defParams = Params
 
     , no_min             = False &= groupname "\nSettings for generated theories"
                                  &= name "m" &= help "Remove all occurences of min in generated theories (default off)"
+    , min_as_not_unr     = False &= name "u" &= help "Replace all occurences of min in generated theories with not.unr (default off)"
+                                                            
     , cnf                = False &= help "Generate theories in CNF rather than fof when possible"
     , core_optimise      = False &= help "Run the core2core optimising pass"
     , no_comments        = False &= help "Don't print comments in TPTP file (current default is on for debugging purposes)"
     , squishy_booleans   = False &= help "Don't force true /= false, put min antecedent there"
+
+    , or_discr           = False &= help "Use Or instead of And in the assumptions of discrimination axioms"
 
     , db_float_out       = False &= groupname "\nDebugging output"
                                  &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"

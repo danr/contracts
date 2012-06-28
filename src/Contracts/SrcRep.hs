@@ -11,6 +11,9 @@ contrStrWith end str = "Contracts." `isPrefixOf` str && end `isSuffixOf` str
 isStatementType :: Var -> Bool
 isStatementType = contrStrWith "Statement" . showSDoc . ppr . varType
 
+isStatementUsing :: Var -> Bool
+isStatementUsing = contrStrWith "Using" . show
+
 isStatementCon  :: Var -> Bool
 isStatementCon  = contrStrWith ":::" . show
 
