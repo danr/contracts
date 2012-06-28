@@ -17,14 +17,30 @@ import Halo.FOL.Abstract
 import Control.Monad.Reader
 
 import Data.Map (singleton)
+import Data.List
 
 type ProofContent = ([Clause'],[Content])
 
-trStatement :: FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trStatement fix_info stm = (:) <$> trPlain stm <*> trFPI fix_info stm
+findStatement :: [Statement] -> Var -> Statement
+findStatement ss c = case find ((c ==) . statement_name) ss of
+    Just s -> s
+    Nothing -> error $ "Cannot find used assumption contract " ++ show c
+
+trStatement :: [Statement] -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
+trStatement ss fix_info stm = do
+    parts_and_content <- (:) <$> trPlain trNeg stm <*> trFPI fix_info stm
+    let used_statements = map (findStatement ss) (statement_using stm)
+    (using,deps) <- flip mapAndUnzipM used_statements $ \used_stm -> do
+         (_,content) <- trPlain trPos used_stm
+         return $ content
+         
+    let extend (part,(clauses,contents)) = 
+          (part,(clauses ++ concat using,contents ++ concat deps))
+         
+    return $ map extend parts_and_content
 
 trFPI :: FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trFPI fix_info stm@(Statement n f c deps)
+trFPI fix_info stm@(Statement n f c _using deps)
     | fpiApplicable fix_info f = do
 
         let [f_base,f_hyp,f_concl]
@@ -63,9 +79,10 @@ trFPI fix_info stm@(Statement n f c deps)
 
     | otherwise = return []
 
-trPlain :: Statement -> HaloM (ProofPart,ProofContent)
-trPlain stm@(Statement n v c deps) = do
-    (tr_contr,ptrs) <- capturePtrs $ trNeg (Var v) c
+trPlain :: (CoreExpr -> Contract -> HaloM Formula')
+        -> Statement -> HaloM (ProofPart,ProofContent)
+trPlain tr_fun stm@(Statement n v c _ deps) = do
+    (tr_contr,ptrs) <- capturePtrs $ tr_fun (Var v) c
 
     let clauses =
             [comment (show stm)
@@ -80,10 +97,10 @@ trPos e c = case c of
     Pred p -> do
         x  <- trExpr e
         px <- trExpr p
-        return $ min' x ==> (px === unr \/ px === true)
+        return $ min' x ==> (min' px /\ (x === unr \/ px === unr \/ px === true))
     CF -> do
         e_tr <- trExpr e
-        return $ cf e_tr
+        return $ min' e_tr ==> cf e_tr
     And c1 c2 -> (/\) <$> trPos e c1 <*> trPos e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
         fx <- trExpr (e `App` Var v)
@@ -96,10 +113,13 @@ trNeg e c = case c of
     Pred p -> do
         x  <- trExpr e
         px <- trExpr p
-        return $ min' x /\ (px === false \/ px === bad)
+        return $ min' x /\ min' px /\ x =/= unr /\ (px === false \/ px === bad)
+          -- Make it a flag to say px =/= True /\ px =/= unr just for experimentation and our own understanding.
+        
     CF -> do
         e_tr <- trExpr e
-        return $ neg (cf e_tr)
+        return $ min' e_tr /\ neg (cf e_tr)
+        
     And c1 c2 -> (\/) <$> trNeg e c1 <*> trNeg e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
         l <- trPos (Var v) c1

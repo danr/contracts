@@ -25,7 +25,7 @@ import Halo.Util ((?))
 import Contracts.Make
 import Contracts.Trans
 import Contracts.Types
-import Contracts.Params
+import Contracts.Params as Params
 import Contracts.FixpointInduction
 
 import Control.Monad
@@ -90,6 +90,7 @@ main = do
                 , ext_eq            = False
                 -- ^ False for now, no good story about min and ext-eq
                 , disjoint_booleans = not squishy_booleans
+                , or_discr          = Params.or_discr params
                 }
 
             ((lifted_prog,msgs_lift),us2)
@@ -128,7 +129,7 @@ main = do
         when dump_tptp $ do
             let tptp = linTPTP (strStyle (not no_comments) cnf)
                                 ( renameClauses
-                                . map minAsNotUnr
+                                . (min_as_not_unr ? map minAsNotUnr)
                                 . (no_min ? removeMins)
                                 . concatMap toClauses
                                 $ subtheories )
@@ -138,7 +139,7 @@ main = do
 
         forM_ stmts $ \stmt@(Statement{..}) -> do
             let (proofs,msgs_tr_contr)
-                    = runHaloM halt_env (trStatement fix_info stmt)
+                    = runHaloM halt_env (trStatement stmts fix_info stmt)
 
             when db_trans_contracts (printMsgs msgs_tr_contr)
 
@@ -147,7 +148,7 @@ main = do
                 let subtheories' = trim (PrimConAxioms:Data boolTyCon:deps) subtheories
                     tptp = linTPTP (strStyle (not no_comments) cnf)
                                    ( renameClauses
-                                   . map minAsNotUnr
+                                   . (min_as_not_unr ? map minAsNotUnr)
                                    . (no_min ? removeMins)
                                    . (++ clauses)
                                    . concatMap toClauses

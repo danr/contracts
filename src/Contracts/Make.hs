@@ -88,7 +88,15 @@ mkStatement v e = do
                 _               -> throw $ "Invalid lhs of statement" ++ showExpr f_app
             contr <- mkContract (Var f) c
             let deps = uniqSetToList (exprFreeVars e)
-            return $ Statement v f contr deps
+            return $ Statement v f contr [] deps
+        Just (Var x,[stmnt,u]) | isStatementUsing x -> do
+            write $ "A contract using: " ++ showExpr u
+            f <- case trimTyApp u of
+                Just (Var f,[]) -> do write $ "Contract is really using " ++ show f ++ "."
+                                      return f
+                _               -> throw $ "Invalid lhs of using " ++ showExpr u
+            statement <- mkStatement v stmnt            
+            return $ statement { statement_using = f : statement_using statement }        
         _ -> throw $ "Error: Invalid statement " ++ show v ++ "."
 
 mkContract :: CoreExpr -> CoreExpr -> MakerM Contract
