@@ -25,11 +25,14 @@ import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.Error
 import Control.Monad.State
+import Control.Monad.Reader
+
+import Data.List
 
 
 collectContracts :: UniqSupply -> [CoreBind] ->
                     ((Either String ([Statement],[CoreBind]),[String]),UniqSupply)
-collectContracts us program = runMaker us $ do
+collectContracts us program = runMaker us binds $ do
     write "Statements:"
     write (unlines (map (show . fst) statements))
     write "Translating them..."
@@ -48,18 +51,30 @@ collectContracts us program = runMaker us $ do
                                   _                              -> Just b)
                         program
 
-type MakerM a = ErrorT String (WriterT [String] (StateT [String] UniqSM)) a
+type MakerM a = ErrorT String 
+                (WriterT [String] 
+                 (StateT [String] 
+                  (ReaderT [(Var,CoreExpr)] 
+                   UniqSM))) a
 
-runMaker :: UniqSupply -> MakerM a -> ((Either String a,[String]),UniqSupply)
-runMaker us m = initUs us (runWriterT (runErrorT m) `evalStateT` names)
+runMaker :: UniqSupply -> [(Var,CoreExpr)] 
+            -> MakerM a -> ((Either String a,[String]),UniqSupply)
+runMaker us cbs m = initUs us ((runWriterT (runErrorT m) `evalStateT` names) `runReaderT` cbs)
   where
     names = map ("ct_" ++) $ (`replicateM` ['a'..'z']) =<< [1..]
+
+lookupBind :: Var -> MakerM CoreExpr
+lookupBind x = do
+    binds <- ask
+    case find ((x ==) . fst) binds of
+        Just (_,e) -> return e
+        _ -> throw $ "Found " ++ show x ++ " not leading to anything in making of a contract"
 
 mkFreshVar :: MakerM Var
 mkFreshVar = do
     v <- gets head
     modify tail
-    u <- lift $ lift $ lift $ getUniqueM
+    u <- lift $ lift $ lift $ lift $ getUniqueM
     let name = mkInternalName u (mkOccName varName v) wiredInSrcSpan
     return (mkVanillaGlobal name ty_err)
   where ty_err = error "mkFreshVar type"
@@ -118,5 +133,7 @@ mkContract f e = do
                                 Arrow v <$> mkContract (Var v) e1
                                         <*> mkContract (f `App` Var v) e2
           | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
-        _ -> throw $ "Found " ++ showExpr e
-                  ++ " in the making of a contract for " ++ showExpr f
+        Just (Var x,[]) -> mkContract f =<< lookupBind x
+        _ -> throw $ "Found weird expression " ++ showExpr e ++ 
+                     " when making a contract for " ++ showExpr f
+ 
