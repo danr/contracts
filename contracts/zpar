@@ -5,11 +5,11 @@
 #
 #    ./zpar FILE
 #
-# where FILE is a tptp file you want to use. A good idea can
-# be to use either of these greps:
+# where FILE is a tptp file you want to use.
+
+# A good idea can be to grep after the SZS status as such:
 #
-#    ./zpar FILE | grep -i sat
-#    ./zpar FILE | grep -e (RESULT|status)
+#    ./zpar FILE | grep status
 #
 #!/bin/bash
 
@@ -22,7 +22,7 @@ set -bm
 # Unfortunately you cannot pipe to grep here, because then the pid
 # stored in $! will refer to the program to the right of the pipe.
 
-paradox $1 &
+paradox $1 --no-progress --tstp &
 PARADOX_PID=$!
 
 z3 -tptp -nw $1 &
