@@ -1554,8 +1554,8 @@ To achieve this effect, we update our Prelude theory axioms as follows:
 
  \textsc{AxCfA}    & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
  \textsc{AxCfMin}  & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
- \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
-                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
+ %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
  \textsc{AxCfB2}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})}  => \bigwedge\lcf{\ol{x}}} \\
                    & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
  \textsc{AxNotMin} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
