@@ -48,3 +48,17 @@ unsat_filter_contr  = filter ::: ((CF --> CF) :-> \f -> CF --> CF :&: Pred (all 
 glop = filter isEven  (Cons (S Z) (Cons (S (S (S Z))) Nil))
 
 unsat_glop_contr = glop ::: CF :&: Pred isNil
+
+-- An all with a bug
+all_buggy :: (Nat -> Bool) -> List -> Bool
+all_buggy f Nil = False -- There is a bug! 
+all_buggy f (Cons x xs) = if f x then (all_buggy f xs) else False
+
+unsat_all_buggy_contr = all_buggy ::: (CF --> CF) --> CF --> CF
+
+sat_filter_contr  = filter ::: ((CF --> CF) :-> \f -> CF --> CF :&: Pred (all_buggy f))
+                    `Using` unsat_all_buggy_contr                      
+
+
+
+
