@@ -82,8 +82,8 @@ main = do
                   ]
                 ++ ty_cons
 
-            halt_conf :: HaloConf
-            halt_conf = sanitizeConf $ HaloConf
+            halo_conf :: HaloConf
+            halo_conf = sanitizeConf $ HaloConf
                 { use_min           = not no_min
                 , use_cf            = True
                 , unr_and_bad       = True
@@ -100,7 +100,7 @@ main = do
                 = initUs us2 (fixpointCoreProgram lifted_prog)
 
             halt_env_without_hyp_arities
-                = mkEnv halt_conf ty_cons_with_builtin fix_prog
+                = mkEnv halo_conf ty_cons_with_builtin fix_prog
 
             halt_env = halt_env_without_hyp_arities
                 { arities = fpiFixHypArityMap fix_info
