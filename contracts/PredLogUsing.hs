@@ -8,14 +8,14 @@ import Prelude(Bool(..))
 import Contracts
 
 data Formula v
-    = Or (Formula v)
+    = Or (Formula v) (Formula v)
     | Not (Formula v)
     | Var v
 
 invariant :: Formula v -> Bool
 invariant f = case f of
 
-    Or x        -> True
+    Or x y      -> True
     Not x       -> invariant x
 
     -- Base case
@@ -23,7 +23,7 @@ invariant f = case f of
 
 -- | Negating a formula
 neg :: Formula v -> Formula v
-neg (Or f1)  = Or (neg f1)
+neg (Or f1 f2)  = Or (neg f1) (neg f2)
 neg (Not f)     = f
 neg (Var x)     = Var x
 
