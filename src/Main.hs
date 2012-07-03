@@ -27,6 +27,8 @@ import Contracts.Trans
 import Contracts.Types
 import Contracts.Params as Params
 import Contracts.FixpointInduction
+import Contracts.Theory
+import Contracts.Axioms
 
 import Control.Monad
 
@@ -85,7 +87,7 @@ main = do
             halo_conf :: HaloConf
             halo_conf = sanitizeConf $ HaloConf
                 { use_min           = not no_min
-                , use_cf            = True
+                , use_minrec        = False
                 , unr_and_bad       = True
                 , ext_eq            = False
                 -- ^ False for now, no good story about min and ext-eq
@@ -107,8 +109,14 @@ main = do
                                 (arities halt_env_without_hyp_arities)
                 }
 
-            (subtheories,msgs_trans)
+            (subtheories_unfiddled,msgs_trans)
                 = translate halt_env ty_cons_with_builtin fix_prog
+
+            subtheories
+                = primConAxioms
+                : primConApps
+                : mkCF ty_cons_with_builtin ++
+                (map makeDataDepend subtheories_unfiddled)
 
             printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
 
@@ -126,14 +134,15 @@ main = do
         when dump_fpi_core  (printCore "Fixpoint induction core" fix_prog)
         when db_halo        (printMsgs msgs_trans)
 
-        when dump_tptp $ do
-            let tptp = linTPTP (strStyle (not no_comments) cnf)
-                                ( renameClauses
-                                . (min_as_not_unr ? map minAsNotUnr)
-                                . (no_min ? removeMins)
-                                . concatMap toClauses
-                                $ subtheories )
-            putStrLn tptp
+        let toTPTP extra_clauses
+                = linTPTP (strStyle (not no_comments) cnf)
+                . renameClauses
+                . (min_as_not_unr ? map minAsNotUnr)
+                . (no_min ? removeMins)
+                . (extra_clauses ++)
+                . concatMap toClauses
+
+        when dump_tptp $ putStrLn (toTPTP [] subtheories)
 
         when db_make_contracts (printMsgs msgs_collect_contr)
 
@@ -145,16 +154,12 @@ main = do
 
             forM_ proofs $ \(proof_part,(clauses,deps)) -> do
 
-                let subtheories' = trim (PrimConAxioms:Data boolTyCon:deps) subtheories
-                    tptp = linTPTP (strStyle (not no_comments) cnf)
-                                   ( renameClauses
-                                   . (min_as_not_unr ? map minAsNotUnr)
-                                   . (no_min ? removeMins)
-                                   . (++ clauses)
-                                   . concatMap toClauses
-                                   $ subtheories')
+                let important = Specific PrimConAxioms:Data boolTyCon:deps
+                    subtheories'= trim important subtheories
 
-                let filename = show statement_name ++
+                    tptp = toTPTP clauses subtheories'
+
+                    filename = show statement_name ++
                                proofPartSuffix proof_part ++ ".tptp"
 
                 putStrLn $ "Writing " ++ show filename

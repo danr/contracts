@@ -5,6 +5,7 @@ import Var
 
 import Contracts.Types
 import Contracts.FixpointInduction
+import Contracts.Theory
 
 import Halo.PrimCon
 import Halo.ExprTrans
@@ -19,7 +20,7 @@ import Control.Monad.Reader
 import Data.Map (singleton)
 import Data.List
 
-type ProofContent = ([Clause'],[Content])
+type ProofContent = ([Clause'],[HCCContent])
 
 findStatement :: [Statement] -> Var -> Statement
 findStatement ss c = case find ((c ==) . statement_name) ss of
@@ -33,10 +34,10 @@ trStatement ss fix_info stm = do
     (using,deps) <- flip mapAndUnzipM used_statements $ \used_stm -> do
          (_,content) <- trPlain trPos used_stm
          return $ content
-         
-    let extend (part,(clauses,contents)) = 
+
+    let extend (part,(clauses,contents)) =
           (part,(clauses ++ concat using,contents ++ concat deps))
-         
+
     return $ map extend parts_and_content
 
 trFPI :: FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
@@ -115,11 +116,11 @@ trNeg e c = case c of
         px <- trExpr p
         return $ min' x /\ min' px /\ x =/= unr /\ (px === false \/ px === bad)
           -- Make it a flag to say px =/= True /\ px =/= unr just for experimentation and our own understanding.
-        
+
     CF -> do
         e_tr <- trExpr e
         return $ min' e_tr /\ neg (cf e_tr)
-        
+
     And c1 c2 -> (\/) <$> trNeg e c1 <*> trNeg e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
         l <- trPos (Var v) c1
