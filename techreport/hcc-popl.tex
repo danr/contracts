@@ -1,0 +1,722 @@
+\documentclass[preprint,nocopyrightspace,draft]{sigplanconf}
+
+\usepackage{hcc-techreport}
+
+\begin{document} 
+\preprintfooter{\textbf{--- DRAFT ---}}
+
+%%% Extra definitions -- move to hcc-techreport at some point (carefully to not break that!)
+\newcommand{\Ct}{{\tt C}}
+\newcommand{\CF}{{\tt CF}}
+\newcommand{\True}{\mathop{True}}
+\newcommand{\False}{\mathop{False}}
+\newcommand{\Bool}{\mathop{Bool}}
+\newcommand{\ys}{\ol{y}}
+\newcommand{\Th}[2]{{\cal T}_{#1,#2}}
+\newcommand{\Ecf}{\textsc{Ecf}}
+\newcommand{\oln}[2]{\ol{#1}^{#2}}
+\newcommand{\tmar}[2]{\mathop{tmar}_{#1}(#2)}
+\newcommand{\tyar}[2]{\mathop{tyar}_{#1}(#2)}
+\newcommand{\ar}{\alpha}
+\newcommand{\lcf}[1]{\textsf{cf}(#1)}
+\newcommand{\lcfZ}{\textsf{cf}}
+\newcommand{\lncf}[1]{\neg\textsf{cf}(#1)}
+\newcommand{\unr}{\mathop{unr}}
+\newcommand{\bad}{\mathop{bad}}
+\newcommand{\sel}[2]{\mathop{sel\_#1\!\_#2}}
+\newcommand{\ctrans}[3]{{\cal C}[\![#3]\!]_{#2}^{#1}}
+\newcommand{\etrans}[3]{{\cal E}[\![#3]\!]_{#2}^{#1}}
+\newcommand{\utrans}[3]{{\cal U}[\![#3]\!]_{#2}^{#1}}
+\newcommand{\dtrans}[2]{{\cal D}[\![#2]\!]^{#1}}
+\newcommand{\Dtrans}[2]{{\cal D}[\![#2]\!]^{#1}}
+%% Gadgets of domain theory 
+\newcommand{\roll}{\mathsf{roll}}
+\newcommand{\unroll}{\mathsf{unroll}}
+\newcommand{\bind}{\mathsf{bind}}
+\newcommand{\ret}{\mathsf{ret}}
+\newcommand{\dlambda}{\mathsf{\lambda}}
+\newcommand{\curry}{\mathsf{curry}}
+\newcommand{\eval}{\mathsf{eval}}
+\newcommand{\uncurry}{\mathsf{incurry}}
+\newcommand{\dapp}{\mathsf{app}}
+\newcommand{\inj}[1]{\mathsf{inj}_{#1}}
+\newcommand{\unitcpo}{{\sf{\bf 1}}}
+\newcommand{\VarCpo}{\textit{Var}}
+\newcommand{\FVarCpo}{\textit{FunVar}}
+\newcommand{\interp}[3]{[\![#1]\!]_{\langle {#2},{#3}\rangle}}
+\newcommand{\dbrace}[1]{[\![#1]\!]}
+\newcommand{\linterp}[1]{{\cal I}(#1)}
+\newcommand{\lassign}[1]{\mu(#1)}
+\newcommand{\elab}[1]{\rightsquigarrow \formula{#1}}
+\newcommand{\Fcf}{F_{\lcfZ}} 
+\newcommand{\definable}[1]{{\mathop{def}}(#1)}
+\newcommand{\curly}{\rightsquigarrow}
+\newcommand{\Min}{\cal M}
+\newcommand{\mlinterp}[1]{{\cal I}^\mu(#1)}
+
+\title{HALO: Haskell to Logic through Denotational Semantics}
+%% \subtitle{A new approach to static contract checking for higher-order lazy programs}
+
+\authorinfo{Dan Ros\'{e}n \\ Koen Claessen}
+           {Chalmers University}{}
+\authorinfo{Dimitrios Vytiniotis \\ Simon Peyton Jones}
+           {Microsoft Research}{}
+\authorinfo{Nathan Collins}
+           {Portland State University}{}
+\maketitle
+\makeatactive
+
+\begin{abstract}
+TODO
+\end{abstract} 
+
+
+\section{Introduction}\label{s:intro}
+
+\section{Checking Haskell contracts in practice}\label{s:examples}
+
+   \subsection{An overview of the system}\label{ssect:schematic}
+
+\section{A higher-order lazy language}\label{sect:language}
+  \input{hcc-language}
+
+\section{Contracts and their denotational semantics}\label{sect:contracts}
+  \input{hcc-contracts}
+
+\section{Essential extensions}\label{sect:extensions}
+  \input{hcc-extensions}
+
+\section{Implementation and practical experience}\label{sect:implementation}
+  \input{hcc-implementation}
+
+\section{Discussion}\label{sect:discussion}
+  \input{hcc-discussion}
+\section{Future work}\label{sect:future}
+  \input{hcc-future}
+
+\bibliographystyle{plainnat}
+\bibliography{hcc-popl}
+
+\end{document}
+
+%% \begin{abstract}
+%% The Glasgow Haskell Compiler is an optimizing
+%% compiler that expresses and manipulates first-class equality proofs in
+%% its intermediate language.  We describe a simple, elegant technique that
+%% exploits these equality proofs to support \emph{deferred type errors}.
+%% The technique requires us to treat equality proofs as possibly-divergent
+%% terms; we show how to do so without losing either soundness or
+%% the zero-overhead cost model that the programmer expects.
+%% \end{abstract}
+
+%% \category{D.3.3}{Language Constructs and Features}{Abstract data types}
+%% \category{F.3.3}{Studies of Program Constructs}{Type structure}
+
+%% \terms{Design, Languages}
+
+%% \keywords{Type equalities, Deferred type errors, System FC}
+
+\section{Denotational semantics}
+
+
+%% \begin{lemma}[Evaluation preserves equality]
+%% If $\Sigma;\cdot |- e : \tau \rightsquigarrow t$ and 
+%%    $\Sigma |- D \rightsquigarrow \phi_{\Sigma,D}$ and 
+%%    $D |- e \Downarrow w$ then
+%%    $\Sigma;\cdot |- w : \tau \rightsquigarrow s$ and $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- t = s$.
+%% \end{lemma}
+%% \begin{proof} By induction on the evaluation $\Sigma |- e \Downarrow w$. \end{proof}
+
+
+%% \begin{lemma}[Logic deduces sound value equalities]
+%% Assume that $\Sigma;\cdot |- w : \tau \rightsquigarrow t$ and 
+%% $D |- value(w)$ and $\Sigma |- D \rightsquigarrow \phi_{\Sigma,D}$. 
+%% Then
+%% \begin{enumerate*} 
+%%   \item If $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- t = \bad$ then $w = @BAD@$.
+%%   \item If $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- t = K(\ol{t})$ then $w = K[\taus](\ol{e})$, such 
+%%         that $\Sigma;\cdot |- \ol{e : \tau} \rightsquigarrow \ol{s}$, and $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- \ol{t = s}$.
+%%   \item $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- t \neq \unr$.
+%% \end{enumerate*}
+%% \end{lemma}
+%% \begin{proof}
+%% The proof of all three cases is by inversion on the $D |- value(w)$ derivation, 
+%% apealling to the disjointness axioms.
+%% %% \begin{enumerate*}
+%% %%   \item By inversion on the $D |- value(w)$ derivation. In the case of \rulename{VBad} we are done.
+%% %%   The case of \rulename{VFun} cannot happen, by the axiom set \rulename{AxPartB}. The case of \rulename{VCon} 
+%% %%   cannot happen either: If the application is saturated then \rulename{AxDisjC} shows it is impossible; if it
+%% %%   is not saturated we can always extend it and use \rulename{AxAppC} and \rulename{AxDisjC}. 
+%% %%   \item Again by inversion on $D |- value(w)$ derivation. The case of \rulename{VBad} is easy. The case for 
+%% %%   \rulename{VCon} follows by injectivity of constructors. The case of \rulename{VFun} can't happen by 
+%% %%   \rulename{AxPartB}.
+%% %%   \item Direct inversion on $D |- value(w)$, and using disjointness axioms.
+%% %% \end{enumerate*} 
+%% \end{proof}
+ 
+%% Basic soundness will be stated as follows.
+%% \begin{theorem}
+%% If we have that
+%% \begin{enumerate*} 
+%%   \item $\Sigma;\cdot |- e : \tau$ and $\Sigma;\cdot |- \Ct : \tau$
+%%   \item $\Sigma |- D \rightsquigarrow \phi_{\Sigma,D}$
+%%   \item $\Sigma;\cdot |- e \in \Ct \rightsquigarrow \phi$
+%% \end{enumerate*}
+%% and $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} /\ \neg \phi$ is unsatisfiable then $\Sigma;D |- e \in \Ct$.
+%% \end{theorem}
+%% \begin{proof}
+%%  {\bf TODO}
+%% \end{proof}
+
+%% A remark: a formula $\phi$ is unsatisfiable iff $\neg \phi$ is valid in FOL. Hence, if 
+%% $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} /\ \neg \phi$ is unsatisfiable then 
+%% $\neg (\Th{\Sigma}{D} /\ \phi_{\Sigma,D}) \lor \phi$ must be valid, and by completeness of FOL, 
+%% $\Th{\Sigma}{D} /\ \phi_{\Sigma,D} |- \phi$.  
+
+\section{Denotational semantics as FOL models} 
+
+
+
+%% \begin{figure}\small
+%% \[\begin{array}{c} 
+%% %% \ruleform{ \dtrans{\Sigma}{d} = \formula{\phi} } \\ \\
+%% %% \prooftree
+%% %%   \begin{array}{c}
+%% %%   (f{:}\forall\oln{a}{n} @.@ \oln{\tau}{m} -> \tau) \in \Sigma \quad 
+%% %%   \etrans{\Sigma}{\ol{a},\ol{x{:}\tau}}{e} = \formula{t}
+%% %%   \end{array}
+%% %%   -------------------------------------------------------------------{TFDef}
+%% %%   \dtrans{\Sigma}{(f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ e)} =  \formula{ (\forall x @.@ f(\oln{x}{m}) = t) }
+%% %%   ~~~~~ 
+%% %%   \begin{array}{l}
+%% %%   (f{:}\forall\oln{a}{n} @.@ \oln{\tau}{m} -> \tau) \in \Sigma \quad 
+%% %%   \etrans{\Sigma}{\ol{a},\ol{x{:}\tau}}{e} = \formula{t} \\
+%% %%   constrs(\Sigma,T) = \ol{K} \\
+%% %%   \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+%% %%   \quad \begin{array}{l}
+%% %%            (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \\
+%% %%            \etrans{\Sigma}{\ol{a},\ol{x{:}\tau},\ol{y{:}\sigma[\taus/\cs]}}{e'} = \formula{ t_K }
+%% %%         \end{array}
+%% %%   \end{array}
+%% %%   -------------------------------------------------------------------{TCaseDef}
+%% %%   \begin{array}{l}
+%% %%    \dtrans{\Sigma}{(f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'})} = \\
+%% %%    \quad \formula{ \begin{array}{lll} \forall \oln{x}{m} @.@ & \hspace{-7pt} (t = \bad /\ f(\ol{x}) = \bad)\; \lor \\ 
+%% %%                                                                     & \hspace{-7pt}(f(\ol{x}) = \unr)\;\lor \\ 
+%% %%                                                                     & \hspace{-7pt}(\bigvee(t = K(\oln{{\sel{K}{i}}(t)}{i\in 1..l})\;/\ \\
+%% %%                                                                     & \hspace{-5pt}\quad f(\ol{x}) = t_K[\oln{\sel{K}{i}(t)}{i\in 1..l}/\ol{y}]))
+%% %%                                                  \end{array}
+%% %%                         }
+%% %% \end{array}
+%% %% \endprooftree  \\ \\ 
+%% \end{array}\]
+%% \caption{Definition elaboration to FOL}\label{fig:typing}
+%% \end{figure}
+
+
+
+
+{\bf DV: So basically this is Simon's strategy of side-stepping the lack of full abstraction
+and the associated problems with it: In the end of the day we only care about base contracts,
+in fact really only about the contract ``is this program crash-free'', so we don't have to make
+a big fuss about higher-order contracts and their operational semantics. We have to motivate it
+carefully and also be clear that for the intellectually curious reader who really wants to know what statement we have proved for a function contract when the prover says ``unsat'' we might want to give a full definition of the denotational meaning of contracts including both base and higher-order. I think we do not have the time luxury to look for more elaborate solutions (such as definable denotations and all that crazy stuff) to match the operational and the denotational semantics for higher-order contracts. Fullstop.}
+
+
+\section{Minimizing countermodels}
+
+
+
+\section{Min as unreachable}
+
+ In fact we may take
+one step further and equate all the non-interesting values of the domain to $\bot$.
+
+To achieve this effect, we update our Prelude theory axioms as follows:
+{\small
+\[\setlength{\arraycolsep}{1pt}
+\begin{array}{c}
+%% \ruleform{\Th{\Sigma}{P}} \\ \\ 
+\begin{array}{lll} 
+ \textsc{AxDisjA} & \formula{\bad \neq \unr}  \\ 
+ \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@} \\ 
+                  & \formula{\;\;\highlight{K(\ol{x}){\neq}\unr\;\lor\;J(\ol{y}){\neq}\unr} =>
+                                  K(\ol{x}){\neq}J(\ol{y})} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+ %% \textsc{AxDisjCUnr} & \formula{\forall \oln{x}{n} @.@ \highlight{\neg min(\unr)}} \\ 
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+ \textsc{AxDisjCBad} & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) \neq \bad} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+
+ \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+ %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxAppC}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ \\
+ %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+ %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+ %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+ %% \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+ %%                  & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+ %%                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+ %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
+ %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{K(\ys) \neq \unr\;\land\; y_i \neq \unr}} \\ 
+                  & \formula{\quad\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+ \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfB1}  & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ \textsc{AxCfB2}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})}\;\highlight{\land\;K(\ol{x}) \neq \unr} => \bigwedge\lcf{\ol{x}}} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
+\end{array}
+\end{array}\]}
+
+
+\begin{figure}\small
+\[\begin{array}{c}
+\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
+\prooftree
+   \begin{array}{c} \ \\ \ \\ 
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+   \end{array}
+   ----------------------------------------{TUTm}
+   \begin{array}{l} 
+   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{(s = t) \lor \highlight{\neg min(s)}} \ \\ \ \\ \ \\ 
+   \end{array}
+   ~~~~~
+  \begin{array}{l}
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+  constrs(\Sigma,T) = \ol{K} \\
+  \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+  \begin{array}{l}
+           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+  \end{array}
+  \end{array}
+  ------------------------------------------{TUCase}
+  {\setlength{\arraycolsep}{1pt} 
+  \begin{array}{l}
+  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
+  \;\;\formula{ \begin{array}{l} 
+     \highlight{min(s)} => \\
+     \begin{array}{ll}
+          ( & \highlight{min(t)}\;\land \\
+            & (t = \bad => s = \bad)\;\land \\ 
+            & (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots \land \\
+            & (t \neq \bad\;\land\;t \neq K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s = \unr) \\
+          )
+%% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
+%%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+%%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
+                   \end{array}
+     \end{array}}
+  \end{array}}
+  %% {       \setlength{\arraycolsep}{2pt} 
+  %% \begin{array}{l}
+  %% \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
+  %% \;\;\formula{
+  %%      \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
+  %%                           \;\; (\highlight{min(s) => min(t)}\;\land  \\
+  %%                           \quad((t = \bad /\ s = \bad)\;\lor \\
+  %%                           \quad\quad \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+  %%                                          s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])))
+  %%                  \end{array}
+  %%          }
+  %% \end{array}}
+\endprooftree
+\end{array}\]
+\caption{Minimality-enabled definition translation}\label{fig:min-def-trans-min}
+\end{figure}
+
+
+
+We will explain the modifications to the axiomatization in more detail in later sections.
+%% In other words, we ensure that constructor applications are disjoint
+%% only for values we are interested in. We will explain each axiom separately later. 
+%% Intuitively we wish to equate all terms that we are not interested in to $\unr$. We 
+%% can never be interested in $\unr$ in the intended model because that means that during
+%% the evaluation of a term, which completed, we encountered a divergent term -- clearly a 
+%% contradiction!
+What about function definitions? Figure~\ref{fig:etrans} has to be modified slightly as well, 
+as Figure~\ref{fig:min-def-trans} shows.
+
+\begin{figure}\small
+\[\begin{array}{c}
+\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
+\prooftree
+   \begin{array}{c} \ \\ \ \\ 
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+   \end{array}
+   ----------------------------------------{TUTm}
+   \begin{array}{l} 
+   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{(s = t) \lor \highlight{s = \unr}} \ \\ \ \\ \ \\ 
+   \end{array}
+   ~~~~~
+  \begin{array}{l}
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+  constrs(\Sigma,T) = \ol{K} \\
+  \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+  \begin{array}{l}
+           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+  \end{array}
+  \end{array}
+  ------------------------------------------{TUCase}
+  {\setlength{\arraycolsep}{1pt} 
+  \begin{array}{l}
+  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
+  \;\;\formula{ \begin{array}{l} 
+     \highlight{s = \unr}\;\lor \\
+     \begin{array}{ll}
+          ( & \highlight{(t \neq \unr)}\;\land \\
+            & (t = \bad => s = \bad)\;\land \\ 
+            & (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots \land \\
+            & (t = \bad\;\lor\;t = K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\lor\;\ldots) \\ 
+          )
+%% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
+%%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+%%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
+                   \end{array}
+     \end{array}}
+  \end{array}}
+  %% {       \setlength{\arraycolsep}{2pt} 
+  %% \begin{array}{l}
+  %% \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
+  %% \;\;\formula{
+  %%      \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
+  %%                           \;\; (\highlight{min(s) => min(t)}\;\land  \\
+  %%                           \quad((t = \bad /\ s = \bad)\;\lor \\
+  %%                           \quad\quad \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+  %%                                          s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])))
+  %%                  \end{array}
+  %%          }
+  %% \end{array}}
+\endprooftree
+\end{array}\]
+\caption{Minimality-enabled definition translation}\label{fig:min-def-trans}
+\end{figure}
+
+%% \\ \\ 
+%% \ruleform{ \Dtrans{\Sigma}{P} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%      \begin{array}{l}       
+%%        \text{for each} (f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\ 
+%%           \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
+%%      \end{array}
+%%      --------------------{TDefs}
+%%      \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
+%% \endprooftree 
+
+Now operationally we may instrument the evaluation relation to keep track of the set of 
+closed terms that appear during evaluation. The instrumented relation appears in 
+Figure~\ref{fig:opsem-instrumented}. Observe that if $P |- e \Downarrow w \curly S$ then 
+$S$ is a {\em finite set} of terms.
+
+
+\begin{figure}\small
+\[\begin{array}{c} 
+\ruleform{P |- e \Downarrow v \curly S} \\ \\ 
+\prooftree
+\begin{array}{c} \ \\ 
+\end{array}
+%% \begin{array}{c}
+%% (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+%% P |- e_1 \Downarrow f\;[\taus]\;\oln{e}{m-1} \curly S_1 \\ 
+%% P |- u[\ol{\tau}/\ol{a}][\ol{e},e_2/\ol{x}] \Downarrow w \curly S
+%% \end{array}
+%% ------------------------------------{EBeta}
+%% P |- e_1\;e_2 \Downarrow w 
+  S = heads(v)
+-------------------------------------{EVal}
+P |- v \Downarrow v \curly S
+~~~~
+\begin{array}{c}
+(f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v \curly S_1 \\ 
+S_2 = heads(f[\ol{\tau}]\;\oln{e}{m}) 
+\end{array}
+-------------------------------------{EFun}
+P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow v \curly S_1 \cup S_2
+~~~~~
+\begin{array}{c}  
+P |- e_1 \Downarrow v_1 \curly S_1 \quad
+P |- v_1\;e_2 \Downarrow w \curly S_2
+\end{array}
+------------------------------------------------{EApp}
+P |- e_1\;e_2 \Downarrow w \curly S_1 \cup S_2 \cup \{ e_1\;e_2 \}
+~~~~~
+\begin{array}{c}  
+P |- e_1 \Downarrow @BAD@ \curly S 
+\end{array}
+------------------------------------------------{EBadApp}
+P |- e_1\;e_2 \Downarrow @BAD@ \curly S \cup \{ e_1\;e_2 \} 
+\endprooftree \\ \\ 
+\ruleform{heads(e) = S} \\ \\ 
+\begin{array}{lcl}
+   heads(f\;[\ol{\tau}]) & = & \{ f\;[\ol{\tau}] \} \\
+   heads(e_1\;e_2)       & = & \{ e_1\;e_2 \} \cup heads(e_1) \\
+   heads(\_)            & = & \emptyset 
+\end{array} \\ \\
+\ruleform{P |- u \Downarrow v \curly S} \\ \\
+\prooftree
+P |- e \Downarrow v \curly S 
+-------------------------------------{EUTm}
+P |- e \Downarrow v \curly S 
+~~~~~
+\begin{array}{c}
+P |- e \Downarrow K_i[\ol{\sigma}_i](\ol{e}_i) \curly S_1 \quad
+P |- e'_i[\ol{e}_i/\ol{y}_i] \Downarrow w \curly S_2 
+\end{array}
+------------------------------------{ECase}
+P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow w \curly S_1 \cup S_2
+~~~~~
+\begin{array}{c}
+P |- e \Downarrow @BAD@ \curly S \\
+\end{array}
+------------------------------------{EBadCase}
+P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@ \curly S
+%% \begin{array}{c}
+%% (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}) \in D \\
+%% D |- e[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow @BAD@ \\
+%% \end{array}
+%% -------------------------------------{EBadCase}
+%% D |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow @BAD@
+\endprooftree
+\end{array}\]
+\caption{Redex-instrumented operational semantics}\label{fig:opsem-instrumented}
+\end{figure}
+
+\subsection{The intended min-imal model}
+
+Our goal is then going to be to establish the following result, stated in non-technical terms:
+\begin{quote}
+If there exists a counterexample to a contract, then the negation of the contract-translation
+formula is satisfiable not only on $\langle D_\infty,{\cal I}\rangle$ but it also has a {\em finite} 
+model. That finite model is a model of our minimality-enabled theory. 
+\end{quote}
+
+We start unfolding the story. For a given program $P$ in a signature $\Sigma$ we have already 
+shown how to construct $D_\infty$ and how to give interpretations ${\cal I}$ to a first-order 
+vocabulary. Let us assume that the program and signature contains a polymorpic $undefined$ 
+function, for convenience $undefined |-> udefined$. This is a realistic assumption to make 
+(e.g. it comes in the standard Haskell prelude).
+
+Assume now that we are given a formula $\phi$ defined as: 
+\[  \phi = \ctrans{\Sigma}{\cdot}{e \in \Ct_1 -> \ldots \Ct_n -> @B@} \] 
+for @B@ a base contract. Assume moreover that there exist $\oln{e}{n}$, closed for the
+program $P$, such that for each $e_i$ it is true that:
+\[\interp{\Ct_i}{\dbrace{P}^\infty}{\cdot}(\interp{e_i}{\dbrace{P}^\infty}{\cdot})\]. 
+Assume however that it is {\em not} the case that
+\[\interp{{\tt B}}{\dbrace{P}^\infty}{\cdot}(\interp{e\;\oln{e}{n}}{\dbrace{P}^\infty}{\cdot})\]
+There are two cases for the base constract @B@:
+\begin{itemize}
+  \item Let us now consider the case where @B@ = $\{ x \mid e_p \}$. By adequacy it must
+  be that: $P |- e\;\ol{e} \Downarrow w \curly S_1$ for some $w$ and set $S_1$ and moreover
+  $P |- e_p[e\;ol{e}/x] \Downarrow \{ @BAD@, False \} \curly S_2$ for some set $S_2$. 
+
+  Of course the following lemma is true:
+  \begin{lemma}\label{lem:curly} 
+    If $P |- e \Downarrow w \curly S$ then $S$ is a finite set. Moreover, 
+    for every $e' \in S$ there exists $w$ such that $P |- e' \Downarrow w$.
+  \end{lemma}
+  Moreover we have:
+  \begin{lemma}\label{lem:bot-not-redex} 
+     If $P |- e \Downarrow w \curly S$ then 
+     $\bot \notin \interp{S}{\dbrace{P}^{\infty}}{\cdot}$. 
+  \end{lemma}
+  \begin{proof} If $\bot \in \interp{S}{\dbrace{P}^{\infty}}{\cdot}$ then there exists
+  a term $e \in S$ such that $\interp{e}{\dbrace{P}^{\infty}}{\cdot} = \bot$. This means
+  that $P |- e \not\Downarrow$ but that is a contradiction to $e \in S$ by 
+  Lemma~\ref{lem:curly}.
+  \end{proof}
+
+  Let us now define the {\em minimal sets} operationally and denotationally:
+
+  \[\begin{array}{lcl}
+           M        & \triangleq & S_1 \cup S_2 \\
+           {\cal M} & \triangleq & \interp{S_1\cup S_2}{\dbrace{P}^{\infty}}{\cdot}
+  \end{array}\]
+  Consider now the function $\mu : D_\infty -> D_\infty$ defined as: 
+  \[\begin{array}{lcl} 
+        \mu(d) & \triangleq & \left\{ \begin{array}{ll} 
+                   d           & \text{when } \unroll(d) = \ret(\inj{bad}(1)) \\
+                   d           & \text{when } d \in \Min \\ 
+                   \bot        & \text{otherwise } 
+                                      \end{array}\right.
+  \end{array}\] 
+  In other words $\mu(\cdot)$ conflates all the non-interesting values to $\bot$. 
+  Now we may consider the {\em set} which is the image of $D_\infty$ through $\mu$: 
+  \[ D_\infty^\mu  \triangleq \mu(D_\infty) \] 
+
+  Notice that this set is {\em finite} with cardinality at most $card(M) + 2$. Also, 
+  we treat this is a {\em set}. Although $D_\infty$ has a domain structure, we do not 
+  care about $D_\infty^\mu$ being a domain. 
+
+  Now, in this $D_\infty^\mu$ we may redefine the interpretation of first-order constants
+  and variable symbols in our theories, using ${\cal I}^\mu$ below:
+
+
+  {\setlength{\arraycolsep}{2pt}  
+  \[\begin{array}{rcl}
+     \mlinterp{f_{ptr}} & = & \mu(\dbrace{P}^{\infty}(f)) \\  
+ %% \roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
+ %%                       &   & \quad \roll(\ret(\inj{->}(\dlambda d_n @.@ \\ 
+ %%                       &   & \quad\quad\text{ if there exist } \oln{e}{n} \text{ s.t. } f[\taus]\;\ol{e} \in M \\ 
+ %%                       &   & \quad\quad\quad\text{ and } \interp{e_i}{\dbrace{P}^\infty}{\cdot} = d_i\text{ then } \\
+ %%                       &   & \quad\quad\quad\quad \mu(\dapp(\dbrace{P}^{\infty}(f),\oln{d}{n})) \\ 
+ %%                       &   & \quad\quad\text{ else } \bot)))\ldots))) \\ \\ 
+   \mlinterp{f^{n}}  & = & \dlambda (d {:} \prod_{n}D_{\infty}^\mu) @.@  \\
+                       %% &   & \quad\quad\text{ if there exist } \oln{e}{n} \text{ s.t. } f[\taus]\;\ol{e} \in M \\ 
+                       %% &   & \quad\quad\quad\text{ and } \interp{e_i}{\dbrace{P}^\infty}{\cdot} = \pi_i(d)\text{ then } \\
+                       &   & \quad\quad (\mu\cdot\dapp)(\mu(\dbrace{P}^{\infty}(f)),\oln{\pi_i(d)}{i \in 1..n})) \\
+                       %% &   & \quad\quad\text{ else } \bot \\ \\ 
+
+   \mlinterp{app}     & = & \dlambda (d {:} D_{\infty}^\mu \times D_{\infty}^\mu) @.@ \\ \
+                      &   & \quad\qquad \mu(\dapp(\pi_1(d),\pi_2(d))) \\ \\
+
+   \mlinterp{K^{\ar}}     & = & \dlambda (d {:} \prod_{\ar}D_{\infty}^\mu) @.@ \mu(\roll(\ret(\inj{K}(d)))) \\ 
+   \mlinterp{\sel{K}{i}} & = & \dlambda (d {:} D_{\infty}^{\mu}) @.@ \mu(\roll(\bind_g(\unroll(d)))) \\ 
+     \text{where } g  & = & [\;\bot \\ 
+                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for constr. } K) \\ 
+                      &   & ,\;\bot \\ 
+                      &   & ,\;\ldots\\ 
+                      &   & ,\;\bot\; ]
+  \end{array}\]}
+
+  Sadly, while the interpretation above is relatively simple, it does not validate the axiom 
+  for \textsc{TUCase}. The fact that the denotation of a function application may be in the minimal set, 
+  does not guarrantee that evaluation had proceeded along this function and hence the case scrutinee will
+  be in the minimal set. This will be true only if we add an intentional test in the interpretation of 
+  functions that queries the set $M$. {\bf DV:TODO tomorrow}. 
+
+  {\bf DV: TODO: We need something like the definition below (but not quite, it does not type check yet)}: 
+  {\setlength{\arraycolsep}{2pt}  
+  \[\begin{array}{rcl}
+     \mlinterp{f_{ptr}} & = & \mu(\roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
+                       &   & \quad \mu(\roll(\ret(\inj{->}(\dlambda d_n @.@ \\ 
+                       &   & \quad\quad\text{ if there exist } \oln{e}{n} \text{ s.t. } f[\taus]\;\ol{e} \in M \\ 
+                       &   & \quad\quad\quad\text{ and } \interp{e_i}{\dbrace{P}^\infty}{\cdot} = d_i\text{ then } \\
+                       &   & \quad\quad\quad\quad \mu(\dapp(\dbrace{P}^{\infty}(f),\oln{d}{n})) \\ 
+                       &   & \quad\quad\text{ else } \bot))))\ldots)))) \\ \\ 
+   \mlinterp{f^{n}}  & = & \dlambda (d {:} \prod_{n}D_{\infty}^\mu) @.@  \\
+                       &   & \quad\quad\text{ if there exist } \oln{e}{n} \text{ s.t. } f[\taus]\;\ol{e} \in M \\ 
+                       &   & \quad\quad\quad\text{ and } \interp{e_i}{\dbrace{P}^\infty}{\cdot} = \pi_i(d)\text{ then } \\
+                       &   & \quad\quad\quad\quad \mu(\dapp(\dbrace{P}^{\infty}(f),\oln{\pi_i(d)}{i \in 1..n})) \\
+                       &   & \quad\quad\text{ else } \bot \\ \\ 
+
+   \mlinterp{app}     & = & \dlambda (d {:} D_{\infty}^\mu \times D_{\infty}^\mu) @.@ \\ \
+                      &   & \quad\qquad \mu(\dapp(\pi_1(d),\pi_2(d))) \\ \\
+
+   \mlinterp{K^{\ar}}     & = & \dlambda (d {:} \prod_{\ar}D_{\infty}^\mu) @.@ \mu(\roll(\ret(\inj{K}(d)))) \\ 
+   \mlinterp{\sel{K}{i}} & = & \dlambda (d {:} D_{\infty}^{\mu}) @.@ \mu(\roll(\bind_g(\unroll(d)))) \\ 
+     \text{where } g  & = & [\;\bot \\ 
+                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for constr. } K) \\ 
+                      &   & ,\;\bot \\ 
+                      &   & ,\;\ldots\\ 
+                      &   & ,\;\bot\; ]
+  \end{array}\]}
+
+  \item The other case is when $@B@ = \CF$. {\bf TODO}
+\end{itemize}
+
+
+
+
+
+
+
+%% \newpage
+
+%% \section{Contract checking soundness} 
+
+%% \section{Contracts}
+
+%% The syntax that we use for contracts is in Figure~\ref{fig:contract-syntax}. 
+%% Contracts are typed (here, just monomorphically), and we give an operational 
+%% semantics for contract satisfaction in the same figure. 
+
+%% \begin{figure*}\small
+%% \[\begin{array}{c} 
+%% \ruleform{\Sigma;\Gamma |- \Ct } \\ \\ 
+%% \prooftree
+%% \Sigma;\Delta,x{:}\tau |- e : \Bool
+%% ---------------------------------------{TCBase}
+%% \Sigma;\Delta |- \{ (x{:}\tau) \mid e \} : \tau
+%% ~~~~ 
+%% \begin{array}{c}
+%% \Sigma;\Delta |- \Ct_1 : \tau \\
+%% \Sigma;\Delta,(x{:}\tau) |- \Ct_2 : \tau' 
+%% \end{array}
+%% ---------------------------------------{TCArr}
+%% \Sigma;\Delta |- (x{:}\Ct_1) -> \Ct_2 : \tau -> \tau'
+%% ~~~~ 
+%% \Sigma;\Delta |- \Ct_1 : \tau \quad \Sigma;\Delta |- \Ct_2 : \tau 
+%% ---------------------------------------{TCConj}
+%% \Sigma;\Delta |- \Ct_1 \& \Ct_2 : \tau
+%% ~~~~ 
+%% \phantom{\Gamma}
+%% ---------------------------------------{TCf}
+%% \Sigma;\Delta |- \CF : \tau
+%% \endprooftree \\ \\ 
+%% \ruleform{\Sigma;P |- e \in \Ct} \\ \\
+%% \prooftree
+%%  P \not|- e \Downarrow 
+%% -----------------------------------------------{ECDiv}
+%%  \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \}
+%%  ~~~~
+%%  P |- e'[e/x] \Downarrow \True 
+%% -------------------------------------------{ECTrue}
+%%  \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \}
+%%  ~~~~
+%%  P \not|- e'[e/x] \Downarrow 
+%%  ------------------------------------------{ECCDiv}
+%%  \Sigma;P |- e \in \{ (x{:}\tau) \mid e' \} 
+%%  ~~~~~
+%%  \begin{array}{c} 
+%%  \Sigma;\cdot |- \Ct_1 : \tau \\
+%%  \text{for all } u, \Sigma;\cdot |- u : \tau ==> \Sigma;P |- e\;u \in \Ct_2[u/x]
+%%  \end{array}
+%%  --------------------------------------------{ECArr}
+%%  \Sigma;P |- e \in (x{:}\Ct_1) -> \Ct_2 
+%%  ~~~~
+%%  \begin{array}{c}
+%%  \Sigma,\cdot |- e : \tau  \\ 
+%%  e \in \Ecf \quad \text{(See Section~\ref{sect:cf})}
+%%  %% \text{for all } u, (\Sigma;\cdot |- u : \tau -> \Bool) /\ (@BAD@ \notin u) ==> \neg (P |- u\;e \Downarrow @BAD@)
+%%  \end{array}
+%%  --------------------------------------------------------------------------------------------{ECf}
+%%  \Sigma;P |- e \in \CF 
+%%  ~~~~~ 
+%%  \Sigma;P |- e \in \Ct_1 \quad \Sigma;P |- e \in \Ct_2
+%%  --------------------------------------------------------------------------------------------{ECConj}
+%%  \Sigma;P |- e \in \Ct_1 \& \Ct_2
+%% \endprooftree
+%% \end{array}\]
+%% \caption{Contract syntax and semantics}\label{fig:contract-syntax}
+%% \end{figure*}
+
+
+
+
+
+
+
+%% \section{Induction and admissibility}
+%% {\bf TODO} 
+
+
+%% \section{Minimization}
+%% {\bf TODO} 
+
+%% \section{Some ideas}
+%% Sometimes the $\CF$ contract stands in our way e.g. for library stuff. It might 
+%% be interesting to explore some user-defined pragma to side-step the $\bad$ case
+%% in some pattern matches (i.e. make it on demand, pretty much as $F^{\star}$ does, where
+%% only the user's assertions matter.
+%% %% \acks
+%% %% Acknowledgements here
+
+\end{document}

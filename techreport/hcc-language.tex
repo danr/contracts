@@ -1,0 +1,807 @@
+\section{Syntax and semantics}
+\label{s:intro}%
+We will work with a polymorphic call-by-name calculus with algebraic data types, pattern matching, 
+but where (i) polymorphism is only at top-level (a-la ML), (ii) functions are $\lambda$-lifted to 
+the top-level and (iii) case expressions can only occur at top level. It is easy to convert source
+Haskell to this intermediate form, which simplifies our translation and formal metatheory. The 
+syntax of the language is given in Figure~\ref{fig:syntax}. 
+
+We also define an erasure on $\Delta$ which gives $\Gamma$ environments, $\Delta^{-} = \Gamma$ below:
+\[\begin{array}{lrll}
+(\cdot)^{-}            & = & \cdot \\
+(\Delta,a)^{-}         & = & \Delta^{-} \\
+(\Delta,(x{:}\tau)^{-} & = & \Delta^{-},x 
+\end{array}\]
+
+
+\begin{figure}\small
+\[\begin{array}{l} 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Types}} \\
+\tau,\sigma & ::=  & T\;\taus & \text{Datatypes} \\ 
+            & \mid & a \mid \tau -> \tau 
+\end{array}\\ \\ 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Expressions}} \\
+e  & ::=  & x            & \text{Variables} \\ 
+   & \mid & f[\ol{\tau}] & \text{Function variables} \\ 
+   & \mid & K[\ol{\tau}](\ol{e}) & \text{Data constructors} \\
+   & \mid & e\;e         & \text{Applications} \\
+   & \mid & @BAD@        & \text{Runtime error} \\ 
+\end{array}\\ \\ 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Definitions}} \\
+P   & ::= & @fix@\;(f_1^{\ar_1},...,f_k^{\ar_k})\;@=@ \\ 
+    &     & \quad\quad\quad\quad (\Lambda\as_1 @.@ \lambda{\oln{x{:}\tau}{\ar_1}} @.@ u_1,...,
+                                                \Lambda\as_k @.@ \lambda{\oln{x{:}\tau}{\ar_k}} @.@ u_k) \\
+%% %% d   & ::= & f |-> \Lambda\ol{a} @.@ \lambda\ol{x{:}\tau} @.@ u \\ 
+u   & ::= & e \mid @case@\;e\;@of@\;\ol{K\;\ol{y} -> e} \\ 
+%%D   & ::= & \cdot \mid D,d \\
+\end{array}\\ \\ 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Datatype declarations}} \\
+dec & ::= & @data@\;T\;\ol{a} = \ol{K\;\taus}
+\end{array}\\ \\ 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Type environments and signatures}} \\
+\Gamma & ::=  & \cdot \mid \Gamma,x \\
+\Delta & ::=  & \cdot \mid \Delta,a \mid \Delta,x{:}\tau \\
+\Sigma & ::=  & \cdot \mid \Sigma,T{:}n \mid \Sigma,f{:}\forall\ol{a} @.@ \tau \mid \Sigma,K^{\ar}{:}\forall\ol{a} @.@ \oln{\tau}{\ar} -> @T@\;\as
+\end{array}\\ \\
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Auxiliary functions}} \\
+constrs(\Delta,T) & = & \{ K \mid (K{:}\forall \as @.@ \taus -> T\;\as) \in \Delta \} \\
+%% \tyar{D}{f} & = & n & \\ 
+%%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\oln{a}{n} @.@ \lambda\ol{x{:}\tau} @.@ u) \in D} \\
+%% \tmar{D}{f} & = & n & \\ 
+%%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D}
+\end{array}\\ \\ 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Syntax of closed values}} \\
+ v,w & ::= & K^\ar[\ol{\tau}](\oln{e}{\ar}) \mid f^\ar[\ol{\tau}]\;\oln{e}{m < \ar} \mid @BAD@ \\ \\ 
+\end{array} \\
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Typed contracts}} \\
+\Ct & ::=  & \{ (x{:}\tau) \mid e \}    & \text{Base contracts} \\ 
+  & \mid &  (x{:}\Ct_1) -> \Ct_2        & \text{Arrow contracts} \\ 
+  & \mid & \Ct_1 \& \Ct_2               & \text{Conjunctions}    \\ 
+  & \mid & \CF                          & \text{Crash-freedom}  \\
+\end{array} \\
+\end{array}\]
+\caption{Syntax}\label{fig:syntax}
+\end{figure}
+
+%% \begin{figure}\small
+%% \[\begin{array}{c} 
+%% \ruleform{\Sigma;\Delta |- \tau } \\ \\ 
+%% \prooftree
+%%          a \in \Delta
+%%         ----------------{TVar}
+%%          \Sigma;\Delta |- a  
+%%         ~~~~ 
+%%         \Sigma;\Delta |- \tau_1 \quad \Sigma;\Delta |- \tau_2
+%%         ---------------------{TArr}
+%%         \Sigma;\Delta |- \tau_1 -> \tau_2 
+%%         ~~~~~ 
+%%         \begin{array}{c}
+%%           (T{:}n) \in \Sigma  \quad
+%%           \Sigma;\Delta |- \taus
+%%         \end{array}
+%%         -------------------------{TData}
+%%         \Sigma;\Delta |- T\;\oln{\tau}{n} 
+%% \endprooftree \\ \\ 
+%% \ruleform{\Sigma;\Delta |- e : \tau} \\ \\
+%% \prooftree
+%%   (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma \quad \Sigma;\Delta |- \taus 
+%%   --------------------------------------{TFVar}
+%%   \Sigma;\Delta |- f[\oln{\tau}{n}] : \tau[\taus/\as]
+%%   ~~~~ 
+%%   (x{:}\tau) \in \Delta 
+%%   --------------------------------------{TVar}
+%%   \Sigma;\Delta |- x : \tau
+%%   ~~~~~ 
+%%   (K{:}\forall\oln{a}{n} @.@ \taus -> T\;\as) \in \Sigma \quad
+%%   \Sigma;\Delta |- \taus \quad
+%%   \Sigma;\Delta |- \ol{e : \tau}
+%%   --------------------------------------{TCon}
+%%   \Sigma;\Delta |- K[\oln{\tau}{n}](\ol{e}) : T\;\taus
+%%   ~~~~~
+%%   \phantom{\Delta}
+%%   --------------------------------------{TBad}
+%%   \Sigma;\Delta |- @BAD@ : \tau
+%%   ~~~~
+%%   \Sigma;\Delta |- e_1 : \sigma -> \tau \;\;
+%%   \Sigma;\Delta |- e_2 : \sigma
+%%   --------------------------------------{TApp}
+%%   \Sigma;\Delta |- e_1\;e_2 : \tau
+%% \endprooftree \\ \\ 
+%% \ruleform{\Sigma;\Delta |- u : \tau} \\ \\
+%% \prooftree
+%%    \Sigma;\Delta |- e : \tau
+%%    ---------------------------{TUTm}
+%%     \Sigma;\Delta |- e : \tau
+%%    ~~~~~ 
+%%   \begin{array}{l}
+%%   \Sigma;\Delta |- e : T\;\oln{\tau}{k} \quad
+%%   constrs(\Sigma,T) = \ol{K} \\
+%%   \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+%%   \begin{array}{l}
+%%            (K{:}\forall \cs @.@ \oln{\sigma}{l}{->}T\;\oln{c}{k}) \in \Sigma \text{ and }
+%%            \Sigma;\ol{a},\ol{x{:}\tau},\ol{y{:}\sigma[\taus/\cs]} |- e'{:}\tau
+%%   \end{array}
+%%   \end{array}
+%%   ----------------------------------------{TUCase}
+%%   \Sigma;\Delta |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}
+%% \endprooftree \\ \\ 
+%% \ruleform{ \Sigma |- P} \\ \\ 
+%% \prooftree
+%%    \begin{array}{l}
+%%    \text{ for every} (f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+%%    \quad\quad (f{:}\forall\oln{a}{n} @.@ \oln{\tau}{m} -> \tau) \in \Sigma
+%%    \text{ and }\Sigma;\as,\ol{x{:}\tau} |- u : \tau
+%%    \end{array}
+%%    ----------------------------------------------{TFDef}
+%%    \Sigma |- P
+%% \endprooftree 
+%% \end{array}\]
+%% \caption{Typing relation}\label{fig:typing}
+%% \end{figure}
+
+%% \begin{figure}\small
+%% \[\begin{array}{c} 
+%% \ruleform{D |- value(e)} \\ \\
+%% \prooftree
+%%    \begin{array}{c}
+%%    \tmar{D}{f} > m
+%%    \end{array}
+%%    ------------------------------------------------{VFun}
+%%     D |- value(f[\oln{\tau}{n}]\;\oln{e}{m})
+%%    ~~~~~
+%%    ------------------------------------------------{VCon}
+%%     D |- value(K[\ol{\tau}](\ol{e}))
+%%    ~~~~ 
+%%    ------------------------------------------------{VBad}
+%%    D |- value(@BAD@)
+%% \endprooftree
+%% \end{array}\]
+%% \caption{Values}\label{fig:typing}
+%% \end{figure}
+
+\begin{figure*}\small
+\[\begin{array}{c} 
+\ruleform{P |- e \Downarrow v} \\ \\
+\prooftree
+
+-------------------------------------{EVal}
+P |- v \Downarrow v
+~~~~
+\begin{array}{c}
+(f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v
+\end{array}
+-------------------------------------{EFun}
+P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow v
+~~~~
+\begin{array}{c}  
+P |- e_1 \Downarrow v_1 \quad
+P |- v_1\;e_2 \Downarrow w
+\end{array}
+------------------------------------------------{EApp}
+P |- e_1\;e_2 \Downarrow w
+~~~~
+\begin{array}{c}  
+P |- e_1 \Downarrow @BAD@ 
+\end{array}
+------------------------------------------------{EBadApp}
+P |- e_1\;e_2 \Downarrow @BAD@
+\endprooftree \\ \\ 
+\ruleform{P |- u \Downarrow v} \\ \\
+\prooftree
+P |- e \Downarrow v
+-------------------------------------{EUTm}
+P |- e \Downarrow v
+~~~~ 
+\begin{array}{c}
+P |- e \Downarrow K_i[\ol{\sigma}_i](\ol{e}_i) \quad
+P |- e'_i[\ol{e}_i/\ol{y}_i] \Downarrow w
+\end{array}
+------------------------------------{ECase}
+P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow w
+~~~~
+\begin{array}{c}
+P |- e \Downarrow @BAD@ \\
+\end{array}
+------------------------------------{EBadCase}
+P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@
+%% \begin{array}{c}
+%% (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}) \in D \\
+%% D |- e[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow @BAD@ \\
+%% \end{array}
+%% -------------------------------------{EBadCase}
+%% D |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow @BAD@
+\endprooftree
+\end{array}\]
+\caption{Operational semantics}\label{fig:opsem}
+\end{figure*}
+
+\begin{lemma}[Subject reduction]
+Assume $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau$
+If $P |- e \Downarrow w$ then $P |- value(w)$ and $\Sigma;\cdot |- w : \tau$.
+\end{lemma}
+
+\begin{lemma}[Value determinacy]
+If $\Sigma;\cdot |- v : \tau$ and 
+$\Sigma |- P$ and $P |- value(v)$ and $P |- v \Downarrow w$ then $ v = w $.
+\end{lemma}
+
+\begin{lemma}[Determinacy of evaluation]
+If $\Sigma;\cdot |- e : \tau$ and 
+$\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v_1$ and $\Sigma;\cdot |- e \Downarrow v_2$ then
+$v_1 = v_2$.
+\end{lemma}
+
+\begin{lemma}[Big-step soundness]
+If $\Sigma;\cdot |- e : \tau$ and 
+$\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $P |- value(v)$ and $\Sigma;\cdot |- v : \tau$.
+\end{lemma}
+
+
+
+
+\subsection{Denotational semantics}\label{ssect:denot}
+
+For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below, 
+assuming that $K_1\ldots K_k$ are all the constructors in $\Sigma$: 
+\[\begin{array}{lclll}
+  F_{\Sigma}(D^{-},D^{+}) & = & ( \quad{\prod_{\alpha_1}{D^{+}}} & K_1^{\ar_1} \in \Sigma \\
+                      & + & \;\quad\ldots                    & \ldots \\
+                      & + & \;\quad{\prod_{\alpha_k}{D^{+}}} & K_k^{\ar_k} \in \Sigma \\ 
+                      & + & \;\quad(D^{-} =>_c D^{+}) \\
+                      & + & \;\quad\unitcpo_{bad} \quad )_{\bot}
+\end{array}\] 
+The notation $\prod_{n}{D}$ abbreviates $n$-ary products ($\unitcpo$ if $n = 0$). The product
+and sum constructions are standard, and not strict. The notation $C =>_c D$ denotes the cpo 
+induced by the space of continus functions from the cpo $C$ to the cpo $D$. We use $\unitcpo_{bad}$ 
+notation to simply denote a single-element cpo -- the $bad$ subscript is just there for readability. 
+
+The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous functions.
+\[\begin{array}{l}
+   \ret   : D =>_c D_\bot \\ 
+   \bind_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
+\end{array}\]
+with the obvious definitions.
+
+Moreover, the following continuous operations are defined:
+\[\begin{array}{l} 
+   \curry_{f : D\times E =>_c F} : D =>_c (E =>_C F) \\ 
+   \eval : (E =>_c D)\times E =>_c D 
+\end{array}\] 
+for any cpos $D, E, F$.
+
+\begin{lemma}\label{lem:rec-solution} 
+There exists a solution to the domain-recursive equation induced by $F_{\Sigma}$, call it $D_{\infty}$.
+Moreover, let a value-domain: $V_{\infty}$ be defined as:
+    \[\begin{array}{ll}
+             \quad\;{\prod_{\alpha_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
+             \; + \;\ldots                    & \ldots \\
+             \; + \;{\prod_{\alpha_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\ 
+             \; + \;(D_{\infty} =>_c D_{\infty}) \\
+             \; + \;\unitcpo_{bad} \quad
+    \end{array}\]
+Then the following functions also exist, each being the inverse of the other (i.e. composing to the identity 
+function on the appropriate cpo):
+\[\begin{array}{l}
+  \roll : (V_{\infty})_\bot =>_c D_{\infty} \\ 
+  \unroll : D_{\infty} =>_c (V_{\infty})_\bot
+\end{array}\] 
+\end{lemma}
+
+We summarize the (standard) construction needed for the proof of Lemma~\ref{lem:rec-solution} based on embedding-projection pairs, 
+because some of its details will be useful later. Consider the chain of cpos $D_i$ defined as: 
+\[\begin{array}{lcl}
+   D_0 & = & \{\bot\} \\ 
+   D_{i+1} & = & F_{\Sigma}(D_i,D_i)
+\end{array}\]
+and moreover consider the corresponding {\em embeddings} $e_i : D_i =>_c D_{i+1}$ and 
+{\em projections} $p_i : D_{i+1} =>_c D_i$ defined as:
+\[\begin{array}{lcl}
+   e_0 & = & \dlambda d @.@ \bot_{D_1} \\
+   p_0 & = & \dlambda d @.@ \bot_{D_0} \\
+   e_{i+1} & = & F_{\Sigma}(p_i,e_i) \\
+   p_{i+1} & = & F_{\Sigma}(e_i,p_i)
+\end{array}\]
+The following is an easy fact to prove:
+\begin{lemma}
+For every $i$ and $x$ element of $D_i$ we have $p_i\cdot e_i(x) = x$. For
+every $y$ element of $D_{i+1}$ we have that $e_i\ cdot p_i(y) \sqsubseteq y$. 
+\end{lemma}
+Consider now the cpo defined by the carrier set 
+   \[ \{ x \in \Pi_{i \in \omega}D_i \;\mid\; x_n = p_n(x_{n+1}) \} \] 
+and the pointwise order induced by the order in each $D_i$, and $\bot$ element the 
+infinite tuple of the corresponding $\bot$ elements. This cpo {\em is} going to be the 
+set $D_{\infty}$. To prove this we need som more definitions. Let $j_{n,m} : D_n =>_c D_m$ 
+be defined as:
+\[\begin{array}{lcl}
+   j_{n,m}(d) & = & \left\{\begin{array}{ll} 
+                             e_{m-1}\cdot\ldots \cdot e_n(d) & n < m \\
+                             d                        & n = m \\
+                             p_{n-1}\cdot\ldots \cdot p_n(d) & n > m 
+                          \end{array}\right.
+\end{array}\]
+and define $j_i : D_i =>_c D_\infty$ as:
+\[\begin{array}{lcl}
+   j_i(d) & = & \langle j_{i,0}(d),j_{i,1}(d),\ldots \\
+\end{array}\]
+We can easily show that $j_i$ and $\pi_i$ (the $i$-th projection from a tuple) form
+an embedding-projection pair:
+\begin{lemma}
+For all $i$ and $x$ element of $D_{\infty}$ it is $j_i(\pi_i(x)) \sqsubseteq x$.
+For all $y$ element of $D_{i}$ it is $\pi_i(j_i(y)) = y$.
+\end{lemma}
+The most important theorem is that the limit of $j_i\cdot\pi_i$ is the identity.
+\begin{lemma}\label{lem:id-sqcup}
+For all $x$ elements of $D_{\infty}$ it is $\sqcup(j_i\cdot\pi_i)(x) = x$.
+\end{lemma}
+\begin{proof} We have one direction by the previous lemma and least upper bounds.
+So the hard direction is to show that $\sqcup(j_i\cdot\pi_i)(x) \sqsupseteq x$. 
+We know that:
+\[       \pi_n(j_n(\pi_n(d))) = \pi_n(d) \]
+by unfolding definitions and we know that $\sqcup(j_n\cdot\pi_n) \sqsupseteq j_n\cdot\pi_n$
+since it is a least upper bound. By monotonicity we then get that 
+\[      \pi_n(\sqcup(j_n\cdot\pi_n)(d)) \sqsupseteq \pi_n(d) \] 
+but that holds for ever $n$ which means that:
+\[       \sqcup(j_n\cdot\pi_n)(d) \sqsupseteq d \] 
+since $\sqsubseteq$ on $D_\infty$ is defined by the conjuction of the 
+pointwise $\sqsubseteq$ on each $D_i$.
+\end{proof}
+Now let us consider the chain 
+\[ F_{\Sigma}(D_0,D_0) \quad F_{\Sigma}(D_1,D_1) \quad \ldots \] 
+and the pointed cpo $F_{\Sigma}(D_{\infty},D_{\infty})$ we have that:
+\[\begin{array}{lcl}
+    F_{\Sigma}(p_i,e_i)   & : & F(D_i,D_i) =>_c F(D_{i+1},D_{i+1}) \\ 
+    F_{\Sigma}(\pi_i,j_i) & : & F(D_i,D_i) =>_c F(D_{\infty},D_{\infty})
+\end{array}\] 
+we will show that there exists an isomorphism $D_\infty \cong F_{\Sigma}(D_\infty,D_\infty)$.
+
+\begin{lemma} Define functions $\roll = \sqcup(j_{i+1}\cdot F_{\Sigma}(j_i,\pi_i))$ and 
+$\unroll = \sqcup (F_{\Sigma}(\pi_i,j_i)\cdot \pi_{i+1})$. They form the required isomorphism 
+$D_\infty \cong F_{\Sigma}(D_\infty,D_\infty)$.
+\end{lemma}
+This lemma concludes the proof of Lemma~\ref{lem:rec-solution}.
+
+The following fact will be extremely useful in establishing the existence of solutions
+to recursive equations {\em over} the recursively defined domain via approximating the
+denotations. Let us call $\rho_i = j_i\cdot\pi_i$. 
+
+\begin{theorem}\label{lem:min-inv-reqs} The following are true:
+\begin{itemize} 
+   \item $\unroll \cdot \rho_{i+1} \cdot \roll = F_{\Sigma}(\rho_i,\rho_i)$ 
+   \item $\sqcup\rho_i(d) = d$, for all elements $d$ of $D_{\infty}$.
+\end{itemize}
+\end{theorem}
+
+\paragraph{Definability of application}
+We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as: 
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{rcll}
+   \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll(\bind_g (\unroll (\pi_1(d))))} \\
+   \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
+                    &   &  , & \ldots \\
+                    &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
+                    &   &  , & \dlambda d' @.@ \unroll(d'(\pi_2(d))) \\
+                    &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ] 
+\end{array}\]}%
+where we have used notation $\langle , \rangle$ to introduce pairs. and $[\ldots]$ to eliminate ($n$-ary) sums.
+The projections $\pi_1$ and $\pi_2$ are the obvious continues projections from the binary product space of $D_{\infty}$. 
+We use notation $\inj{K}$ to denote the continuous map that injects some $\alpha$-ary product of $D_{\infty}$ into the sum $V_{\infty}$.
+We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
+$\inj{bad}$ for the unit injection into $V_{\infty}$.
+
+We have now defined the domain-theoretic language and combinators that we will use. 
+We proceed to give interpretations of terms and definitions. 
+
+First, the denumerable set of term variable names $x_1,\ldots$ induces a discrete 
+cpo $\VarCpo$  and the denumerable set of function variable names $f_1,\ldots$ induces a discrete 
+cpo $\FVarCpo$. We define, {\em semantic term environments} to be the cpo $(\VarCpo =>_c D_{\infty})$, 
+and {\em semantic function environments} to be the cpo $(\FVarCpo =>_c D_{\infty})$. 
+
+Next we will define $[\![e]\!]$ as a continuous map: 
+\[ 
+    (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}
+\] 
+Below, for a given term $e$ and semantic environments $\rho : \VarCpo =>_c D_{\infty}$ and 
+$\sigma : \FVarCpo =>_c D_{\infty}$ we let: 
+\[\begin{array}{rcll}
+  \interp{x}{\sigma}{\rho} & = & \rho(x) \\ 
+  \interp{f\;[\taus]}{\sigma}{\rho} & = & \sigma(f) \\
+  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll(\ret(\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle))) \\ 
+  \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle) \\ 
+  \interp{@BAD@}{\sigma}{\rho} & = & \roll(\ret(\inj{bad}1))
+\end{array}\]
+A small technical remark: we write this with pattern matching notation (instead of using $\pi_1$ for projecting 
+out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine, since $\times$ is not a lifted construction. 
+
+Proceeding in the same way for $[\![u]\!]$ we get:
+\[\setlength{\arraycolsep}{2pt}
+  \begin{array}{rcll}
+  \interp{e}{\sigma}{\rho} & = & \multicolumn{2}{l}{\interp{e}{\sigma}{\rho}} \\ 
+  \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} & = & \multicolumn{2}{l}{\roll(\bind_{g} (\unroll(\interp{e}{\sigma}{\rho})))} \\ \\ 
+  \text{ where } g  & = & [ & h_{K_1} \\
+                    &   & , & \ldots \\
+                    &   & , & h_{K_k} \\
+                    &   & , & \bot \\ 
+                    &   & , & \dlambda b @.@ \ret(b) \hspace{2pt} ] \\ 
+              h_{K} & =  & \multicolumn{2}{l}{\dlambda d @.@ \unroll(\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}})} \\ 
+                    &   & \multicolumn{2}{l}{\text{when } K \text{ is in the branches}} \\
+              h_{K}  & = & \multicolumn{2}{l}{\bot } \\ 
+                    &   & \multicolumn{2}{l}{\text{otherwise}}                  
+\end{array}\]
+
+Finally, for a definition $P$ we may define a continuous map:
+\[ 
+        [\![P]\!] : (\FVarCpo =>_c D_{\infty}) =>_c (\FVarCpo =>_c D_{\infty}) 
+\]
+Let $P$ be 
+\[\begin{array}{l} 
+     @fix@\;(f_1^{\ar_1},...,f_k^{\ar_k})\;@=@\; 
+     (\lambda{\oln{x{:}\tau}{\ar_1}} @.@ u_1,...,
+                   \Lambda\as_k @.@ \lambda{\oln{x{:}\tau}{\ar_k}} @.@ u_k) 
+\end{array}\] 
+Then
+\[\begin{array}{l}  
+   [\![P]\!]_{\sigma} f =  \\ 
+     \qquad\text{ if } (f |-> \Lambda\as @.@ \lambda\oln{x:\tau}{n} @.@ u) \in P \\
+     \qquad\text{ then } \\
+     \qquad\quad\quad \roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
+     \qquad\quad\quad\quad \roll(\ret(\inj{->}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})))\ldots))) \\
+     \qquad \text{ else } \bot
+\end{array}\]
+
+Since $[\![P]\!]$ is continuous, its limit exists and is an element of the cpo $\FVarCpo =>_c D_{\infty}$, 
+we will call this $\dbrace{P}^{\infty}$ in what follows.
+
+
+\begin{lemma}[Type irrelevance]
+It is the case that $\interp{u}{\sigma}{\rho} = \interp{u[\ol{\tau}/\as]}{\sigma}{\rho}$ 
+and $\interp{e}{\sigma}{\rho} = \interp{e[\ol{\tau}/\as]}{\sigma}{\rho}$.
+\end{lemma}
+\begin{proof} Straightforward induction. \end{proof}
+
+\begin{lemma}[Substitutivity]
+If $\Sigma;\Delta,x{:}\tau |- e : \tau$ and $\rho$ is a semantic environment 
+and $\Sigma;\Delta |- e' : \tau'$ then 
+\[ \interp{e}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{e[e'/x]}{\sigma}{\rho} \]
+and if $\Sigma;\Delta,x{:}\tau |- u : \tau$ then 
+\[ \interp{u}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{u[e'/x]}{\sigma}{\rho} \]
+\end{lemma}
+
+\begin{lemma}[Denotational semantics soundness]
+Assume $\Sigma |- P$. 
+\begin{itemize*} 
+  \item If $\Sigma;\cdot |- e : \tau$ and $P |- e \Downarrow v$ then $\interp{e}{\dbrace{P}^{\infty}}{\cdot} = \interp{v}{\dbrace{P}^{\infty}}{\cdot}$.
+  \item If $\Sigma;\cdot |- u : \tau$ and $P |- u \Downarrow v$ then $\interp{u}{\dbrace{P}^{\infty}}{\cdot} = \interp{v}{\dbrace{P}^{\infty}}{\cdot}$.
+\end{itemize*} 
+\end{lemma} 
+\begin{proof} The two statements are proved simultaneously by induction on the height of the evaluation derivation, making use
+of the type irrelevance lemma and substitutivity.
+\end{proof}
+
+Finally we are interested in proving the following lemma:
+
+\begin{theorem}[Computational adequacy]
+Assume $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau$. 
+If $\unroll(\interp{e}{\dbrace{P}^{\infty}}{\cdot}) = \ret(d)$ for some 
+element $d$ of $V_{\infty}$ then there exists a $v$ such 
+that $P |- e \Downarrow v$.
+\end{theorem}
+
+To do this we define a {\em logical relation} first between semantics 
+and syntax. Let $Rel \subseteq D_\infty \times Expr$ be the space of 
+{\em admissible} and {\em equality-respecting} relations between 
+denotations and closed (non-necessarily well-typed) terms. Some explanations:
+\begin{itemize}
+  \item $R \in Rel$ is {\em admissible} iff whenever 
+  $R(d_i,e)$ for every element of a chain $d_1\ldots$ then also $R(\sqcup_{\omega}d_i,e)$. 
+  \item $R \in Rel$ is {\em equality-respecting} iff for every 
+  $R(d,e)$ and $d' = d$ (according to the equality on $D_{\infty}$) it also is
+  $R(d',e)$. 
+\end{itemize}
+
+Let use define the following bi-functor on the space of $Rel$ relations:
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{lcl}
+   F_{P}(R^{-},R^{+}) & = & \{ (d,e)\;\mid\;\forall \ol{d} @.@ \unroll(d) = \ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) ==> \\
+                   &   & \quad \exists \oln{e}{\ar} @.@ P |- e \Downarrow K_1[\taus](\ol{e}) \land (d_i,e_i) \in R^{+} \} \\ 
+                   & \cup & \ldots \\ 
+                   & \cup & \{ (d,e)\;\mid\;\forall d_0 @.@ \unroll(d) = \ret(\inj{->}(d_0)) ==> \\ 
+                   &   & \quad \exists v @.@ P |- e \Downarrow v \;\land \\ 
+                   &  & \quad\quad \forall (d',e') \in R^{-} @.@ (\dapp(d,d'),v\;e') \in R^{+} \}  \\
+                   & \cup & \{ (d,e)\;\mid\; \unroll(d) = \ret(\inj{bad}(1)) ==> \\ 
+                   &   & \quad P |- e \Downarrow @BAD@ \} 
+\end{array}\]}
+
+\begin{lemma} There exists negative and a positive fixpoint of $F_{P}$ and they coincide: let us call this
+$F_{P}^\infty$ -- it is isomorphic to $F_{P}(F_P^\infty,F_P^\infty)$.
+\end{lemma}
+\begin{proof}
+We can follow the standard roadmap described in the work of Pitts to show this, taking 
+advantage of the approximation on every element of $D_{\infty}$ given in 
+Lemma~\ref{lem:min-inv-reqs}.
+\end{proof}
+
+\begin{lemma}\label{lem:bot-in-fix}
+$(\roll(\bot),e) \in F_{P}^\infty$. \end{lemma}
+
+\begin{lemma}\label{lem:eval-respecting}
+If $(d,e) \in F_{P}^\infty$ and $P |- e \Downarrow v$ then $(d,v) \in F_{P}^\infty$.
+Moreover, if $(d,v) \in F_{P}^\infty$ and $P |- e \Downarrow v$ then $(d,e) \in F_{P}^\infty$.
+\end{lemma}
+\begin{proof}
+For the first part, 
+if $(d,e) \in F_{P}^\infty$ then $(d,e) \in F_{P}(F_{P}^\infty,F_{P}^\infty)$. 
+By the definition of $F_{P}(\cdot,\cdot)$ and by rule \rulename{EVal} the 
+result follows. The second part is a similar case analysis.
+\end{proof}
+
+\begin{lemma}[Fundamental theorem for expressions]\label{lem:fund-thm-exp}
+For all $\sigma$ such that $(\sigma(f),f\;[\taus]) \in F_P^\infty$ and 
+all $\rho$ and vectors of closed terms $\ol{e}$ such that $(\rho(x_i),e_i) \in F_P^\infty$ 
+and all $e$ with free variables in $\ol{x}$ it must be the case 
+that $(\interp{e}{\sigma}{\rho},e[\ol{e}/\ol{x}]) \in F_P^\infty$.
+\end{lemma}
+\begin{proof} The proof is by induction on $e$. 
+\begin{itemize}
+  \item Case $e = x_i$ for some $x_i \in \ol{x}$ follows by the assumptions.
+  \item Case $e = f\;[\taus]$ for some $f$ follows by assumptions.
+  \item Case $e = K^\ar[\taus](\oln{e'}{\ar})$. By induction hypothesis we 
+  have that for each $e'_i$ it is $(\interp{e'_i}{\sigma}{\rho},e'_i[\ol{e}/\ol{x}]) \in F_P^\infty$ and 
+  by using rule \rulename{EVal} we are done since 
+      \[ \interp{K^{\ar}[\taus](\oln{e'}{\ar})}{\sigma}{\rho} = \roll(\ret(\inj{K}(\langle\ol{\interp{e'_i}{\sigma}{\rho}}\rangle))) \]
+  \item Case $e = @BAD@$ follows by unfolding definitions.
+  \item Case $e = e_1\;e_2$. We need to show that
+     \[ (\interp{e_1\;e_2}{\sigma}{\rho},e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}]) \in F_P^\infty \] 
+  By induction hypothesis we have that 
+  \begin{eqnarray}
+     (\interp{e_1}{\sigma}{\rho},e_1[\ol{e}/\ol{x}]) \in F_P^\infty \label{eqn:e1} \\ 
+     (\interp{e_2}{\sigma}{\rho},e_2[\ol{e}/\ol{x}]) \in F_P^\infty \label{eqn:e2}
+  \end{eqnarray}
+  Equation~\ref{eqn:e1} gives four cases: First, if $\interp{e_1}{\sigma}{\rho} = \roll(\bot)$ then we 
+  are done since $\dapp(\bot,\_) = \roll(\bot)$ and $(\roll(\bot), e_1\;e_2) \in F_P^\infty$ by Lemma~\ref{lem:bot-in-fix}.
+  Second, if $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{K}(\langle\ol{d}\rangle)))$ for some constructor
+  $K$ then $\dapp(\interp{e_1}{\sigma}{\rho},\_) = \roll(\bot)$ and by similar reasoning as above we are done.
+  Third, if $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{bad}(1)))$ then it must be that $P |- e_1[\ol{e}/\ol{x}] \Downarrow @BAD@$ by
+  induction hypothesis, and by rule \rulename{EBadApp} we know that $P |- e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}] \Downarrow @BAD@$ hence, 
+  by Lemma~\ref{lem:eval-respecting} we are done. The final case is the interesting one, where
+  $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{->}(d_0)))$ in which case by induction hypothesis we know that 
+  $(d_0(\interp{e_2}{\sigma}{\rho}), v\;e_2[\ol{e}/\ol{x}]) \in F_P^\infty$ for $P |- e_1[\ol{e}/\ol{x}] \Downarrow v$. But we know that 
+  $v\;e_2[\ol{e}/\ol{x}]$ evaluates to a value {\em iff} $e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}]$ evaluates to a value and by 
+  Lemma~\ref{lem:eval-respecting} we are done.
+\end{itemize}
+\end{proof}
+
+
+\begin{lemma}[Fundamental theorem for top-level expressions]\label{lem:fund-thm-case}
+For all $\sigma$ such that $(\sigma(f),f\;[\taus]) \in F_P^\infty$ and 
+all $\rho$ and vectors of closed terms $\ol{e}$ such that $(\rho(x_i),e_i) \in F_P^\infty$ 
+and all $u$ with free variables in $\ol{x}$ it must be the case 
+that $(\interp{u}{\sigma}{\rho},u[\ol{e}/\ol{x}]) \in F_P^\infty$.
+\end{lemma}
+\begin{proof} By induction on $u$. If $u$ is a term $e$ then we are immediately done
+by Lemma~\ref{lem:fund-thm-exp}. If $u = @case@\;e\;@of@\;\ol{K\;\ys -> e'}$ then the 
+result follows by appealing to the induction hypothesis for $e$ and performing a case 
+analysis on $\interp{e}{\sigma}{\rho}$ -- in the interesting case we appeal further to
+Lemma~\ref{lem:fund-thm-exp} for a matching $e_K$ and the evaluation-respecting lemma, 
+Lemma~\ref{lem:eval-respecting}.
+\end{proof}
+
+Finally, for the recursive functions environment $P$ we prove the following.
+\begin{lemma} For any $f$, $(\dbrace{P}^\infty(f),f\;[\taus]) \in F_P^\infty$. \end{lemma}
+\begin{proof}
+Since $F_P^\infty$ is itself an {\em admissible} relation, we need only prove that:
+\[ \forall i @.@ \forall f @.@ (\dbrace{P}^i(f),f\;[\taus]) \in F_P^\infty \] 
+which we do by induction on $i$. For $i = 0$ we are immediately done by Lemma~\ref{lem:bot-in-fix}.
+Let us assume that the property is true for $i$. We must show it is true for $i+1$. That is, 
+we must show that $(\dbrace{P}^{i+1}(f),f\;[\taus]) \in F_P^\infty$. Hence, if $f$ has arity $n$, by
+the definition of $\dbrace{P}$ and the definition of the logical relation it is enough to show that
+for all $(\oln{d}{n},\oln{e}{n}) \in F_P^\infty$ it must be the case that 
+\[    (\interp{u}{\dbrace{P}^i}{\ol{x |-> d}}, u[\ol{e}/\ol{x}]) \in F_P^\infty \] 
+for $f |-> (\Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P$. But that follows by 
+Lemma~\ref{lem:fund-thm-case}, since by induction hypothesis it is the case that for 
+every $f$ we have $(\dbrace{P}^i(f),f\;[\ol{\tau}]) \in F_P^\infty$.
+\end{proof} 
+
+\begin{corollary}\label{cor:fund-thm-top}
+For every closed expression $e$ in $P$ (not-necessarily well-typed) we have that 
+$(\interp{e}{\dbrace{P}^\infty}{\cdot}, e) \in F_P^\infty$. 
+\end{corollary}
+
+From this corollary, adequacy follows by unfolding definitions.
+
+\begin{corollary}[Model-based-reasoning]
+If $\Sigma |- P$ and $\Sigma;\cdot |- e_1 : \tau$ and $\Sigma;\cdot |- e_2 : \tau$, 
+then for every closed $e$ such that $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau -> Bool$,
+if $\interp{e_1}{\dbrace{P}^\infty}{\cdot} = \interp{e_2}{\dbrace{P}^\infty}{\cdot}$ then  
+$P |- e\;e_1 \Downarrow$ iff $P |- e\;e_2 \Downarrow$. 
+\end{corollary}
+\begin{proof}
+For one direction assume that $P |- e\;e_1 \Downarrow w$, hence by computational soundness it must be that 
+$\interp{e\;e_1}{\dbrace{P}^\infty}{\cdot} = \roll(\ret(d))$. By assumptions we must also 
+have that $\interp{e\;e_2}{\dbrace{P}^\infty}{\cdot} = \roll(\ret(d))$. By the fundamental theorem 
+we know that 
+\[ (\interp{e\;e_2}{\dbrace{P}^\infty}{\cdot}, e\;e_2) \in F_{P}^\infty \] 
+and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
+\end{proof}
+
+\subsection{Denotational semantics in first-order logic}\label{ssect:denot-fol}
+
+\begin{figure}
+\[\begin{array}{c} 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Terms}} \\
+  s,t & ::=  & f(\ol{t}) \mid K(\ol{t}) \mid x & \text{Functions, constructors, vars} \\
+      & \mid & \sel{K}{i}                      & \text{Constructor selectors} \\ 
+      & \mid & app(t,s)                        & \text{Application} \\
+      & \mid & \unr \mid \bad                  & \text{Unreachable, bad} \\ \\ 
+\multicolumn{3}{l}{\text{Formulae}} \\ 
+ \phi & ::=  & \lcf{t}    & \text{Provably cannot cause crash} \\
+%%      & \mid & \lncf{t}   & \text{Can provably cause crash} \\
+      & \mid & t_1 = t_2  & \text{Equality} \\ 
+      & \mid & \phi \land \phi \mid \phi \lor \phi \mid \neg \phi \\
+      & \mid & \forall x @.@ \phi \mid \exists x @.@ \phi \\ \\ 
+\multicolumn{3}{l}{\text{Abbreviations}} \\ 
+\multicolumn{4}{l}{app(t,\oln{s}{n}) = (\ldots(app(t,s_1),\ldots s_n)\ldots)}
+\end{array}
+\end{array}\]
+\caption{Image of translation into FOL}\label{fig:fol-image}
+\end{figure}
+
+
+\begin{figure}\small
+\[\begin{array}{c} 
+\ruleform{\etrans{\Sigma}{\Gamma}{e} = \formula{t} } \\ \\
+\prooftree
+  \begin{array}{c}
+  (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma
+  \end{array}
+  --------------------------------------{TFVar}
+  \etrans{\Sigma}{\Gamma}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
+  ~~~~ 
+  x \in \Gamma 
+  --------------------------------------{TVar}
+  \etrans{\Sigma}{\Gamma}{x} = \formula{x}
+  ~~~~~ 
+  \begin{array}{c}
+  (K{:}\forall\oln{a}{n} @.@ \ol{\tau} -> T\;\as) \in \Sigma \quad
+  \ol{\etrans{\Sigma}{\Gamma}{e} = \formula{t}}
+  \end{array}
+  --------------------------------------{TCon}
+  \etrans{\Sigma}{\Gamma}{K[\oln{\tau}{n}](\ol{e})} = \formula{K(\ol{t})}
+  ~~~~~
+  \phantom{\Gamma}
+  --------------------------------------{TBad}
+  \etrans{\Sigma}{\Gamma}{@BAD@} = \formula{\bad}
+  ~~~~
+  \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \quad 
+  \etrans{\Sigma}{\Gamma}{e_2} = \formula{t_2}
+  --------------------------------------{TApp}
+  \etrans{\Sigma}{\Gamma}{e_1\;e_2} = \formula{app(t_1,t_2)}
+\endprooftree \\ \\ 
+\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
+\prooftree
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+   ----------------------------------------{TUTm}
+   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{s = t} 
+   ~~~~~
+  \begin{array}{l}
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+  constrs(\Sigma,T) = \ol{K} \\
+  \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
+  \begin{array}{l}
+           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+  \end{array}
+  \end{array}
+  ------------------------------------------{TUCase}
+  {  \setlength{\arraycolsep}{2pt} 
+  \begin{array}{l}
+  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
+  \;\;\formula{ \begin{array}{l} 
+          (t = \bad => s = bad)\;\land \\ 
+          (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K+1}\;\land \ldots \land \\
+          (t \neq \bad\;\land\;t \neq K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s = \unr) 
+%% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
+%%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+%%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
+                   \end{array}
+           }
+  \end{array}}
+\endprooftree \\ \\ 
+\ruleform{ \Dtrans{\Sigma}{P} = \formula{\phi}} \\ \\ 
+\prooftree
+     \begin{array}{l}       
+       \text{for each} (f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\ 
+          \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
+     \end{array}
+     --------------------{TDefs}
+     \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
+\endprooftree 
+
+\end{array}\]
+\caption{Well-scoped elaboration to FOL terms}\label{fig:etrans}
+\end{figure}
+
+
+In addition to contract translation we have an axiomatization in Figure~\ref{fig:prelude}.
+
+
+\begin{figure}\small
+\[\begin{array}{c}
+\ruleform{\Th{\Sigma}{P}} \\ \\ 
+\begin{array}{lll} 
+ \textsc{AxDisjA} & \formula{\bad \neq \unr}  \\ 
+ \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+ \textsc{AxDisjC} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+ \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+ %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxAppC}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ \\
+ %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+ %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+ %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+\end{array} \\
+\ruleform{\Th{\Sigma}{P}^{\lcfZ}} \\ \\ 
+\begin{array}{lll} 
+ \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfB}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
+\end{array}
+\end{array}\]
+\caption{Prelude theory}\label{fig:prelude}
+\end{figure}
+
+
+For a given program $P$ and expression $e$, we will view the denotational 
+semantics $\dbrace{P}^{\infty}$ and $\interp{e}{\dbrace{P}^\infty}{\cdot}$ as first-order 
+logic {\em models}. We use the elements of $D_{\infty}$ as the underlying set. We define
+an interpretation of functions on the image of translation into FOL as: 
+\[\begin{array}{rcl}
+   \linterp{f^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \dapp(\dbrace{P}^{\infty}(f),\oln{\pi_i(d)}{i \in 1..\ar}) \\ 
+   \linterp{f_{ptr}}  & = & \dbrace{P}^{\infty}(f) \\ 
+   \linterp{app}     & = & \dapp \\ 
+   \linterp{K^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \roll(\ret(\inj{K}(d))) \\ 
+   \linterp{\sel{K}{i}} & = & \dlambda (d {:} D_{\infty}) @.@ \roll(\bind_g(\unroll(d))) \\ 
+     \text{where } g  & = & [\;\bot \\ 
+                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for constructor } K) \\ 
+                      &   & ,\;\bot \\ 
+                      &   & ,\;\ldots\\ 
+                      &   & ,\;\bot\; ]
+\end{array}\]
+
+\begin{theorem}
+If $\Sigma |- P$ then we have that $\langle D_{\infty},{\cal I}\rangle \models \Th{\Sigma}{P}$. 
+\end{theorem} 
+\begin{proof} It is straightforward to confirm that every axiom in $\Th{\Sigma}{P}$ is true in the model. \end{proof}
+
+
+Notice that there exist more axioms that are validated by the denotational model. For instance 
+\[\begin{array}{l}
+    \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+    \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+    \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+    \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
+    \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n 
+\end{array}\]
+asserts that closures cannot be equated to any constructor, $\bot$ nor $\inj{@BAD@}(1)$.
+
+It is straightforward unfolding of definitions to show that:
+
+\begin{theorem}
+If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
+\end{theorem}

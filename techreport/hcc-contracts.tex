@@ -1,0 +1,492 @@
+To the extend that in the end we are only interested in base contracts, giving a 
+denotational semantics of full-higher-order contracts is not really interesting 
+but we do this anyway. For a given denotation $d$, we define the 
+predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
+of the contract $\Ct$, such that:
+
+\[\begin{array}{l}
+    \interp{\{x \mid e\}}{\dbrace{P}^\infty}{\rho}(d) \text{ iff } \\
+        \quad \unroll(d) = \bot \text{ or } 
+        \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
+        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \ret(\inj{\mathop{True}}(1)) \\ \\
+    \interp{\dbrace{(x{:}\Ct_1) -> \Ct_2}{P}^\infty}{\rho}(d) \text{ iff } \\
+        \quad \text{for all } d_x \in D_\infty \\ 
+        \quad\quad \text{if }
+                     \interp{\Ct_1}{\dbrace{P}^\infty}{\rho}(d_x)\text{ then }
+                     \interp{\Ct_2}{\dbrace{P}^\infty}{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
+    \interp{\CF}{\dbrace{P}^\infty}{\rho}(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\ 
+    \interp{\Ct_1 \& \Ct_2}{\dbrace{P}^\infty}{\rho}(d) \text{ iff } 
+       \interp{\Ct_1}{\dbrace{P}^\infty}{\rho}(d) \text{ and } 
+       \interp{\Ct_2}{\dbrace{P}^\infty}{\rho}(d)
+\end{array}\]
+
+\subsection{Contracts in first-order logic}\label{sect:contracts-fol}
+
+\begin{figure}\small
+\[\begin{array}{c} 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\prooftree
+  \begin{array}{c}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+  \end{array}
+  ------------------------------------------{CTransBase}
+  \begin{array}{l}
+   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
+  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+  \;\;\formula{(t = \unr) \lor (t'[t/x] = \unr) \lor (t'[t/x] = \True)}
+  \end{array}
+  ~~~~~ 
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+  \end{array} 
+  ------------------------------------------{CTransArr}
+  \begin{array}{l} 
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+  \formula{\forall x @.@ \neg \phi_1 \lor \phi_2} 
+  \end{array}
+  ~~~~~
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+  \end{array}
+  ------------------------------------------{CTransConj}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+  ~~~~~
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+  -------------------------------------------{CTransCf}
+  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\lcf{t}}
+ \endprooftree 
+%% \\ \\ 
+%% \ruleform{\Sigma;\Gamma |- e \notin \Ct \elab{ \phi} } \\ \\
+%% \prooftree
+%%   \begin{array}{c}
+%%    \Sigma;\Gamma |- e : \tau \elab{ t}  \quad
+%%    \Sigma;\Gamma,(x{:}\tau) |- e' : \Bool \elab{ t'}
+%%   \end{array}
+%%   ------------------------------------------{CNTransBase}
+%%   \begin{array}{l}
+%%   \Sigma;\Gamma |- e \notin \{(x{:}\tau) \mid e' \} 
+%%   \elab{(t'[t/x] = \bad) \lor (t'[t/x] = \False)}
+%%   \end{array}
+%%   ~~~~~ 
+%%   \Sigma;\cdot |- \Ct_1 : \tau
+%%   ------------------------------------------{CNTransArr}
+%%   \begin{array}{l} 
+%%   \Sigma;\Gamma |- e \notin (x{:}\Ct_1) -> \Ct_2 
+%%   \elab{\exists x @.@ (\Sigma;\Gamma,(x{:}\tau) |- x \in \Ct_1) /\ (\Sigma;\Gamma,(x{:}\tau) |- e\;x \notin \Ct_2)}
+%%   \end{array}
+%%   ~~~~~
+%%   \begin{array}{c}
+%%   \Sigma;\Gamma |- e \notin \Ct_1 \elab{ \phi_1} \quad
+%%   \Sigma;\Gamma |- e \notin \Ct_2 \elab{ \phi_2}
+%%   \end{array}
+%%   ------------------------------------------{CNTransConj}
+%%   \Sigma;\Gamma |- e \notin \Ct_1 \& \Ct_2 \elab{ \phi_1 \lor \phi_2}
+%%   ~~~~
+%%   \Sigma;\Gamma |- e : \tau \elab{ t}
+%%   -------------------------------------------{CNTransCf}
+%%   \Sigma;\Gamma |- e \notin \CF \elab{ \lncf{t}}
+%%  \endprooftree
+\end{array}\]
+\caption{Baseline contract elaboration}\label{fig:typing}
+\end{figure}
+
+
+In this section we will attempt to ignore the higher-order case and just talk about 
+base contracts. Let us use:
+
+The following are true: 
+\begin{lemma}[Base contract adequacy]\label{lem:base-contract-adequacy}
+Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
+If $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \CF}$ then $P |- e \in \CF$. If $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \{ x \mid e' \}}$ then $P |- e \in \{x \mid e' \}$.
+\end{lemma}
+{\bf DV: Generalize this to a notion of base contracts that includes conjuctions.}
+
+In fact the above two statements hold if we extend the interpretation 
+of crash-freedom in the model to contain elements from the function 
+space as well. 
+
+Because of the full-abstraction problems we have observed above it 
+is not possible to state similar statements for arrow contracts. 
+
+
+
+\subsection{Soundness of contract checking}\label{ssect:soundness}
+
+
+\subsubsection{Invocation of a theorem prover}\label{sect:infocation}
+
+Given a program $P$ with signature $\Sigma$, that is $\Sigma |- P$, we may define the theory
+${\cal T}$ as follows:
+     \[ \Th{\Sigma}{P}\;\land\;\Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P} \]
+we know that $\langle D_\infty,{\cal I}\rangle \models {\cal T}$ from the previous sections. 
+Assume below that $f$ is a function such that $f \in dom(P)$ and $fv(\Ct) \subseteq dom(P)$.
+
+\begin{theorem}[Soundness]\label{thm:prover-soundess}
+If ${\cal T}\;\land\;\neg(\ctrans{\Sigma}{P}{f \in \Ct})$ is 
+unsatisfiable then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct}$.
+\end{theorem}
+\begin{proof}
+If there is no model for this formula (i.e. the theorem prover returns ``unsatisfiable'') then
+its negation must be valid (true in all models), that 
+is ${\cal T} -> \ctrans{\Sigma}{P}{f \in \Ct}$ is valid. By completeness
+of first-order logic ${\cal T} |- \ctrans{\Sigma}{P}{f \in \Ct}$. This means in 
+turn that all models of ${\cal T}$ validate $\ctrans{\Sigma}{P}{f \in \Ct}$. In particular 
+for the denotational model we have that $\langle D_\infty,{\cal I}\rangle \models {\cal T}$ 
+and hence $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct}$.
+\end{proof}
+
+\subsubsection{End-goal and incremental verification}\label{sect:incremental}
+
+Assume that we are given a program $P$ with a function $f \in dom(P)$, for which we have 
+already showed that $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct_f}$. 
+Suppose next that we are presented with a ``next'' goal, to prove that 
+$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{h \in \Ct}$. 
+We may consider the following three variations of how to do this:
+
+\begin{itemize}
+  \item Simply ask for the unsatisfiability of: 
+    \[  \Th{\Sigma}{P}\;\land\;
+        \Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P}\;\land\;\neg\ctrans{\Sigma}{P}{h \in \Ct_h} \] 
+        The soundness of this query follows directly from Theorem~\ref{thm:prover-soundess} above.
+
+  \item Ask for the unsatisfiability of:
+    \[  \Th{\Sigma}{P}\;\land\;
+        \Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f}\;\land\;\neg\ctrans{\Sigma}{P}{h \in \Ct_h}     \] 
+        This query adds the {\em already proven} contract for $f$ in the theory. If this formula
+        is unsatisfiable, then its negation is valid, and we know that the denotational model is 
+        a model of the theory {\em and} of $\ctrans{\Sigma}{P}{f \in \Ct_f}$ and hence it must also
+        be a model of $\ctrans{\Sigma}{P}{h \in \Ct_h}$. 
+  \item Ask for the unsatisfiability of:
+    \[  \Th{\Sigma}{P}\;\land\;
+        \Th{\Sigma}{P}^{\lcfZ}\;\land\;\dtrans{\Sigma}{P \setminus f}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f}\;\land\;
+        \neg\ctrans{\Sigma}{P}{h \in \Ct_h}     \] 
+        This query removes the axioms associated with the definition of $f$ since we may only have 
+        its signature and contract available. Via a similar reasoning as before, such an invocation 
+        is sound.
+\end{itemize}
+
+Our final goal is going to show that a program does not crash, that
+is the final contract will be of the form $e \in \Ct$ where $\Ct$ is
+going to be some {\em base contract}. Note that by base contract adequacy
+(Lemma~\ref{lem:base-contract-adequacy}) if we manage to show a base contract 
+denotationally, then the contract holds in operational terms.
+
+
+
+\subsection{Denotational versus operational semantics for contracts}
+TODO -- I have just dumpted material here. 
+
+We have the rather obvious theorem below.
+
+\begin{theorem}[Soundness and completeness for denotational semantics]
+Assume a program $P$ with signature $\Sigma$, and expression $e$ and contract $\Ct$ 
+such that $fv(e) \cup fv(\Ct) \subseteq dom(P)$. Then 
+$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ iff
+$\interp{\Ct}{\dbrace{P}^{\infty}}{\cdot}(\interp{e}{\dbrace{P}^\infty}{\cdot})$.
+\end{theorem}
+
+
+
+
+\subsubsection{Contract satisfaction and crash-freedom}\label{sect:cf}
+
+We would like to define a set of contract-satisfying denotations and also a set of contract-satisfying terms, 
+characterized by $P |- e \in \Ct$, such that the following claim becomes true:
+
+\begin{proposition} Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
+Then: $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \Ct}$ iff $P |- e \in \Ct$.
+\end{proposition}
+
+Now there are several problems with coming up with a good definition of $P |- e \in \Ct$, 
+which we elaborate in the following sections.
+
+\subsubsection{Problem I: Crash-freedom} 
+
+Ideally we would like to define crash-freedom {\em semantically} using the following 
+strict bifunctor on admissible sets $S^{-},S^{+} \subseteq D_{\infty}$.
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{rcl}
+   F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad}(1))\;\land\; \\ 
+                      &    & \quad \forall \ol{d} @.@ \unroll(d){=}\ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) ==> \ol{d} \in S^{+} \} \\ 
+                   & \cup & \ldots \\ 
+                   & \cup & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad}(1))\;\land\; \\ 
+                   &      & \quad \forall d_0 @.@ \unroll(d) = \ret(\inj{->}(d_0)) ==> \\ 
+                   &      & \quad\quad \forall\;d' \in S^{-} ==> \dapp(d,d') \in S^{+} \}  \\
+\end{array}\]}
+The $\Fcf$ bifunctor has a negative and positive fixpoint, and by minimal invariance they coincide (one direction 
+follows by Tarski-Knaster, the other can be inductively proved using the approximations on ever element of $D_{\infty}$ given
+in Lemma~\ref{lem:min-inv-reqs} and the fact that the lub of the chain of $\rho_i$ is the identity and the fact that this 
+functor preserves admissibility for the positive sets). Let us call this admissible set $\Fcf^{\infty} \subseteq D_{\infty}$.
+
+We consider this predicate to be the ``ideal crash-freedom'' -- however it is very difficult to give a 1-1 operational
+definition. The reason is that the $\Fcf$ functor quantifies in the function case over any $d'$ -- whereas in the operational
+semantics it is only reasonable that we quantify over all terms (or over terms that do not contain @BAD@) In the absense of 
+full abstraction of the domain (which is plausible, especially if we extend the language with other features) it is unclear 
+what a corresponding predicate would look like in terms of operational semantics. 
+
+We then go for a simpler predicate, which only characterizes crash-freedom for first-order terms, 
+generate by the following functor on {\em admissible} sets of denotations:
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{rcl}
+   G_{\lcfZ}(S^{+}) & = & \{\;d\;\mid\; \unroll(d){=}\ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) \land \ol{d} \in S^{+} \} \\ 
+                  & \cup & \ldots \\ 
+                  & \cup & \{\;\bot\;\}
+\end{array}\]}
+Notice that if $S$ is admissible then so is $G_{\lcfZ}(S)$. 
+
+%% The $G_{\lcfZ}$ functor has a fixpoint and it is an admissible relation, and we will use its 
+%% fixpoint $G_{\lcfZ}^\infty$, so now we need to say what $G_{\lcfZ|}^\infty$ means operationally. 
+\begin{lemma} The functor $G_{\lcfZ}$ has a unique fixpoint $G_{\lcfZ}^\infty$ on admissible sets. \end{lemma}
+\begin{proof} 
+The intersection of admissible sets is admissible. Hence we have a complete join semi-lattice (which induces a 
+complete lattice), so the monotone functor $G_{\lcfZ}$ does have a smallest and a greatest fixpoint call
+it $G_{\lcfZ}^{min}$ and $G_{\lcfZ}^{max}$. Moreover this fixpoint will be an admissible relation. Now it must be 
+that $G_{\lcfZ}^{min} \subseteq G_{\lcfZ}^{max}$ so we only show next that
+also $G_{\lcfZ}^{max} \subseteq G_{\lcfZ}^{min}$. To do this we will show that:
+\[ \forall i. d \in G_{\lcfZ}^{max} ==> \rho_i(d) \in G_{\lcfZ}^{min} \] 
+by induction on $i$. For $i = 0$ it follows since $\rho_0(d) = \bot$. Let us assume 
+that it holds for $i$, we need to show that $\rho_{i+1}(d) \in G_{\lcfZ}(G_{\lcfZ}^{min})$.
+We know however that $d \in G_{\lcfZ}(G_{\lcfZ}^{max}$ and by simply case analysis and appealing
+to the induction hypothesis we are done. Finally, by admissibility it must be that
+$\sqcup\rho_i(d) \in G_{\lcfZ}^{min}$ and by Lemma~\ref{lem:min-inv-reqs} it
+must be that $d \in G_{\lcfZ}^{min}$. This means that the two fixpoints coincide, 
+hence there is only a unique fixpoint of $G_{\lcfZ}$, call it $G_{\lcfZ}^\infty$.
+\end{proof} 
+
+Now, we would like to define operationally the set of {\em crash-free} terms as a set $\Ecf$ of 
+closed terms that satisfies:
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{rcl}
+   \Ecf & =    & \{ e \;\mid\; P |- e \Downarrow K[\taus](\ol{e}) /\ \ol{e} \in \Ecf \} \\
+        & \cup & \ldots \\
+        &      & \{ e \;\mid\; P \not|- e \Downarrow \} 
+\end{array}\]}%
+We do not know that the set $\Ecf$ exists, so we have to prove it. 
+\begin{lemma}
+There exists a largest set that satisfies the $\Ecf$ equation above.
+\end{lemma} 
+\begin{proof}
+Define $\Ecf$ to be the set
+\[ \{ e\;\mid\; \interp{e}{\dbrace{P}^\infty}{\cdot} \in G_{\lcfZ}^{\infty}\} \]
+It is straightforward (by computational adequacy) to show that it satisfies the $\Ecf$ recursive
+equation above. For uniqueness, assume any other set $E$ that satisfies the recursive equation
+above. We can show that $\interp{E}{\dbrace{P}^\infty}{\cdot}$ is a
+fixpoint of $G_{\lcfZ}$ and since there is only one such fixpoint, this is unique. So we have that:
+\[\begin{array}{ll}
+ e \in E & ==> \\ 
+ \interp{e}{\dbrace{P}^\infty}{\cdot} \in \interp{E}{\dbrace{P}^\infty}{\cdot} & ==> \\
+ \interp{e}{\dbrace{P}^\infty}{\cdot} \in G_{\lcfZ}^\infty & ==> \\
+ e \in \Ecf 
+\end{array}\] 
+\end{proof}
+%% \begin{lemma} 
+%% If $e \in E$ and $\interp{e}{\dbrace{P}^\infty}{\cdot} = \interp{e'}{\dbrace{P}^\infty}{\cdot}$ then $e' in E$.
+%% \end{lemma}
+%% This relies on the fact that 
+%% if $\interp{e}{\dbrace{P}^\infty}{\cdot} \in \interp{E}{\dbrace{P}^\infty}{\cdot}$ then $e \in E$. Why is 
+%% that? Because the assumption means that 
+%% $\interp{e}{\dbrace{P}^\infty}{\cdot} \in \{ d | \exists e' \in E /\ d = \interp{e'}{\dbrace{P}^\infty}{\cdot} \}$
+%% and hence this means that there exists some $e' \in E $ such that 
+%% $\interp{e}{\dbrace{P}^\infty}{\cdot} = \interp{e'}{\dbrace{P}^\infty}{\cdot}$ 
+%% \end{proof} 
+
+Let us extend the interpretation function above $\linterp{\cdot}$ so that: 
+\[\begin{array}{rcl}
+   \linterp{\lcfZ}  & = & G_{\lcfZ}^{\infty} 
+\end{array}\]
+
+\begin{theorem}
+If $\Sigma |- P$ then we have that $\langle D_{\infty},{\cal I}\rangle \models \Th{\Sigma}{P}^{\lcfZ}$.
+\end{theorem}
+
+Notice that the axiom:
+\[  \textsc{AxCfC}  \quad \formula{\forall x y @.@ \lcf{x} /\ \lcf{y} => \lcf{app(x,y)}} \]
+is {\em not validated} by this interpretation of crash-freedom we have given. 
+
+
+\subsubsection{Problem II: the absense of full-abstraction}
+
+Unfortunately higher-orderness bites again. Having defined the set $\Ecf$ we might define formally
+the predicate $P |- e \in \Ct$ where $fv(e) \subseteq dom(P)$ and $fv(\Ct) \subseteq dom(P)$ as 
+follows:
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{lcl}
+    P |- e \in \{ x\;\mid\;e_p\} & <=> & P |- e \not\Downarrow \text{ or } P |- e_p[e/x] \not\Downarrow \text{ or} \\ 
+                                 &     & P |- e_p[e/x] \Downarrow True \\
+    P |- e \in (x{:}\Ct_1) -> \Ct_2 & <=> & 
+                                 \text{for all } P' e' \text{ s.t. } fv(e') \subseteq dom(P{\uplus}P')  \\ 
+                                   &   &  \text{it is } P\uplus P' |- e\;e' \in \Ct_2[e'/x] \\
+    P |- e \in \Ct_1 \& \Ct_2 & <=> & P |- e \in \Ct_1 \text{ and } P |- e \in \Ct_2 \\
+    P |- e \in \CF            & <=> & e \in \Ecf 
+\end{array}\]}
+
+Note we made the definition above well-scoped but not necessarily well-typed; let's ignore that for now (making everything
+well-typed includes extra difficulties in the proof but hopefully not surmountable).
+
+The interesting case is the case for arrow contracts, where we have extended the set of definitions $P$ with more 
+definitions $P'$ -- that is to allow for tests $e'$ which can have arbitrary computational power, and not only those
+that can be constructed in the current environment. That is expected the way we have set up things, so let us examine
+what happens when we try to prove the proposition below:
+
+\begin{proposition} Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
+Then: $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \Ct}$ iff $P |- e \in \Ct$.
+\end{proposition}
+
+{\flushleft{\em Failed proof}:}
+The base case and the case of $\CF$ follow from computational adequacy so we are good. However
+let's try to prove the arrow case and in particular the $(<=)$ direction. 
+
+Let us assume that for all $P'$ and $e'$ such that $fv(e') \subseteq dom(P\uplus P')$ it is the case that
+$P |- e\;e' \in \Ct_2[e'/x]$. We need to show that $\langle D_\infty,{\cal I}\rangle$ is a model of the 
+formula $\forall x. \ctrans{\Sigma}{x}{x \in \Ct_1} => \ctrans{\Sigma}{x}{e\;x \in \Ct_2}$. Let us fix
+a denotation $d \in D_{\infty}$ and let us assume 
+that $\langle D_{\infty},{\cal I} \rangle \models \ctrans{\Sigma}{x}{x \in \Ct_1}[d/x]$. However, this does not 
+necessarily mean that we can find a closed $e'$ and $P'$, such 
+that $\interp{e'}{\dbrace{P{\uplus}P'}^\infty}{\cdot} = d$ to be able to use the assumptions, unless some sort
+of full-abstraction property is true. So we are stuck.
+
+Here is a concrete counterexample, based on the lack of full-abstraction due to the {\em parallel or} function. 
+Consider the program $P$ below:
+\[\begin{array}{lcl}
+f_\omega & |-> & f_\omega \\
+f & |-> & \lambda (b{:}Bool) @.@ \lambda (h{:}Bool->Bool->Bool) @.@ \\
+  &     & \quad @if@\;(h\;True\;b)\;\&\&\;(h\;b\;True)\;\&\& \\ 
+  &     & \quad\qquad\qquad not\;(h\;False\;False)\;@then@ \\
+  &     & \quad\quad @if@\;(h\;True\;f_\omega)\;\&\&\;(h\;f_\omega\;True)\;@then@\;@BAD@ \\
+  &     & \quad\quad @else@\;True \\
+  &     & \quad @else@\;True
+\end{array}\]
+Consider now the candidate contract for $f$ below: 
+\[ \CF -> (\CF -> \CF -> \CF) -> \CF \]
+Operationally we may assume a crash-free boolean as well as a function $h$ which is 
+$\CF -> \CF -> \CF$. The first conditional ensures that the function behaves like an ``or'' function or 
+diverges. However if we pass the first conditional, 
+the second conditional will always diverge and hence the contract will be satisfied. 
+
+However, denotationally it is possible to have a {\em monotone} function $por$ defined as follows:
+\[\begin{array}{lcl}
+  por\;\bot\;\bot & = & \bot \\ 
+  por\;\bot\;True & = & True \\
+  por\;True\;\bot & = & True \\ 
+  por\;False\;False & = & False
+\end{array}\] 
+with the rest of the equations (for @BAD@ arguments) induced by monotonicity and whatever boolean value 
+we like when both arguments are @BAD@. 
+
+Now, this is denotationally a $\CF -> \CF -> \CF$ function, and it will pass the first conditional, but it will
+also pass the second conditional, yielding @BAD@. Hence denotationally the contract for $f$ {\em does not hold}.
+
+So we have a concrete case where the $<=$ direction fails. Because of contra-variance of arrow contracts, it is 
+likely that the $=>$ direction is false as well. 
+
+
+%% Now it may be the case that for all denotations that semantically satisfy a contract, these denotations {\em are} 
+%% realizable by a term $e'$ and a context $P'$ but it is not entirely clear how to prove this (or if this is a good
+%% idea). I am not sure if this is true either.
+%% The other idea out of this situation is to compile the arrow contract differently by not quantifying over all 
+%% denotations but rather some kind of {\em definable} denotations -- but I do not know how exactly to do this.
+
+
+\paragraph{A way out of this?}
+Well, if we restrict our higher-order tests to those that can be constructed from our signature then 
+we may define the following:
+
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{lcl}
+    P |- e \in \{ x\;\mid\;e_p\} & <=> & P |- e \not\Downarrow \text{ or } P |- e_p[e/x] \not\Downarrow \text{ or} \\ 
+                                 &     & P |- e_p[e/x] \Downarrow True \\
+    P |- e \in (x{:}\Ct_1) -> \Ct_2 & <=> & 
+                                 \text{for all } e' \text{ s.t. } fv(e') \subseteq dom(P)  \\ 
+                                   &   &  \text{it is } P |- e\;e' \in \Ct_2[e'/x] \\
+    P |- e \in \Ct_1 \& \Ct_2 & <=> & P |- e \in \Ct_1 \text{ and } P |- e \in \Ct_2 \\
+    P |- e \in \CF            & <=> & e \in \Ecf 
+\end{array}\]}
+Notice that the difference with the previous version of $P |- e \in \Ct$ is that we {\em do not} extend the 
+definitions $P'$ so we don't get the full power of higher-order tests. We show that {\em in the current signature
+only} does the program satisfy the contract. 
+
+
+Why did we do this change? Because denotationally this is not terribly hard to support -- instead of translating 
+\[\begin{array}{l}
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} =  
+  \formula{\forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
+\end{array}\] 
+we use the following:
+\[\begin{array}{l}
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = \\ 
+  \qquad\qquad\quad 
+\formula{\forall x @.@ \definable{x} \land \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
+\end{array}\] 
+where $\definable{x}$ could be axiomatized as containing all terms 
+made up of the functions in $P$, applications, and data constructors:
+
+\[\begin{array}{lll} 
+ \textsc{DefCons} & \formula{\forall \xs @.@ \definable{K(\xs)} <=> \definable{\xs}} \\
+                        & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{DefFun}  & \formula{\definable{f_{ptr}}}  \\
+                        & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+ \textsc{DefApp}  & \formula{\forall x y @.@ \definable{x}\land\definable{y} => \definable{app(x,y)}}
+%% \formula{\bad \neq \unr}  \\ 
+%%  \textsc{AxDisjB} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
+%%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+%%                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+%%  \textsc{AxDisjC} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
+%%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+%%  \textsc{AxAppA}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+%%                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
+%%  %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+%%  %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+%%  \textsc{AxAppC}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ \\
+%%  %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+%%  %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+%%  %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+%%  %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+%%  \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+%%                   & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+%%                   & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+%%                   & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
+%%                   & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
+%%  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+%%                   & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n \\ \\
+%% \end{array} \\
+%% \ruleform{\Th{\Sigma}{P}^{\lcfZ}} \\ \\ 
+%% \begin{array}{lll} 
+%%  \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+%%  \textsc{AxCfB}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+%%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
+\end{array}\]
+
+
+In the model, $\definable{\cdot}$ should be possible to define, as a
+predicate on denotations. The disadvantage to this approach is that
+arrow contracts will only hold for whatever is in your context, not
+arbitrary expressions, which might be what we want, but might not be
+modular enough.
+
+The other {\em potential} problem (i.e. I have not yet checked) might be in the 
+proof of admissibility of induction. 
+
+And yet another potential problem is that as we incrementally extend our signature 
+with new function definitions (and possibly contracts) previously defined contracts
+may no longer hold. This is pretty bad for modularity.
+
+\paragraph{Yet another possible solution}
+
+A solution that seems somewhat more modular is based on the observation that, 
+during the evaluation of a program there exists a {\em set} of terms (maybe infinite) that can
+appear as arguments to other terms or functions. Our idea is to guard the arrow contracts so that
+we do not quantify over any possible term (or denotation, in the translation) but rather only 
+those that may appear as {\em arguments} in some application. We translate arrow contract as 
+follows:
+\[\begin{array}{l}
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = \\ 
+  \qquad\qquad\quad 
+\formula{\forall x @.@ arg(x) \land \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} => \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
+\end{array}\] 
+where $arg(x)$ ensures that $x$ is the denotation of a term that will be passed as an argument to $e$. We'd need to define
+a similar predicate on the evaluation relation, call it $Arg(e)$ and modify the program translation to thread the $arg(\cdot)$
+predicate through. 
+
