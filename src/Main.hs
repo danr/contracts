@@ -76,14 +76,14 @@ processFile Params{..} file = do
 
     floated_prog <- lambdaLift dflags program
 
+    when db_collect (printMsgs msgs_collect_contr)
+
     when dump_float_out (printCore "Lambda lifted core" floated_prog)
 
     let ((lifted_prog,msgs_lift),us3) = caseLetLift floated_prog us2
 
-    when db_lift   (printMsgs msgs_lift)
-    when dump_core (printCore "Final, case/let lifted core" lifted_prog)
-
-    when db_collect_contracts (printMsgs msgs_collect_contr)
+    when db_lift    (printMsgs msgs_lift)
+    when dump_core  (printCore "Final, case/let lifted core" lifted_prog)
 
     let ty_cons :: [TyCon]
         ty_cons = mg_tcs modguts
@@ -128,11 +128,11 @@ processFile Params{..} file = do
             : mkCF ty_cons_with_builtin ++
             (map makeDataDepend subtheories_unfiddled)
 
-    when dump_fpi_core  (printCore "Fixpoint induction core" fix_prog)
-    when db_halo        (printMsgs msgs_trans)
+    when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)
+    when db_halo       (printMsgs msgs_trans)
 
     let toTPTP extra_clauses
-            = linTPTP (strStyle (not no_comments) cnf)
+            = linTPTP (strStyle comments (not fof))
             . renameClauses
             . (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
@@ -145,7 +145,7 @@ processFile Params{..} file = do
         let (proofs,msgs_tr_contr)
                 = runHaloM halt_env (trStatement stmts fix_info stmt)
 
-        when db_trans_contracts (printMsgs msgs_tr_contr)
+        when db_trans (printMsgs msgs_tr_contr)
 
         forM_ proofs $ \(proof_part,(clauses,deps)) -> do
 
