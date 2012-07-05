@@ -29,7 +29,7 @@ findStatement ss c = case find ((c ==) . statement_name) ss of
 
 trStatement :: [Statement] -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
 trStatement ss fix_info stm = do
-    parts_and_content <- (:) <$> trPlain trNeg stm <*> trFPI fix_info stm
+    parts_and_content <- (:) <$> trPlain (trNeg True) stm <*> trFPI fix_info stm
     let used_statements = map (findStatement ss) (statement_using stm)
     (using,deps) <- flip mapAndUnzipM used_statements $ \used_stm -> do
          (_,content) <- trPlain trPos used_stm
@@ -62,13 +62,13 @@ trFPI fix_info stm@(Statement n f c _using deps)
 
         (tr_base,ptrs_base) <- capturePtrs $
             return . clause NegatedConjecture <$>
-            trNeg (Var f_base) (rename_c ConstantUNR)
+            trNeg True (Var f_base) (rename_c ConstantUNR)
 
         (tr_step,ptrs_step) <- capturePtrs $ do
             hyp   <- clause Hypothesis <$>
                         trPos (Var f_hyp) (rename_c Hyp)
             concl <- clause NegatedConjecture <$>
-                        trNeg (Var f_concl) (rename_c Concl)
+                        trNeg True (Var f_concl) (rename_c Concl)
             return [hyp,concl]
 
         let content_base = map Function deps_base ++ map Pointer ptrs_base
@@ -105,12 +105,12 @@ trPos e c = case c of
     And c1 c2 -> (/\) <$> trPos e c1 <*> trPos e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
         fx <- trExpr (e `App` Var v)
-        l <- trNeg (Var v) c1
+        l <- trNeg False (Var v) c1
         r <- trPos (e `App` Var v) c2
         return $ forall' [v] (l \/ r)
 
-trNeg :: CoreExpr -> Contract -> HaloM Formula'
-trNeg e c = case c of
+trNeg :: Bool -> CoreExpr -> Contract -> HaloM Formula'
+trNeg skolemise e c = case c of
     Pred p -> do
         x  <- trExpr e
         px <- trExpr p
@@ -121,8 +121,9 @@ trNeg e c = case c of
         e_tr <- trExpr e
         return $ min' e_tr /\ neg (cf e_tr)
 
-    And c1 c2 -> (\/) <$> trNeg e c1 <*> trNeg e c2
-    Arrow v c1 c2 -> local (pushQuant [v]) $ do
+    And c1 c2 -> (\/) <$> trNeg skolemise e c1 <*> trNeg skolemise e c2
+
+    Arrow v c1 c2 -> local (if skolemise then addSkolem v else pushQuant [v]) $ do
         l <- trPos (Var v) c1
-        r <- trNeg (e `App` Var v) c2
-        return $ exists' [v] (l /\ r)
+        r <- trNeg skolemise (e `App` Var v) c2
+        return $ (not skolemise ? exists' [v]) (l /\ r)

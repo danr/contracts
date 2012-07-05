@@ -45,8 +45,8 @@ neg_contr_cf = neg ::: CF --> CF
 
 -- | Negating retains the invariant /and/ is crash free
 neg_contr_retain
-    = neg ::: (CF --> CF)
-          :&: (CF :&: Pred invariant --> CF :&: Pred invariant)
+    = neg ::: (CF :-> \ x -> CF)
+          :&: (CF :&: Pred invariant :-> \ y -> CF :&: Pred invariant)
     `Using`
       invariant_cf
     `Using`

@@ -43,7 +43,7 @@ mkCF ty_cons = do
                   arity           = length ty_args
                   vars            = take arity varNames
                   xbar            = map qvar vars
-                  kxbar           = fun data_c xbar
+                  kxbar           = apply data_c xbar
             ]
         }
 
