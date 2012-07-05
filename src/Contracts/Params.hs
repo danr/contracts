@@ -13,6 +13,7 @@ data Params = Params
     , comments         :: Bool
     , core_optimise    :: Bool
     , squishy_booleans :: Bool
+    , dollar_min       :: Bool
     , or_discr         :: Bool
 
     , db_float_out     :: Bool
@@ -42,7 +43,7 @@ defParams = Params
     , comments         = False &= name "C" &= help "Don't print comments in TPTP file (current default is on for debugging purposes)"
     , core_optimise    = False &= name "O" &= help "Run the core2core optimising pass"
     , squishy_booleans = False &= name "s" &= help "Don't force true /= false, put min antecedent there"
-
+    , dollar_min       = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr         = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
 
     , db_float_out     = False &= groupname "\nDebugging output"
@@ -59,7 +60,6 @@ defParams = Params
     , dump_fpi_core    = False &= help "Dump core after fixpoint generation"
     , dump_tptp        = False &= help "Dump all generated tptp"
     , dump_contracts   = False &= help "Dump the internal representation of contracts"
-
     }
     &= summary "Haskell Contracts Checker v0.1 Dan Rosén danr@student.gu.se"
     &= program "hcc"

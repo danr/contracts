@@ -132,7 +132,10 @@ processFile Params{..} file = do
     when db_halo       (printMsgs msgs_trans)
 
     let toTPTP extra_clauses
-            = linTPTP (strStyle comments (not fof))
+            = linTPTP (strStyle (StyleConf { style_comments   = comments
+                                           , style_cnf        = not fof
+                                           , style_dollar_min = dollar_min
+                                           }))
             . renameClauses
             . (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
