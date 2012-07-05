@@ -111,6 +111,7 @@ mkStatement v e = do
                 _ -> throw $ "Invalid lhs of using " ++ showExpr u
             statement <- mkStatement v stmnt
             return $ statement { statement_using = f : statement_using statement }
+        Just (Var x,[]) -> mkStatement v =<< lookupBind x
         _ -> throw $ "Error: Invalid statement " ++ show v ++ "."
 
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
