@@ -10,20 +10,14 @@ data Formula
     | Neg (Formula)
     | Lit Bool
 
-isAnd And{} = True
-isAnd _     = False
-
-isOr Or{} = True
-isOr _    = False
-
 invariant :: Formula -> Bool
 invariant f = case f of
 
     -- We should never have two consecutive negations
     Neg Neg{} -> False
 
-    -- Binary operator list should be at least two elements,
-    -- and operators should not directly contain themselves
+    -- Binary operator list should be at least two elements, and their
+    -- elements should satisfy the invariants
     And xs -> properList xs && all invariant xs
     Or xs  -> properList xs && all invariant xs
 
@@ -42,31 +36,22 @@ neg (Or fs)         = And (map neg fs)
 neg (Implies f1 f2) = neg f2 `Implies` neg f1
 neg (Lit b)         = Lit b
 
-all_cf = all ::: (CF --> CF) --> CF --> CF
+-- | What it means to retain a predicate
+retain :: (a -> Bool) -> Contract (a -> a)
+retain p = Pred p :-> \x -> Pred (\ r -> p x && p r)
 
--- It would be cool if we could prove properties like this:
-map_pred p
-    = map ::: ((Pred p --> Pred p) --> (Pred (all p) --> Pred (all p)))
-  `Using`
-     (p ::: CF --> CF)
-  `Using`
-     invariant_cf
-  `Using`
-     all_cf
-
-map_invariant = map
-    ::: (Pred invariant :-> \x -> Pred (\ r -> invariant x && invariant r))
-    --> (Pred (all invariant) :-> \xs -> Pred (\rs -> all invariant xs && all invariant rs))
-
+-- | Invariant is crash free
 invariant_cf = invariant ::: CF --> CF
 
+-- | Retaining is preserved by mapping
+map_invariant = map ::: retain invariant --> retain (all invariant)
+
 -- | Negating retains the invariant
-neg_contr = neg ::: (Pred invariant
-                :-> \x -> Pred (\r -> invariant x && invariant r))
-  `Using`
-    invariant_cf
+neg_contr = neg ::: retain invariant
   `Using`
     map_invariant
+  `Using`
+    invariant_cf
 
 -- * Auxiliary functions
 
@@ -98,3 +83,21 @@ not True  = False
 not False = True
 
 f . g = \x -> f (g x)
+
+isAnd And{} = True
+isAnd _     = False
+
+isOr Or{} = True
+isOr _    = False
+
+-- Side note:
+-- It would be cool if we could prove properties like this:
+map_pred p
+    = map ::: ((Pred p --> Pred p) --> (Pred (all p) --> Pred (all p)))
+  `Using`
+     (p ::: CF --> CF)
+  `Using`
+     invariant_cf
+  `Using`
+     all_cf
+
