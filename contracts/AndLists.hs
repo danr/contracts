@@ -98,6 +98,4 @@ map_pred p
      (p ::: CF --> CF)
   `Using`
      invariant_cf
-  `Using`
-     all_cf
 
