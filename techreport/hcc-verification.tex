@@ -1,0 +1,62 @@
+Given a program $P$ with signature $\Sigma$, that is $\Sigma |- P$, we may define the theory $\Th$ 
+as follows:
+     \[ \Th = \Th_\infty\;\land\;\Th_\lcfZ\;\land\;\dtrans{}{P} \] 
+we know that $\langle D_\infty,{\cal I}\rangle \models \Th$ from 
+Theorems~\ref{thm:models-defs}, \ref{thm:models-inf}, and \ref{thm:models-cf}.
+
+The following theorem is then true:
+
+\begin{theorem}[Soundness]\label{thm:prover-soundness}
+Assume that $e$ and $\Ct$ contain only function symbols from $P$ and no free term variables. 
+If $\Th \land \neg\ctrans{\Sigma}{P}{e \in \Ct}$ is 
+unsatisfiable then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ and 
+consequently $\dbrace{\Ct}(\dbrace{e})$.
+\end{theorem}
+\begin{proof}
+If there is no model for this formula then its negation must be valid (true in all models), that 
+is $ \neg \Th \lor \ctrans{\Sigma}{P}{e \in \Ct}$ is valid. By completeness
+of first-order logic $\Th |- \ctrans{\Sigma}{P}{e \in \Ct}$. This means 
+that all models of $\Th$ validate $\ctrans{\Sigma}{P}{f \in \Ct}$. In particular, 
+for the denotational model we have that $\langle D_\infty,{\cal I}\rangle \models \Th$ 
+and hence $\langle D_\infty,{\cal I} \rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$. 
+Theorem~\ref{thm:den-contr-satisfaction} finishes the proof.
+\end{proof}
+
+\subsection{End-goal and incremental verification}\label{sect:incremental}
+
+Theorem~\ref{thm:prover-soundness} gives us a way to check that an expression satisfies a 
+contract. Assume that we are given a program $P$ with a function $f \in dom(P)$, for which 
+we have already showed that $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct_f}$.
+Suppose next that we are presented with a ``next'' goal, to prove that 
+$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{h \in \Ct}$. 
+We may consider the following three variations of how to do this:
+
+\begin{itemize}
+  \item Ask for the unsatisfiability of: 
+    \[  \Th_\infty \land \Th_\lcfZ \land \dtrans{}{P} \land \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
+        The soundness of this query follows from Theorem~\ref{thm:prover-soundness} above.
+
+  \item Ask for the unsatisfiability of:
+    \[  \Th_\infty \land \Th_\lcfZ \land 
+        \dtrans{\Sigma}{P}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f} \land \neg \ctrans{\Sigma}{P}{h \in \Ct_h} \]
+        This query adds the {\em already proven} contract for $f$ in the theory. If this formula
+        is unsatisfiable, then its negation is valid, and we know that the denotational model is 
+        a model of the theory {\em and} of $\ctrans{\Sigma}{P}{f \in \Ct_f}$ and hence it must also
+        be a model of $\ctrans{\Sigma}{P}{h \in \Ct_h}$.
+  \item Ask for the unsatisfiability of:
+    \[  \Th_\infty \land \Th_\lcfZ \land 
+        \dtrans{\Sigma}{P \setminus f}\land\ctrans{\Sigma}{P}{f \in \Ct_f}\land
+        \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
+        This query removes the axioms associated with the definition of $f$ since we may only have 
+        its signature and contract available. Via a similar reasoning as before, such an invocation 
+        is sound as well.
+\end{itemize}
+
+
+%% Our final goal is going to show that a program does not crash, that
+%% is the final contract will be of the form $e \in \Ct$ where $\Ct$ is
+%% going to be some {\em base contract}. Note that by base contract adequacy
+%% (Lemma~\ref{lem:base-contract-adequacy}) if we manage to show a base contract 
+%% denotationally, then the contract holds in operational terms.
+
+\clearpage
