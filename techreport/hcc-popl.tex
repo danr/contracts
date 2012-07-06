@@ -70,19 +70,13 @@
 
 \begin{abstract}
 Despite the benefits of strong types and purity for reasoning about
-programs, many bugs remain inside well-typed and purely functional code, 
-and programmers often introduce assertions to ensure that their code is crash-free. 
-In this work we allow programmers to express assertions as 
-contracts, whose validity we can check statically. 
-We contribute a novel translation of programs and 
-contracts written in the same lazy, higher-order, and recursive language to first-order logic, 
-justified by denotational semantics. This translation enables a simple and distinctly different
-methodology for static contract checking compared to previous work: instead of wrapping
-and symbolic execution we harness purity to directly
-encode the denotational semantics of programs and contracts in first-order logic, and
-invoke a first-order theorem prover. For this paper we focus on the translation, but in 
-addition we have implemented a static contract checker for Haskell programs and evaluated 
-the practicality of this approach on many examples, including lazy and higher-order programs.
+programs, many bugs remain inside well-typed and purely functional
+code, and programmers often introduce assertions to ensure that their
+code is crash-free.  In this work we allow programmers to express
+assertions as contracts, whose validity we can check statically.  Our main
+contribution is a novel translation of programs and contracts written in
+the same lazy, higher-order, and recursive language to first-order
+logic, justified by denotational semantics.
 \end{abstract}
 
 
