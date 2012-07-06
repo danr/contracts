@@ -1,1 +1,261 @@
-TODO
+The implementation of the contracts checker has two components:
+
+\begin{itemize}
+    \item \textbf{Halo}, the Haskell to Logic translator, which takes
+       GHC Core as input and translates function and data type
+       definitions to first order logic as described in previous sections.
+
+     \item \textbf{hcc}, the Haskell Contracts Checker, the user front
+        end. Before giving halo the program to translate to FOL, hcc
+        takes contracts, inputed in the Haskell source file as function
+        definitions, identified by their type, and represents those in
+        its own data type. Then we generate a theory accompanied with a
+        conjecture for each contract, so the users can try them with
+        their installed first order theorem provers.
+\end{itemize}
+
+How does the user input contracts? We use HOAS and let the user define
+contracts by primitive connectives, which can be extended by the user.
+The connectives are defined as a GADT:
+
+\begin{code}
+data Contract t where
+  (:->) :: Contract a
+        -> (a -> Contract b)
+        -> Contract (a -> b)
+  Pred  :: (a -> Bool) -> Contract a
+  CF    :: Contract a
+  (:&:) :: Contract a -> Contract a -> Contract a
+\end{code}
+
+The connectives are @:->@ for dependent contract function space, @CF@
+for crash-freedom (no catchable bottoms), @Pred@ for predication, and
+@:&:@ for conjunction. A notable difference from the notation in
+\cite{xu+:contracts}, the user of our library explicitly writes @CF@.
+A useful derived connective is non-dependent function space:
+
+\begin{code}
+(-->) :: Contract a -> Contract b -> Contract (a -> b)
+c1 --> c2 = c1 :-> \_ -> c2
+\end{code}
+
+%As one would expect, @:->@ and @-->@ are right-associve.  We can
+%create contract combinators that are always satisfied, and never
+%satisfied:
+%
+%\begin{code}
+%any :: Contract a
+%any = Pred (\ _ -> True)
+%
+%never :: Contract a
+%never = Pred (error "never!")
+%\end{code}
+
+A contract is always associated to a function, so we wrap a contract
+together with its function to a @Statement@:
+
+\begin{code}
+data Statement where
+    (:::) :: a -> Contract a -> Statement
+\end{code}
+
+This allows us to wrap a function with a contract.  We also see how
+GADTs can ensure that our contracts are well-typed.  One intended use
+for our tool is to, if you have a function @f@ and it is partial, you
+can state under which precoditions it is not partial, and then our
+tool proves that it will not crash if you only give it arguments
+satisfying these conditions. An example in this fashion about the
+@head@ function is from the \cite{xu+:contracts}:
+
+\begin{code}
+head (x:xs) = x
+head []     = error "empty list"
+
+null [] = True
+null xs = False
+
+not True = False
+not False = True
+
+f . g = \x -> f (g x)
+
+head_contract =
+    head ::: CF :&: Pred (not . null) --> CF
+\end{code}
+
+Upon saving this file to, say, @Head.hs@ and running @hcc Head@, a
+TPTP file named @Head.head_contract.tptp@ is generated. This can then
+be run with your favourite automated theorem prover, and the above
+contracts is easily verified by for instance @eprover@.
+
+However, if we remove the precondition of crash-freedom to @head@,
+like this:
+
+\begin{code}
+head_contract_broken =
+    head ::: Pred (not . null) --> CF
+\end{code}
+
+a theorem prover capable of giving finite counter-models, like @paradox@,
+will give you a counter model, which, upon examination, will tell you
+that its input argument is indeed not an empty list, but it is @:@ of
+some bad arguments. Note that we do not get a counter example if we
+give @hcc@ the debug flag @--no-min@ that turns off the min predicate
+introduced earlier. The reason is that if we do not use min, we only
+have infinite counter models because we need to have an injective, but
+non-surjective function for @(:)@.
+
+\subsection{Recursion}
+
+We prove properties using fixed point induction. For recursive
+functions, the tool then gives three files, one without induction, one
+for the base case and step case. The typical situation is that the one
+without induction does not pass because it lacks the induction
+hypothesis, the base case always succeeds because that is what we
+established our theory on: we need this to be admissible. Indeed, this
+one does not need to be checked but it can serve as a good sanity
+check of the tool. The step case can pass or fail, depending on if the
+contract really holds, and if the induction hypothesis is strong
+enough, and if we assume the right contracts.
+
+\subsection{Higher order functions}
+
+\begin{code}
+all :: (a -> Bool) -> [a] -> Bool
+all p []     = True
+all p (x:xs) = p x && all p xs
+
+filter :: (a -> Bool) -> [a] -> [a]
+filter p [] = []
+filter p (x:xs) | p x       = x : filter p xs
+                | otherwise = filter p xs
+
+filter_all_contr =
+    filter ::: (CF --> CF) :-> \p ->
+               CF :-> \xs ->
+               (CF & Pred (all p))
+\end{code}
+
+This says that if filter takes a @p@ that is @CF --> CF@, and a
+crash-free @xs@, then @filter p xs@ is @CF@ and satisfies @all p@,
+i.e, the following returns @True@ or diverges:
+@all p (filter p xs)@.
+This contract is easily proved using fixed point induction.
+
+% Note, however, that without induction we get a counter-example.
+
+\subsection{Higher-higher order functions}
+
+Our tool also deals with higher order functions containing
+higher-order functions. Consider this function @withMany@ from the
+@GHC@ component @Foreign.Util.Marshal@:
+%\footnote{\url{http://hackage.haskell.org/packages/archive/base/latest/doc/html/Foreign-Marshal-Utils.html#v:withMany}}:
+
+\begin{code}
+-- Replicates a @withXXX@ combinator over a list of
+-- objects, yielding a list of marshalled objects
+--
+withMany :: (a -> (b -> res) -> res)
+         -- ^ withXXX combinator for one object
+         -> [a]
+         -- ^ storable objects
+         -> ([b] -> res)
+         -- ^ action on list of marshalled obj.s
+         -> res
+withMany _       []     f = f []
+withMany withFoo (x:xs) f = withFoo x (\x2 ->
+      withMany withFoo xs (\xs2 -> f (x2:xs2)))
+
+\end{code}
+
+For @withMany@, our tool proves
+@(CF --> (CF --> CF) --> CF)@ @--> CF --> (CF --> CF) --> CF@.
+
+\subsection{A small case-study about invariants}
+
+We consider a somewhat non-standard way of expressing propositional
+logic formulae:
+
+\begin{code}
+data Formula = And [Formula]
+             | Or  [Formula]
+             | Neg (Formula)
+             | Implies (Formula) (Formula)
+             | Lit Bool
+\end{code}
+
+One invariant that we are particularily interested in is that we
+should never have two consecutive negations, and that the lists of
+@And@ and @Or@ are of length $\ge$ 2. We can express that as an ordinary
+Haskell predicate:
+
+\begin{code}
+invariant :: Formula -> Bool
+invariant f = case f of
+  And xs      -> properList xs && all invariant xs
+  Or xs       -> properList xs && all invariant xs
+  Neg Neg{}   -> False
+  Neg x       -> invariant x
+  Implies x y -> invariant x && invariant y
+  Lit x       -> True
+
+properList :: [a] -> Bool
+properList []  = False
+properList [_] = False
+properList _   = True
+\end{code}
+
+Now, we have a recursive function that negates formula:
+
+\begin{code}
+neg :: Formula -> Formula
+neg (Neg f)         = f
+neg (And fs)        = Or (map neg fs)
+neg (Or fs)         = And (map neg fs)
+neg (Implies f1 f2) = neg f2 `Implies` neg f1
+neg (Lit b)         = Lit b
+\end{code}
+
+We make a combinator saying what it means to retain a predicate:
+
+\begin{code}
+retain :: (a -> Bool) -> Contract (a -> a)
+retain p = Pred p :-> \x -> Pred (\r -> p x && p r)
+\end{code}
+
+TODO: explain this. Now, since @neg@ uses @map@, we need to show that
+@map@ can retain the invariant. We use @all@, introduced above, for
+this:
+
+\begin{code}
+map_invariant = map ::: retain invariant
+                    --> retain (all invariant)
+\end{code}
+
+Explicitly spelling out the definition of @retain@ in the statement
+above would be tedious and error-prone, so we see the benefit of being
+able to express contracts as a DSL.
+
+Together with the statement @invariant ::: CF --> CF@, we
+get that @neg@ retains the invariant thusly:
+
+\begin{code}
+neg_contr = neg ::: retain invariant
+    `Using` map_invariant
+    `Using` invariant_cf
+\end{code}
+
+We use @Using :: Statement -> Statement -> Statement@, another
+constructor for @Statement@, which allows us to assume that other
+contracts holds, when proving a complicated statement. For now, it's
+the user's responsibility to prove these assumed contracts (for
+instance, with our tool!), but one can imagine a more sophisticated
+front-end which does this automatically.  Note that removing either
+assumption yields theories that are satisfiable by 4-5 elements.
+
+\subsection{Trimming}
+
+We trim the theories as much as possible to only include exactly what
+is needed to prove a property. All unnecessary function pointers, data
+types and definitions are removed.
+
