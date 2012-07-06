@@ -1,3 +1,49 @@
+We now turn our attention to contracts. The syntax of contracts
+has appeared in Figure~\ref{fig:syntax} and includes base contracts
+$\{ x \mid e \}$, arrow contructs $(x : \Ct_1) -> \Ct_2$, conjunctions
+$\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts} 
+includes other constructs as well, but these constructs are enough to verify 
+many programs and already demonstrate the interesting theoretical and practical problems.
+
+We may also define the denotational semantics of contracts, below. We assume again 
+that there is a program $P$, well-formed in a signature $\Sigma$. In the definition, 
+$\rho$ is a semantic environment. 
+
+\begin{definition}[Denotational semantics of contracts]
+\[\begin{array}{l}
+    \dbrace{x \mid e}_\rho(d) \text{ iff } \\
+        \quad \unroll(d) = \bot \text{ or } 
+        \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
+        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \ret(\inj{\True}(1)) \\ \\
+    \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho}(d) \text{ iff } \\
+        \quad \text{for all } d_x \in D_\infty \\ 
+        \quad\quad \text{if }
+                     \dbrace{\Ct_1}_\rho(d_x)\text{ then }
+                     \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
+    \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\
+    \dbrace{\Ct_1 \& \Ct_2}_\rho(d) \text{ iff } 
+       \dbrace{\Ct_1}_\rho(d) \text{ and } 
+       \dbrace{\Ct_2}_\rho(d)
+\end{array}\]
+For a closed contract $\Ct$ we will use notation
+$\dbrace{\Ct}$ for its denotation in the empty 
+semantic environment.
+\end{definition}
+
+
+
+To the extend that in the end we are only interested in base contracts, giving a 
+denotational semantics of full-higher-order contracts is not really interesting 
+but we do this anyway. For a given denotation $d$, we define the 
+predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
+of the contract $\Ct$, such that:
+
+
+\clearpage 
+\subsection{Contracts in first-order logic}\label{sect:contracts-fol}
+
+
+
 \begin{figure}\small
 \[\begin{array}{c}
 \ruleform{\Th{\Sigma}{P}^{\lcfZ}} \\ \\ 
@@ -11,29 +57,6 @@
 \end{figure}
 
 
-To the extend that in the end we are only interested in base contracts, giving a 
-denotational semantics of full-higher-order contracts is not really interesting 
-but we do this anyway. For a given denotation $d$, we define the 
-predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
-of the contract $\Ct$, such that:
-
-\[\begin{array}{l}
-    \interp{\{x \mid e\}}{\dbrace{P}^\infty}{\rho}(d) \text{ iff } \\
-        \quad \unroll(d) = \bot \text{ or } 
-        \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
-        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \ret(\inj{\mathop{True}}(1)) \\ \\
-    \interp{\dbrace{(x{:}\Ct_1) -> \Ct_2}{P}^\infty}{\rho}(d) \text{ iff } \\
-        \quad \text{for all } d_x \in D_\infty \\ 
-        \quad\quad \text{if }
-                     \interp{\Ct_1}{\dbrace{P}^\infty}{\rho}(d_x)\text{ then }
-                     \interp{\Ct_2}{\dbrace{P}^\infty}{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
-    \interp{\CF}{\dbrace{P}^\infty}{\rho}(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\ 
-    \interp{\Ct_1 \& \Ct_2}{\dbrace{P}^\infty}{\rho}(d) \text{ iff } 
-       \interp{\Ct_1}{\dbrace{P}^\infty}{\rho}(d) \text{ and } 
-       \interp{\Ct_2}{\dbrace{P}^\infty}{\rho}(d)
-\end{array}\]
-
-\subsection{Contracts in first-order logic}\label{sect:contracts-fol}
 
 \begin{figure}\small
 \[\begin{array}{c} 
