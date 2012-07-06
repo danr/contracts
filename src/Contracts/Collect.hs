@@ -59,7 +59,8 @@ collectContracts program = runErrorT $ do
                 (stmt,(deps,msgs)) <-
                     censor (\(deps,msgs) -> (mempty,msgs))
                            (listen (mkStatement v e))
-                return $ stmt { statement_deps = statement_deps stmt ++ deps }
+                return $ stmt { statement_deps = statement_deps stmt
+                                            ++ filter (not . isTyVar) deps }
         mapM mkStatement' untranslated_stmts
 
 
@@ -87,6 +88,7 @@ runCollectM cbs m = (runWriterT m `runReaderT` cbs) `evalStateT` names
 trimTyApp :: CoreExpr -> Maybe (CoreExpr,[CoreExpr])
 trimTyApp e@App{} = Just (second trimTyArgs (collectArgs e))
 trimTyApp e@Var{} = Just (e,[])
+trimTyApp e@Lam{} = Just (e,[])
 trimTyApp _       = Nothing
 
 mkStatement :: Var -> CoreExpr -> CollectM Statement
@@ -116,6 +118,8 @@ mkStatement v e = do
 
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
+    -- TODO: rewrite this with one pass inlining, and then just use free vars
+    let censor_hack x = censor (first (delete x))
     write $ showExpr f ++ ": " ++ showExpr e
     case trimTyApp e of
         Just (Var x,[])  | isContrCF x -> return CF
@@ -125,19 +129,40 @@ mkContract f e = do
                 let s = extendIdSubst emptySubst y f
                     p' = substExpr (text "mkContract Pred") s p
                 return (Pred p')
-        Just (Var x,[e1,Lam y e2])
-           | isContrPi x -> Arrow y <$> mkContract (Var y) e1
-                                    <*> mkContract (f `App` Var y) e2
         Just (Var x,[p]) | isContrPred x
             -> registerFreeVars f p >> return (Pred (p `App` f))
+        Just (Var x,[e1,Lam y e2])
+           | isContrPi x -> Arrow y <$> mkContract (Var y) e1
+                                    <*> censor_hack y (mkContract (f `App` Var y) e2)
+        Just (Var x,[e1,Var z])
+           | isContrPi x -> do
+               e' <- lookupBind z
+               case e' of
+                   Lam y e2 -> Arrow y <$> mkContract (Var y) e1
+                                       <*> censor_hack y (mkContract (f `App` Var y) e2)
+                   _ -> throw $ "(:->) of weird when making a contract for " ++ showExpr f
+                                ++ " looking like " ++ showExpr e
         Just (Var x,[e1,e2])
-           | isContrArr x -> do v <- mkFreshVar
-                                Arrow v <$> mkContract (Var v) e1
-                                        <*> mkContract (f `App` Var v) e2
-          | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
-        Just (Var x,[]) -> mkContract f =<< lookupBind x
-        _ -> throw $ "Found weird expression " ++ showExpr e ++
-                     " when making a contract for " ++ showExpr f
+           | isContrArr x -> do
+               v <- mkFreshVar
+               Arrow v <$> mkContract (Var v) e1
+                       <*> mkContract (f `App` Var v) e2
+           | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
+        Just (Lam x e,[]) | isTyVar x -> do
+            write $ "Skipping lambda of a type variable"
+            mkContract f e
+        _ -> case collectArgs e of
+                 (Var x,es) -> do
+                     (xs,e) <- collectBinders <$> lookupBind x
+                     mkContract f (apply xs es e)
+                 _ -> throw $ "Found weird expression " ++ showExpr e ++
+                         " when making a contract for " ++ showExpr f
+
+apply :: [Var] -> [CoreExpr] -> CoreExpr -> CoreExpr
+apply [] [] e = e
+apply xs [] e = foldr Lam e xs
+apply [] es e = foldl App e es
+apply (x:xs) (ex:es) e = apply xs es (substExp e x ex)
 
 lookupBind :: Var -> CollectM CoreExpr
 lookupBind x = do
