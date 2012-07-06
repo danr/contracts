@@ -54,7 +54,7 @@
 \newcommand{\Min}{\cal M}
 \newcommand{\mlinterp}[1]{{\cal I}^\mu(#1)}
 
-\renewcommand{\Th}{\cal T}
+\renewcommand{\Th}{{\cal T}}
 
 \title{HALO: Haskell to Logic through Denotational Semantics}
 %% \subtitle{A new approach to static contract checking for higher-order lazy programs}
@@ -93,12 +93,14 @@ the practicality of this approach on many examples, including lazy and higher-or
 \section{Checking Haskell contracts in practice}\label{s:examples}
   \input{hcc-examples}
 
-
 \section{A higher-order lazy language}\label{sect:language}
   \input{hcc-language}
 
 \section{Contracts and their denotational semantics}\label{sect:contracts}
   \input{hcc-contracts}
+
+\section{Contract checking as satisfiability}\label{sect:soundness}
+  \input{hcc-verification}
 
 \section{Essential extensions}\label{sect:extensions}
   \input{hcc-extensions}
