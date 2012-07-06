@@ -4,7 +4,7 @@ call-by-name $\lambda$-calculus with algebraic datatypes, pattern matching, and 
 \subsection{Syntax and semantics}
 
 Figure~\ref{fig:syntax} presents the details. A program $P$ consists of a set of recursive 
-function definitions $f_1^{\ar_1}\ldots f_n^{\ar_n}$ each associated with an {\em arity} $\alpha \geq 1$ 
+function definitions $f_1^{\ar_1}\ldots f_n^{\ar_n}$ each associated with an {\em arity} $\ar \geq 1$ 
 which records the number of explicit abstractions of this function. Each of the function definitions
 is of the form $\Lambda\as @.@ \lambda \ol{x{:}\tau} @.@ u$. A term $u$ is either a @case@ expression 
 or a @case@-free expression $e$. A @case@-free expression consists of variables $x$, function variables 
@@ -38,6 +38,13 @@ e  & ::=  & x            & \text{Variables} \\
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Syntax of closed values}} \\
  v,w & ::= & K^\ar[\ol{\tau}](\oln{e}{\ar}) \mid f^\ar[\ol{\tau}]\;\oln{e}{m < \ar} \mid @BAD@ \\ \\ 
+\end{array} \\ 
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Contracts}} \\
+ \Ct & ::=  & \{ x \;\mid\; e \}        & \text{Base contracts}  \\ 
+     & \mid &  (x{:}\Ct_1) -> \Ct_2      & \text{Arrow contracts} \\ 
+     & \mid & \Ct_1 \& \Ct_2             & \text{Conjunctions}   \\ 
+     & \mid & \CF                        & \text{Crash-freedom}   \\
 \end{array}
 \end{array}
 \end{array}\] 
@@ -52,9 +59,9 @@ difficult to support in a compiler. Indeed our prototype relies on existing impl
 similar transformations from the GHC-as-a-library GHC API. However using this simpler language 
 is instead extremely convenient for the translation of programs to first-order logic.
 
-Finally, there are some more non-essential design choices in Figure~\ref{fig:syntax} in order to 
+There are some more non-essential design choices in Figure~\ref{fig:syntax} in order to 
 facilitate the formalization and implementation: we assume that data constructors are fully applied 
-and functions have arity at least one (disallowing CAF's).
+and functions have arity at least one (disallowing CAF's). 
 
 Furthemore, we assume the existence of a typing relation $\Sigma |- P$, which checks 
 that a program conforms to the definitions in the signature $\Sigma$. A signature $\Sigma$ (Figure~\ref{fig:auxiliary-defs})
@@ -105,16 +112,12 @@ checked for type errors.
 %% \tmar{D}{f} & = & n & \\ 
 %%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D}
 \end{array}
-%% \begin{array}{lrll}
-%% \multicolumn{3}{l}{\text{Typed contracts}} \\
-%% \Ct & ::=  & \{ (x{:}\tau) \mid e \}    & \text{Base contracts} \\ 
-%%   & \mid &  (x{:}\Ct_1) -> \Ct_2        & \text{Arrow contracts} \\ 
-%%   & \mid & \Ct_1 \& \Ct_2               & \text{Conjunctions}    \\ 
-%%   & \mid & \CF                          & \text{Crash-freedom}  \\
-%% \end{array} \\
 \end{array}\]
 \caption{Auxiliary definitions}\label{fig:auxiliary-defs}
 \end{figure}
+
+Figure~\ref{fig:syntax} also presents the 
+syntax of {\em contracts} to keep all essential definitions grouped together, but in this section we will only focus on the language and its semantics. In Section~\ref{sect:contracts} we return to the syntax and semantics of contracts.
 
 The syntax of closed values is also given in Figure~\ref{fig:syntax}. Since we do not 
 have arbitrary $\lambda$-abstractions, values can only be partial function applications
@@ -214,7 +217,10 @@ $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \ta
 Having presented the language and its operational semantics, we now return to 
 our roadmap which is to axiomatize and use the denotational semantics of programs to 
 perform static contract checking. In what follows we will assume a program $P$, 
-well-formed in a signature $\Sigma$, so that $\Sigma |- P$. 
+well-formed in a signature $\Sigma$, so that $\Sigma |- P$. Most of what follows is 
+an adaptation of folklore techniques to our setting and there are no 
+surprises -- we refer the reader to~\cite{winskel} or~\cite{benton+:coq-domains} 
+for a short and modern exposition of the standard methodology.
 
 Given a signature $\Sigma$ we define a strict bi-functor on complete partial 
 orders (cpos), below:
@@ -256,19 +262,18 @@ semantics turns out to be sufficient for formalization and verification.
 %% \end{array}\] 
 %% for any cpos $D, E, F$.
 
-Using standard techniques from domain theory (the {\em embedding-projection} pairs methodology) we can
-show the following.
+Using the standard {\em embedding-projection} pairs methodology we can show the following.
 \begin{lemma}\label{lem:rec-solution} 
 There exists a solution to the domain-recursive equation induced by $F$, call it $D_{\infty}$.
 Moreover, let a value-domain: $V_{\infty}$ be defined as:
     \[\begin{array}{ll}
-             \quad\;{\prod_{\alpha_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
+             \quad\;{\prod_{\ar_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
              \; + \;\ldots                    & \ldots \\
-             \; + \;{\prod_{\alpha_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\ 
+             \; + \;{\prod_{\ar_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\ 
              \; + \;(D_{\infty} =>_c D_{\infty}) \\
              \; + \;\unitcpo_{bad} \quad
     \end{array}\]
-Then the following functions also exist, each being the inverse of the 
+The following continuous functions also exist, each being the inverse of the 
 other (i.e. composing to the identity function on the corresponding cpo):
 \[\begin{array}{l}
   \roll : (V_{\infty})_\bot =>_c D_{\infty} \\ 
@@ -408,8 +413,9 @@ $\sigma : \FVarCpo =>_c D_{\infty}$ we let:
   \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle) \\ 
   \interp{@BAD@}{\sigma}{\rho} & = & \roll(\ret(\inj{bad}1))
 \end{array}\]
-A small technical remark: we write this with pattern matching notation (instead of using $\pi_1$ for projecting 
-out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine, since $\times$ is not a lifted construction. 
+A small technical remark: we write the definition above with pattern matching notation $\langle \sigma,\rho \rangle$ 
+(instead of using $\pi_1$ for projecting out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine, 
+since $\times$ is not a lifted construction. 
 
 Proceeding in the same way for $[\![u]\!]$ we get:
 \[\setlength{\arraycolsep}{2pt}
@@ -426,6 +432,12 @@ Proceeding in the same way for $[\![u]\!]$ we get:
               h_{K}  & = & \multicolumn{2}{l}{\bot } \\ 
                     &   & \multicolumn{2}{l}{\text{otherwise}}                  
 \end{array}\]
+A case expression is really translated into a denotational case expression, with the following intuition: For every
+constructor that appears in the branches $\ol{K\;\ys -> e_K}$ we eliminate it and return the denotation of the right-hand
+side, for the rest of the constructors we simply return $\bot$. Importantly we do {\em not} return $\inj{bad}$ in this 
+latter case, as all the missing cases can only be constructors of different datatypes than the datatype that $K$ belongs to. 
+As a consequence, returning the ``benign'' value $\bot$ is the right thing to do if we are to ignore completely type errors
+in our denotational semantics.
 
 Finally, for a definition $P$ we may define a continuous map:
 \[ 
@@ -448,18 +460,20 @@ Then
 \end{array}\]
 
 Since $[\![P]\!]$ is continuous, its limit exists and is an element of the 
-cpo $\FVarCpo =>_c D_{\infty}$, we will call this $\dbrace{P}^{\infty}$ in what 
-follows. 
+cpo $\FVarCpo =>_c D_{\infty}$.
+
 
 \begin{definition}
-To reduce notational overhead below, for a program with no free variables we will 
-use notation $\dbrace{e}$ to mean $\interp{e}{\dbrace{P}^\infty}{\cdot}$.
+We will refer to the limit of the $\dbrace{P}$ as $\dbrace{P}^{\infty}$ in what follows. 
+Moreover, to reduce notational overhead below, for a program with no free variables we 
+will use notation $\dbrace{e}$ to mean $\interp{e}{\dbrace{P}^\infty}{\cdot}$.
 \end{definition}
 
 Types do not matter at all for our denotational semantics.
 \begin{lemma}[Type irrelevance]
 It is the case that $\interp{u}{\sigma}{\rho} = \interp{u[\ol{\tau}/\as]}{\sigma}{\rho}$ 
-and $\interp{e}{\sigma}{\rho} = \interp{e[\ol{\tau}/\as]}{\sigma}{\rho}$.
+for any type substitution of variable $\as$ to types $\taus$.
+%% and $\interp{e}{\sigma}{\rho} = \interp{e[\ol{\tau}/\as]}{\sigma}{\rho}$.
 \end{lemma}
 %% \begin{proof} Straightforward induction. \end{proof}
 The following is an essential lemma for establishing the soundness of denotational semantics:
@@ -485,7 +499,8 @@ there exists a $v$ such that $P |- e \Downarrow v$.
 The proof of this theorem is also standard domain theory so we only sketch the 
 high-level roadmap: The proof proceeds by defining a {\em logical relation} between 
 semantics and syntax, via the use of a bifunctor on admissible relations between elements 
-of $D_\infty$ and closed expressions, and using Pitts' minimal invariance to show that this 
+of $D_\infty$ and closed expressions, and using minimal 
+invariance~\cite{pitts-rel-domains} to show that this
 bifunctor has a fixpoint. Adequacy then follows from the {\em fundamental theorem} of this 
 logical relation, which asserts that every expression is related to its denotation.
 
@@ -631,16 +646,20 @@ logical relation, which asserts that every expression is related to its denotati
 
 \subsection{Denotational semantics in first-order logic}\label{ssect:denot-fol}
 
-We now switch gears and formally define the first-order language which will be 
-the image of our translation of Haskell programs and the denotational semantics.
+Recall our plan: we wish to translate programs and contracts to first-order logic
+so that we can prove that programs satisfy their contracts. We start by formally 
+defining the first-order language which will be the image of our translation. 
+
 This syntax is given in Figure~\ref{fig:fol-image}. Terms include function 
 applications $f(\ol{t})$, constructor applications $K(\ol{t})$, variables. They 
 also include, for each data constructor $K^\ar$ in the signature $\Sigma$ with 
-arity $\ar$ a set of {\em selector functions} $\sel{K}{i}$ for $i \in 1 \ldots \ar$.
+arity $\ar$ a set of {\em selector functions} $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.
 Not all functions are fully applied, so to accommodate partial applications, we use 
-the term $app(t,s)$. Functions that are not applied, but rather passed as first-class
-will be represented as variables (or nullary functions) $f_{ptr}$. Finally we introduce
-two new syntactic constructs $\unr$ and $\bad$. 
+the term $app(t,s)$. Functions that are not applied, but rather passed on as essentially 
+function pointers will be represented as variables (or nullary functions) $f_{ptr}$. Finally 
+we introduce two new syntactic constructs $\unr$ and $\bad$. As an abreviation we often use
+$app(t,\ol{s})$ for the sequence of applications to each $s_i$, as 
+Figure~\ref{fig:fol-image} shows.
 
 \begin{figure}
 \[\begin{array}{c} 
@@ -650,21 +669,26 @@ two new syntactic constructs $\unr$ and $\bad$.
       &      & f(\ol{t})                  & \text{Functions} \\
       &      & K(\ol{t})                  & \text{Constructor functions} \\ 
       & \mid & \sel{K}{i}(t)              & \text{Constructor selectors} \\ 
-      & \mid & f_{ptr} \mid app(t,s)       & \text{Function pointers and application} \\
+      & \mid & f_{ptr} \mid app(t,s)       & \text{Pointers and application} \\
       & \mid & \unr \mid \bad             & \text{Unreachable, bad} \\ \\
-%% \multicolumn{3}{l}{\text{Formulae}} \\ 
-%%  \phi & ::=  & \lcf{t}    & \text{Cannot cause crash} \\
-%% %%      & \mid & \lncf{t}   & \text{Can provably cause crash} \\
-%%       & \mid & t_1 = t_2  & \text{Equality} \\ 
-%%       & \mid & \phi \land \phi \mid \phi \lor \phi \mid \neg \phi \\
-%%       & \mid & \forall x @.@ \phi \mid \exists x @.@ \phi \\ \\ 
-\multicolumn{3}{l}{\text{Abbreviations}} \\ 
+\multicolumn{3}{l}{\text{Formulae}} \\ 
+ \phi & ::=  & \lcf{t}    & \text{Crash-freedom} \\
+%%      & \mid & \lncf{t}   & \text{Can provably cause crash} \\
+      & \mid & t_1 = t_2  & \text{Equality} \\ 
+      & \mid & \phi \land \phi \mid \phi \lor \phi \mid \neg \phi \\
+      & \mid & \forall x @.@ \phi \mid \exists x @.@ \phi \\ \\ 
+\multicolumn{3}{l}{\text{Abbreviation}} \\ 
 \multicolumn{4}{l}{app(t,\oln{s}{n}) = (\ldots(app(t,s_1),\ldots s_n)\ldots)}
 \end{array}
 \end{array}\]
-\caption{Image of translation into FOL}\label{fig:fol-image}
+\caption{Image of translation to FOL}\label{fig:fol-image}
 \end{figure}
 
+To group interesting definitions together, Figure~\ref{fig:fol-image}
+also includes the syntax of formulae that will appear in the image of
+our translation. It is just the standard connectives of first-order
+logic plus a predicate $\lcf{t}$ to represent crash-freedom, and whose
+semantics we discuss in Section~\ref{sect:contracts}.
 
 
 \begin{figure}\small
@@ -692,8 +716,10 @@ two new syntactic constructs $\unr$ and $\bad$.
   --------------------------------------{TBad}
   \etrans{\Sigma}{\Gamma}{@BAD@} = \formula{\bad}
   ~~~~
-  \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \quad 
+  \begin{array}{c}
+  \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \\
   \etrans{\Sigma}{\Gamma}{e_2} = \formula{t_2}
+  \end{array}
   --------------------------------------{TApp}
   \etrans{\Sigma}{\Gamma}{e_1\;e_2} = \formula{app(t_1,t_2)}
 \endprooftree \\ \\ 
@@ -704,13 +730,13 @@ two new syntactic constructs $\unr$ and $\bad$.
    \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{s = t} 
    ~~~~~
   \begin{array}{l}
-  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-  constrs(\Sigma,T) = \ol{K} \\
-  \text{for each branch}\;(K\;\oln{y}{l} -> e') \\
-  \begin{array}{l}
-           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
-           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
-  \end{array}
+  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \\
+%%  constrs(\Sigma,T) = \ol{K} \\
+  \text{for each branch}\;(K\;\oln{y}{l} -> e') \text{ it is } \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+%%  \begin{array}{l}
+%% %%           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+%%            \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+%%   \end{array}
   \end{array}
   ------------------------------------------{TUCase}
   {  \setlength{\arraycolsep}{2pt} 
@@ -719,7 +745,7 @@ two new syntactic constructs $\unr$ and $\bad$.
   \;\;\formula{ \begin{array}{l} 
           (t = \bad => s = bad)\;\land \\ 
           (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K+1}\;\land \ldots \land \\
-          (t \neq \bad\;\land\;t \neq K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s = \unr) 
+          (t{\neq}\bad\;\land\;t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s{=}\unr) 
 %% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
 %%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
 %%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
@@ -738,11 +764,45 @@ two new syntactic constructs $\unr$ and $\bad$.
 \endprooftree 
 
 \end{array}\]
-\caption{Well-scoped elaboration to FOL terms}\label{fig:etrans}
+\caption{Translation to FOL terms}\label{fig:etrans}
 \end{figure}
 
+\paragraph{Translation of expressions to FOL}
 
-In addition to contract translation we have an axiomatization in Figure~\ref{fig:prelude}.
+The translation of expressions $e$ which may contain term variables from $\Gamma$ to 
+first-order logic terms is given in Figure~\ref{fig:etrans} with the function
+$\etrans{}{\Gamma}{e}$. Variables map to variables, functions map to function pointers, 
+applications map to applications of $app(\cdot,\cdot)$, constructors map to constructor
+function applications and @BAD@ maps to $\bad$.
+
+It is now time to give an interpretation to our FOL terms. Our idea is to use the 
+denotational semantics domain $D_\infty$ {\em itself} as the carrier set of the model. 
+We then need to give an interpretation of the functions and constants in our first-order
+signature as elements of $D_\infty$. Happily this is straightforward to do:
+\[\begin{array}{rcl}
+   \linterp{f^{\ar}}(d_1,\ldots,d_\ar) & = & \dapp(\dbrace{f},\oln{d}{\ar}) \\ 
+   \linterp{app}(d_1,d_2)     & = & \dapp(d_1,d_2) \\
+   \linterp{f_{ptr}}  & = & \dbrace{f} \\
+   \linterp{K^{\ar}}(d_1,\ldots,d_\ar) & = & \roll(\ret(\inj{K}\langle d_1,\ldots,d_\ar\rangle)) \\ 
+   \linterp{\sel{K}{i}}(d) & = &  \roll(\bind_g(\unroll(d))) \\ 
+     \text{where } g  & = & [\;\bot \\ 
+                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for K}) \\ 
+                      &   & ,\;\bot \\
+                      &   & ,\;\ldots\\
+                      &   & ,\;\bot\; ] \\
+  \linterp{unr}       & = & \bot 
+\end{array}\]
+The essential soundness theorem that states that our interpretation makes sense is
+the following. 
+\begin{theorem}[Interpretation respects denotations] 
+Assume that $\Sigma |- P$ and expression $e$ does not contain any free variables. 
+Then, if $\etrans{}{\cdot}{e} = t$ then $\linterp{t} = \dbrace{e}$.
+\end{theorem}
+The proof is an easy induction on the size of the term $e$.
+
+\paragraph{Translation of programs and {\tt case} expressions}
+
+{\bf HERE HERE }
 
 
 \begin{figure}\small
@@ -783,18 +843,6 @@ semantics $\dbrace{P}^{\infty}$ and $\dbrace{e}$ as
 $\interp{e}{\dbrace{P}^\infty}{\cdot}$ as first-order 
 logic {\em models}. We use the elements of $D_{\infty}$ as the underlying set. We define
 an interpretation of functions on the image of translation into FOL as: 
-\[\begin{array}{rcl}
-   \linterp{f^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \dapp(\dbrace{P}^{\infty}(f),\oln{\pi_i(d)}{i \in 1..\ar}) \\ 
-   \linterp{f_{ptr}}  & = & \dbrace{P}^{\infty}(f) \\ 
-   \linterp{app}     & = & \dapp \\ 
-   \linterp{K^{\ar}}  & = & \dlambda (d {:} \prod_{\ar}D_{\infty}) @.@ \roll(\ret(\inj{K}(d))) \\ 
-   \linterp{\sel{K}{i}} & = & \dlambda (d {:} D_{\infty}) @.@ \roll(\bind_g(\unroll(d))) \\ 
-     \text{where } g  & = & [\;\bot \\ 
-                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for constructor } K) \\ 
-                      &   & ,\;\bot \\ 
-                      &   & ,\;\ldots\\ 
-                      &   & ,\;\bot\; ]
-\end{array}\]
 
 
 
