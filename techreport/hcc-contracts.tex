@@ -5,58 +5,109 @@ $\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts}
 includes other constructs as well, but these constructs are enough to verify 
 many programs and already demonstrate the interesting theoretical and practical problems.
 
-We may also define the denotational semantics of contracts, below. We assume again 
-that there is a program $P$, well-formed in a signature $\Sigma$. In the definition, 
-$\rho$ is a semantic environment. 
+The semantics of contracts is to a certain extaint a matter of design decisions, and previous
+work has discussed several decisions. Our goal is to define a predicate 
+\[              \dbrace{\Ct}_\rho : D_\infty -> @Prop@   \]
+where $\Ct$ is a contract with free term variables in the semantic environment $\rho$. Below
+we present this definition recursively on the structure of the contract $\Ct$.
 
-\begin{definition}[Denotational semantics of contracts]
+\paragraph{Denotations of base contracts}
+We may define the denotation of a base contract as follows: 
 \[\begin{array}{l}
     \dbrace{x \mid e}_\rho(d) \text{ iff } \\
         \quad \unroll(d) = \bot \text{ or } 
         \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
-        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \ret(\inj{\True}(1)) \\ \\
+        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1) 
+\end{array}\] 
+Hence, a base contract is satisfied by a diverging computation, or by a computation that causes the 
+predicate to diverge as well, or return the \True value. The reason for introducing the possibility of
+$\bot$ either for the expression or for the predicate is associated to {\em admissibility} of induction, 
+a topic that we return to in Section~\ref{sect:induction}. Notice that in previous work, the base 
+contracts require also {\em crash-freedom} -- this is a design choice guided by practicality reasons, 
+and either option is unproblematic for the semantics. 
+
+\paragraph{Denotations of arrow contracts and conjunctions} 
+The denotation of an arrow contract can be recursively defined using the denotations of the argument
+and the result contract and it is what one expects: 
+\[\begin{array}{l}
     \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho}(d) \text{ iff } \\
         \quad \text{for all } d_x \in D_\infty \\ 
         \quad\quad \text{if }
                      \dbrace{\Ct_1}_\rho(d_x)\text{ then }
-                     \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
-    \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\
+                     \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) 
+\end{array}\]
+Similarly, the denotation of a conjunction of two contracts is recursively defined:
+\[\begin{array}{l}
     \dbrace{\Ct_1 \& \Ct_2}_\rho(d) \text{ iff } 
        \dbrace{\Ct_1}_\rho(d) \text{ and } 
        \dbrace{\Ct_2}_\rho(d)
 \end{array}\]
-For a closed contract $\Ct$ we will use notation
-$\dbrace{\Ct}$ for its denotation in the empty 
-semantic environment.
-\end{definition}
 
+\paragraph{Denotation of crash-freedom}
 
+This leaves us with the $\CF$ contract. Intuitively an expression is crash-free iff it cannot
+cause a crash if plugged in inside a context which is itself crash-free. Of course this is a 
+self-referential definition so how do we know it makes sense? The original paper that proposed
+a crash-free contract~\cite{xu+:contracts} asserted that an expression is crash free iff it 
+cannot cause a crash when plugged in in a context which {\em syntactically} does not contain the
+@BAD@ value. This is a reasonable definition in the operational semantics world, but note that
+here we can do better because we are working with elements of $D_\infty$. 
 
-To the extend that in the end we are only interested in base contracts, giving a 
-denotational semantics of full-higher-order contracts is not really interesting 
-but we do this anyway. For a given denotation $d$, we define the 
-predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
-of the contract $\Ct$, such that:
+Using the techniques developed by Pitts we may define a recursive predicate for crash-freedom,
+using the following strict bi-functor on admissible sets of 
+denotations $S^{-},S^{+} \subseteq D_\infty$.
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{rcl}
+   F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad} 1 ) \text{ and } \\ 
+                      &    & \quad \text{for all } \ol{d}, \\ 
+                      &    & \quad\quad\text{ if } \unroll(d) = \ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) \\ 
+                      &    & \quad\quad\text{ then } \ol{d} \in S^{+} \} \\ 
+                   & \cup & \ldots \\ 
+                   & \cup & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad} 1 ) \text{ and } \\ 
+                   &      & \quad \text{for all } d_0, \\
+                   &      & \quad\quad\text{ if } \unroll(d) = \ret(\inj{->}(d_0)) \text{ then } \\ 
+                   &      & \quad\quad\text{ for all }\;d' \in S^{-} \text{ it is } d_0(d') \in S^{+} \}  \\
+\end{array}\]}
+The intersection of admissible sets is admissible so the $\Fcf$ bifunctor has a negative and positive fixpoint, and by minimal 
+invariance they coincide (one direction follows by Tarski-Knaster, the other can be inductively proved using the fact that the 
+lub of the chain of embedding-projections is the identity and the fact that this 
+functor preserves admissibility for the covariant argument). Let us call this admissible set $\Fcf^{\infty} \subseteq D_{\infty}$.
 
+We may now define the interpretation of $\CF$ contracts using this fixpoint: 
+\[     \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty}    \] 
 
-\clearpage 
+%% We may also define the denotational semantics of contracts, below. We assume again 
+%% that there is a program $P$, well-formed in a signature $\Sigma$. In the definition, 
+%% $\rho$ is a semantic environment. 
+
+%% \begin{definition}[Denotational semantics of contracts]
+%% \[\begin{array}{l}
+%%     \dbrace{x \mid e}_\rho(d) \text{ iff } \\
+%%         \quad \unroll(d) = \bot \text{ or } 
+%%         \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
+%%         \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1) \\ \\
+%%     \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho}(d) \text{ iff } \\
+%%         \quad \text{for all } d_x \in D_\infty \\ 
+%%         \quad\quad \text{if }
+%%                      \dbrace{\Ct_1}_\rho(d_x)\text{ then }
+%%                      \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
+%%     \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\
+%%     \dbrace{\Ct_1 \& \Ct_2}_\rho(d) \text{ iff } 
+%%        \dbrace{\Ct_1}_\rho(d) \text{ and } 
+%%        \dbrace{\Ct_2}_\rho(d)
+%% \end{array}\]
+%% For a closed contract $\Ct$ we will use notation
+%% $\dbrace{\Ct}$ for its denotation in the empty 
+%% semantic environment.
+%% \end{definition}
+
+%% To the extend that in the end we are only interested in base contracts, giving a 
+%% denotational semantics of full-higher-order contracts is not really interesting 
+%% but we do this anyway. For a given denotation $d$, we define the 
+%% predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
+%% of the contract $\Ct$, such that:
+
 \subsection{Contracts in first-order logic}\label{sect:contracts-fol}
-
-
-
-\begin{figure}\small
-\[\begin{array}{c}
-\ruleform{\Th{\Sigma}{P}^{\lcfZ}} \\ \\ 
-\begin{array}{lll} 
- \textsc{AxCfA}   & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
- \textsc{AxCfB}   & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
-\end{array}
-\end{array}\]
-\caption{Prelude theory}\label{fig:prelude}
-\end{figure}
-
-
 
 \begin{figure}\small
 \[\begin{array}{c} 
@@ -70,7 +121,7 @@ of the contract $\Ct$, such that:
   \begin{array}{l}
    \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
   %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-  \;\;\formula{(t = \unr) \lor (t'[t/x] = \unr) \lor (t'[t/x] = \True)}
+  \;\;\formula{(t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)}
   \end{array}
   ~~~~~ 
   \begin{array}{c}
@@ -93,42 +144,39 @@ of the contract $\Ct$, such that:
   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
   -------------------------------------------{CTransCf}
   \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\lcf{t}}
- \endprooftree 
-%% \\ \\ 
-%% \ruleform{\Sigma;\Gamma |- e \notin \Ct \elab{ \phi} } \\ \\
-%% \prooftree
-%%   \begin{array}{c}
-%%    \Sigma;\Gamma |- e : \tau \elab{ t}  \quad
-%%    \Sigma;\Gamma,(x{:}\tau) |- e' : \Bool \elab{ t'}
-%%   \end{array}
-%%   ------------------------------------------{CNTransBase}
-%%   \begin{array}{l}
-%%   \Sigma;\Gamma |- e \notin \{(x{:}\tau) \mid e' \} 
-%%   \elab{(t'[t/x] = \bad) \lor (t'[t/x] = \False)}
-%%   \end{array}
-%%   ~~~~~ 
-%%   \Sigma;\cdot |- \Ct_1 : \tau
-%%   ------------------------------------------{CNTransArr}
-%%   \begin{array}{l} 
-%%   \Sigma;\Gamma |- e \notin (x{:}\Ct_1) -> \Ct_2 
-%%   \elab{\exists x @.@ (\Sigma;\Gamma,(x{:}\tau) |- x \in \Ct_1) /\ (\Sigma;\Gamma,(x{:}\tau) |- e\;x \notin \Ct_2)}
-%%   \end{array}
-%%   ~~~~~
-%%   \begin{array}{c}
-%%   \Sigma;\Gamma |- e \notin \Ct_1 \elab{ \phi_1} \quad
-%%   \Sigma;\Gamma |- e \notin \Ct_2 \elab{ \phi_2}
-%%   \end{array}
-%%   ------------------------------------------{CNTransConj}
-%%   \Sigma;\Gamma |- e \notin \Ct_1 \& \Ct_2 \elab{ \phi_1 \lor \phi_2}
-%%   ~~~~
-%%   \Sigma;\Gamma |- e : \tau \elab{ t}
-%%   -------------------------------------------{CNTransCf}
-%%   \Sigma;\Gamma |- e \notin \CF \elab{ \lncf{t}}
-%%  \endprooftree
+ \endprooftree \\ \\ 
+\ruleform{\Th_\lcfZ} \\ \\ 
+\begin{array}{lll} 
+ \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
+\end{array}
 \end{array}\]
-\caption{Baseline contract elaboration}\label{fig:typing}
+\caption{Translation of contracts to logic}\label{fig:contracts-minless}
 \end{figure}
 
+We now turn to expressing contract semantics in first-order logic. 
+Figure~\ref{fig:contracts-minless} presents the details of the 
+function $\ctrans{}{\Gamma}{e \in \Ct}$ which reflects the statement that the 
+denotation of $e$ should belong in the denotation of $\Ct$.  We also include 
+an axiomatization of crash-freedom with the axiom groups \rulename{AxCfBU} and 
+\rulename{AxCfC}. The first axiom asserts that $\unr$ is crash-free and $\bad$ is not, 
+whereas the second axiom asserts that a constructor value is crash-free if all of its
+childre nodes are crash-free. 
+
+In terms of semantics we give an interpretation to the logical predicate $\lcf{\cdot}$ as:
+\[           \linterp{\lcfZ}(d) = d \in F_\lcfZ^\infty  \] 
+As a consequence the following two lemmas hold: 
+
+\begin{theorem} Assume that $e$ and $\Ct$ contain no term variables. Then, if
+$\ctrans{}{\cdot}{e \in \Ct} = \formula{\phi}$, it is the case 
+that $\langle D_\infty,{\cal I}\rangle \models \phi$.
+\end{theorem} 
+\begin{theorem} The axiomatization of crash-freedom is true in the denotational model, that is, $\langle D_\infty,{\cal I}\rangle \models \Th_\lcfZ$.
+\end{theorem}
+
+
+\clearpage
 
 In this section we will attempt to ignore the higher-order case and just talk about 
 base contracts. Let us use:
