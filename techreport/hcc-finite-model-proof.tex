@@ -1,0 +1,184 @@
+
+
+We now present the proof of Theorem~\ref{thm:finite-model}.
+Consider the alternative presentation of $\SDownarrow$ below.
+%% \begin{figure}\small
+\[\begin{array}{c}
+\ruleform{P |- u \SDownarrow v} \\ \\
+\prooftree
+\begin{array}{c}
+P |- e_1 \SDownarrow f^\ar[\taus]\;\oln{e}{\ar-1} \quad
+(f |-> \Lambda\as @.@ \oln{x{:}\tau}{\ar} @.@ u) \in P \\
+P |- u[\ol{e},e_2/\xs] \SDownarrow w \quad \highlight{P |- e_2 \SDownarrow v_2}
+\end{array}
+-------------------------------------{EValF}
+P |- e_1\;e_2 \SDownarrow w 
+~~~~~
+ \ar \geq 1
+----------------------------{FVal}
+P |- f^\ar[\taus] \SDownarrow f 
+~~~~ 
+(f{|->}\Lambda\as @.@ u) \in P \quad P |- u{\SDownarrow}v
+-------------------------------------{FCaf}
+P |- f^0[\taus] \SDownarrow v 
+~~~~~
+\begin{array}{c}
+P |- e_1 \SDownarrow f^\ar[\taus]\;\oln{e}{< \ar-1} \quad
+\highlight{P |- e_2 \SDownarrow v_2 }
+\end{array}
+-------------------------------------{EValP}
+P |- e_1\;e_2 \SDownarrow f^\ar[\taus]\;\oln{e}{< \ar-1}\;e_2
+~~~~~
+\begin{array}{c} 
+P |- e_1 \SDownarrow @BAD@ \quad
+\highlight{P |- e_2 \SDownarrow v_2}
+\end{array}
+------------------------------------------------{EBadApp}
+P |- e_1\;e_2 \SDownarrow @BAD@
+~~~~~ 
+P |- \highlight{\ol{e} \SDownarrow \ol{v}}
+-------------------------------------{EValC}
+P |- K[\taus](\ol{e}) \SDownarrow K[\taus](\ol{e})
+~~~~
+\phantom{G}
+-------------------------------------{EValB}
+P |- @BAD@ \SDownarrow @BAD@
+\endprooftree \\ \\ 
+\text{ ... plus rules for @case@ ... } 
+\end{array}\]
+%% \caption{Semi-strict operational semantics}\label{fig:opsem-semi}
+%% \end{figure}
+
+Let us consider a derivation tree $D_{0} @::@ P e \SDownarrow v$ and let us consider the set:
+\[ S_0 = \{ e' \mid \exists D @.@ D @::@ P |- e'{\SDownarrow}w \text{ and } D{\sqsubseteq}D_0 \} \cup \{ @BAD@ \} \]
+where with the notation $D_1 \sqsubseteq D_2$ we mean that $D_1$ is a sub-derivation of 
+the derivation $D_2$. 
+
+Let us create the set $S^{min}$ as follows:
+\[         S^{min} = S_0 \cup \{ \bot \} \] 
+where $\bot$ is a distinguished element. We refer to the elements of $S^{min}$ as $\mu$ (either and $e$ or $\bot$).
+%% The edges of the graph are created with the following 
+%% two rules:
+%% \begin{itemize*}
+%%    \item For every derivation rule of the form 
+%%          \[\begin{array}{c}\prooftree
+%%                D_1 @::@ e_1 \SDownarrow v_1 \ldots D_n @::@ e_1 \SDownarrow v_1
+%%                ---------------------------------------{}
+%%                D @::@ e \SDownarrow v  
+%%          \endprooftree\end{array}\] 
+%%          in $D_{0}$ then we add edges that connect $D$ to each of $e_1 \ldots e_n$.
+%%    \item For every application node $D @::@ e_1\;e_2$ we add a {\em directed edge} from 
+%%          the node to the node of $e_2$ (which, by the evaluation relation $\SDownarrow$ must also exist
+%%          in the graph and by determinacy of $\SDownarrow$ is unique).
+%%    \item For every data constructor node $D @::@ K[\taus](\ol{e})$ we add {\em labelled directed edges}
+%%          from the node to the node of each $e_i \in \ol{e}$. The labels on the edges are just the indices.
+%% \end{itemize*}
+
+Consider the following equivalence relation on elements of $S^{min}$: 
+\[\begin{array}{c}\prooftree
+            P |- e \SDownarrow v
+      ---------------------------{EqEval}
+             e \equiv v 
+      ~~~~ 
+      \begin{array}{c}
+           e_1 \equiv e_1' \quad e_2 \equiv e_2' 
+      \end{array}
+      ---------------------------------------------------{AppCong}
+          e_1\;e_2 \equiv e_1' e_2' 
+      ~~~~~ 
+           e_i \equiv e_i'
+      ---------------------------------------------------{ConCong}
+           K[\taus](\ol{e}) \equiv K[\taus'](\ol{e}')
+      ~~~~~
+         \phantom{e}
+      ---------------------------------------------------{Refl}
+        \mu \equiv \mu
+      ~~~~ 
+        e_1 \equiv e_2
+      ------------------------{Sym}
+        e_2 \equiv e_1
+      ~~~~\hspace{-5pt}
+        e_1 \equiv e_2 \;\; e_2 \equiv e_3
+      \hspace{-2pt}------------------------{Trans}
+        e_1 \equiv e_3
+\endprooftree\end{array}\]
+
+The following lemma is true:
+\begin{lemma}\label{lem:equiv-shapes} If $e_1 \equiv e_2$ then:
+\begin{itemize*}
+  \item If $P |- e_1 \SDownarrow f^\ar[\taus]\;\oln{e_1}{m}$ with $m < \ar$ then $P |- e_2 \SDownarrow f^\ar[\taus]\;\oln{e_2}{m}$ and $e_{1i} \equiv e_{2i}$.
+  \item If $P |- e_1 \SDownarrow K[\taus](\ol{e_1})$ then $P |- e_2 \SDownarrow K[\taus'](\ol{e_2})$ and and $e_{1i} \equiv e_{2i}$.
+\end{itemize*}
+\end{lemma}
+In what follows we will use the set $S^{min}$ as the carrier set of our first-order model, we will 
+interpret equality as $\equiv$ and the first-order language of our signature as follows.
+
+
+\[\setlength{\arraycolsep}{2pt}
+\begin{array}{rcl}
+   \mlinterp{f^{\ar}}(\mu_1,\ldots,\mu_n) & = & 
+       \multicolumn{1}{l}{\text{If there exists } (e_1\;e_2) \in S^{min}} \\
+   & & \multicolumn{1}{l}{\text{such that } e_1{\SDownarrow}f\;[\taus]\;\oln{e}{\ar-1}} \\
+   & & \multicolumn{1}{l}{\text{and } \mu_i \equiv e_i} \\
+   & & \multicolumn{1}{l}{\text{and } \mu_{\ar} \equiv e_2 \text{ then } (e_1\;e_2) \text{ else } \bot} \\
+   \mlinterp{f_{ptr}} & = & \text{If there exists } f \in S^{min} \\
+                        &   & \text{then } f \text{ else } \bot \\
+  \mlinterp{app}(\mu_1,\mu_2) & = & \text{If there exists } (e_1\;e_2) \in S^{min} \\ 
+                         &   & \text{such that } \mu_1 \equiv e_1 \\ 
+                         &   & \text{and } \mu_2 \equiv e_2 \text{ then } (e_1\;e_2) \text{ else } \bot \\
+  \mlinterp{K^\ar}(\mu_1,\ldots,\mu_\ar) & = & \text{If there exists } (K[\taus](\ol{e})) \in S^{min} \\
+                                    &  & \text{such that } \mu_i' \equiv e_i \text{ then } (K[\taus](\ol{e})) \\
+                                    &  & \text{else } \bot \\
+  \mlinterp{\sel{K}{i}}(\mu) & = & \text{If there exists } (K[\taus](\ol{e})) \in S^{min} \\ 
+                             &   & \text{such that } \mu \equiv (K[\taus](\ol{e})) \text{ then } e_i \\ 
+                             &   & \text{else } \bot \\ 
+%% \dapp(\dbrace{f},\oln{d}{\ar}) \\ 
+%%    \linterp{app}(d_1,d_2)     & = & \dapp(d_1,d_2) \\
+%%    \linterp{f_{ptr}}  & = & \dbrace{f} \\
+%%    \linterp{K^{\ar}}(d_1,\ldots,d_\ar) & = & \roll(\ret(\inj{K}\langle d_1,\ldots,d_\ar\rangle)) \\ 
+%%    \linterp{\sel{K}{i}}(d) & = &  \roll(\bind_g(\unroll(d))) \\ 
+%%      \text{where } g  & = & [\;\bot \\ 
+%%                       &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for K}) \\ 
+%%                       &   & ,\;\bot \\
+%%                       &   & ,\;\ldots\\
+%%                       &   & ,\;\bot\; ] \\
+  \mlinterp{bad}       & = & @BAD@ \\
+  \mlinterp{unr}       & = & \bot \\ \\ \\ 
+  \mlinterp{min}(\mu)  & = & \mu \neq \bot \\ 
+  \mlinterp{cf}(\mu)   & = & \text{There exists } e \text{ such that } \mu = e \\ 
+                       &   & \text{and } \dbrace{e} \in F_\lcfZ^{\infty} 
+\end{array}\]
+
+First of all, we have to prove that $\mlinterp{\cdot}$ above is a function and not a relation. 
+This is easy to do by observing that the interpretation can only return 
+different terms that are nevertheless equated by $\equiv$. Secondly, we must prove that the interpreted 
+functions are congruent over $\equiv$. That is also straightforward.
+
+\begin{lemma}\label{lem:min-interp}
+If $e \in S^{min}$ and $\etrans{}{\cdot}{e} = t$ then $\mlinterp{t} \equiv e$.
+\end{lemma}
+\begin{proof} Straightforward induction over the structure of $e$ and by observing 
+that in any term $e \in S^{min}$, all structural subterms of $e$ are also in $S^{min}$.
+\end{proof}
+
+Moreover, we can show that $\langle S^{min},{\cal I}^{min}\rangle$ is a model of $\ThMin$, by showing that
+it validates all the axioms. 
+\begin{theorem}
+$\langle S^{min},{\cal I}^{min}\rangle \models \ThMin$.
+\end{theorem}
+\begin{proof} We have to show that each of the axioms in $\ThMin$ is valid in this model. The only interesting 
+axioms is \rulename{AxAppMin}:
+\[ \forall \ol{x} @.@ min(app(f_{ptr},\xs)) => f(\ol{x}) = app(f_{ptr},\xs) \]
+Let us pick elements $\mu_1\ldots\mu_n \in S^{min}$. Since $min(app(f_{ptr},\xs))$ it must be that they are actually
+all expressions, $e_1\ldots e_n$. Moreover we have the following chain for the left-hand-side: 
+\[\begin{array}{lcl}
+     f & \equiv & e_1^{\star} \\ 
+     e^{\star}_1\;e_1 & \equiv & e^{\star}_2 \\ 
+     e^{\star}_2\;e_2 & \equiv & e^{\star}_3 \\ 
+              & \ldots & 
+\end{array}\] 
+Such that the left-hand-side is $e^{\star}_n\;e_n$. Now, by Lemma~\ref{lem:equiv-shapes} 
+we have that $e^{\star}_1 \SDownarrow f$, $e^{\star}_2 \SDownarrow f\;e_1'$ for some $e_1 \equiv e_1'$ and so on, 
+so that eventually we have that $e^{\star}_n \SDownarrow f\;e_1'\ldots e_{n-1}'$ for equivalent $e_i \equiv e_i'$. 
+Applying the interpretation of $f$ for the right-hand-side finishes the case.
+\end{proof} 
