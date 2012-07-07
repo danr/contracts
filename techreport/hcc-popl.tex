@@ -52,7 +52,7 @@
 \newcommand{\definable}[1]{{\mathop{def}}(#1)}
 \newcommand{\curly}{\rightsquigarrow}
 \newcommand{\Min}{\cal M}
-\newcommand{\mlinterp}[1]{{\cal I}^\mu(#1)}
+\newcommand{\mlinterp}[1]{{\cal I}^{min}(#1)}
 
 \renewcommand{\Th}{{\cal T}}
 
@@ -109,6 +109,11 @@ logic, justified by denotational semantics.
 
 \bibliographystyle{plainnat}
 \bibliography{hcc-popl}
+
+\appendix 
+
+\section{A finite model construction}\label{sect:finite-model-proof}
+\input{hcc-finite-model-proof}
 
 \end{document}
 

@@ -71,7 +71,7 @@ first-order logic.
 Figure~\ref{fig:syntax} embodies one other inessential choice in order to 
 facilitate the formalization and implementation: we assume that 
 functions have arity at least one (disallowing CAF's).  \spj{Disallowing CAFs is quite significant.
-We need to say more about why.}
+We need to say more about why.} \dv{It is not essential -- it was in some previous version of a proof. I will fix this.}
 
 $\cal L$ is an explicitly-typed language, and we assume the 
 existence of a typing relation $\Sigma |- P$, which checks 
@@ -249,7 +249,8 @@ orders (cpos), below:
                & + & \;\quad(D^{-} =>_c D^{+}) \\
                & + & \;\quad\unitcpo_{bad} \quad )_{\bot}
 \end{array}\]
-\spj{Why bi-functor? Why not just functor?}
+\spj{Why bi-functor? Why not just functor?}%% \dv{I am using Pitts' and Nick Benton's formulation and this 
+%% thing needs to be a bifunctor. It is not a functor if you have contra-varianance.} 
 The bi-functor $F$ is the lifting of a big sum: that sum consists of 
 (i) products, one for each possible constructor (even across different data types), (ii) the continuous
 function space from $D^{-}$ to $D^{+}$, and (iii) a unit cpo to denote @BAD@ values. 
@@ -413,7 +414,8 @@ binary product space of $D_{\infty}$. We use notation $\inj{K}$ to denote the co
 corresponding to the arity of constructor $K$ into the sum $V_{\infty}$.
 We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
 $\inj{bad}$ for the unit injection into $V_{\infty}$. We use ordinary application notation 
-$d(d')$ \spj{instead of $app(d,d')$?} when $d : D_\infty =>_c D_\infty$ and
+$d(d')$ \spj{instead of $app(d,d')$?} \dv{No, instead of the @apply@ combinator of the cpo $D_\infty =>_c D_\infty$, which is different
+than $\dapp$ which has a completely different signature than @apply@ (its arguments are both elements of $D_\infty$)} when $d : D_\infty =>_c D_\infty$ and
 $d'$ is an element of $D_\infty$. \spj{Why inconsistent notation? Why not say $d':D_{\infty}$?}
 Indeed application, partial application, and currying are all definable in cpos of continuous functions, 
 so we will be using $\lambda$-calculus notation for our domain theory, as above. 
