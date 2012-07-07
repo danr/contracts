@@ -5,7 +5,7 @@ algebraic datatypes, pattern matching, and recursion.
 Our actual implementation treats all of Haskell, by using GHC as a front 
 end to translate Haskell into language $\cal L$.
 
-\subsection{Syntax and semantics} \label{s:syntax}
+\subsection{Syntax of $\cal L$} \label{s:syntax}
 
 Figure~\ref{fig:syntax} presents the syntax of $\cal L$. 
 A program $P$ consists of a set of recursive 
@@ -23,17 +23,16 @@ is not interesting.
 \begin{figure}
 \[\begin{array}{l} 
 \begin{array}{lrll}
-\begin{array}{lrll}
-\multicolumn{3}{l}{\text{Programs}} \\
+\multicolumn{3}{l}{\text{Programs, right-hand sides, and expressions}} \\
 P   & ::= & @fix@\;(f_1^{\ar_1},...,f_k^{\ar_k})\;@=@ \\ 
     &     & \quad\quad (\Lambda\as_1 @.@ \lambda{\oln{x{:}\tau}{\ar_1}} @.@ u_1,...,
                                                 \Lambda\as_k @.@ \lambda{\oln{x{:}\tau}{\ar_k}} @.@ u_k) \\
 %% %% d   & ::= & f |-> \Lambda\ol{a} @.@ \lambda\ol{x{:}\tau} @.@ u \\ 
 u   & ::= & e \mid @case@\;e\;@of@\;\ol{K\;\ol{y} -> e} \\ 
 %%D   & ::= & \cdot \mid D,d \\
-\end{array}\\ \\ 
+\end{array}
+\\ 
 \begin{array}{lrll}
-\multicolumn{3}{l}{\text{Expressions}} \\
 e  & ::=  & x            & \text{Variables} \\ 
    & \mid & f[\ol{\tau}] & \text{Function variables} \\ 
    & \mid & K[\ol{\tau}](\ol{e}) & \text{Data constructors (fully applied)} \\
@@ -43,7 +42,8 @@ e  & ::=  & x            & \text{Variables} \\
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Syntax of closed values}} \\
  v,w & ::= & K^\ar[\ol{\tau}](\oln{e}{\ar}) \;\mid\; f^\ar[\ol{\tau}]\;\oln{e}{m < \ar} \;\mid\; @BAD@ \\ \\ 
-\end{array} \\ 
+\end{array}
+\\ 
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Contracts}} \\
  \Ct & ::=  & \{ x \mid e \}        & \text{Base contracts}  \\ 
@@ -51,6 +51,30 @@ e  & ::=  & x            & \text{Variables} \\
      & \mid & \Ct_1 \& \Ct_2             & \text{Conjunctions}   \\ 
      & \mid & \CF                        & \text{Crash-freedom}   \\
 \end{array}
+\\ \\
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Types}} \\
+\tau,\sigma & ::=  & T\;\taus & \text{Datatypes} \\ 
+            & \mid & a \mid \tau -> \tau 
+\end{array}
+\\ \\
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Type environments and signatures}} \\
+\Gamma & ::=  & \cdot \mid \Gamma,x \\
+\Delta & ::=  & \cdot \mid \Delta,a \mid \Delta,x{:}\tau \\
+\Sigma & ::=  & \cdot \mid \Sigma,T{:}n \mid \Sigma,f{:}\forall\ol{a} @.@ \tau \mid \Sigma,K^{\ar}{:}\forall\ol{a} @.@ \oln{\tau}{\ar} -> @T@\;\as
+\end{array}
+\\ \\
+\begin{array}{lrll}
+\multicolumn{3}{l}{\text{Auxiliary functions}} \\
+%% constrs(\Sigma,T) & = & \{ K \mid (K{:}\forall \as @.@ \taus -> T\;\as) \in \Sigma \} \\
+(\cdot)^{-}            & = & \cdot \\
+(\Delta,a)^{-}         & = & \Delta^{-} \\
+(\Delta,(x{:}\tau)^{-} & = & \Delta^{-},x
+%% \tyar{D}{f} & = & n & \\ 
+%%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\oln{a}{n} @.@ \lambda\ol{x{:}\tau} @.@ u) \in D} \\
+%% \tmar{D}{f} & = & n & \\ 
+%%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D}
 \end{array}
 \end{array}\] 
 \caption{Syntax of $\cal L$ and its contracts}\label{fig:syntax}
@@ -75,10 +99,10 @@ We need to say more about why.} \dv{It is not essential -- it was in some previo
 
 $\cal L$ is an explicitly-typed language, and we assume the 
 existence of a typing relation $\Sigma |- P$, which checks 
-that a program conforms to the definitions in the signature $\Sigma$. A signature $\Sigma$ (Figure~\ref{fig:auxiliary-defs})
+that a program conforms to the definitions in the signature $\Sigma$. A signature $\Sigma$ (Figure~\ref{fig:syntax})
 records the declared data types, data constructors and types of functions in the program $P$. The 
 well-formedness of expressions is checked with a typing relation $\Sigma;\Delta |- u : \tau$, where $\Delta$
-is a typing environment, also in Figure~\ref{fig:auxiliary-defs}.
+is a typing environment, also in Figure~\ref{fig:syntax}.
 We do not give the details of the typing relation since it is standard. An additional property that we require 
 from the typing relation is that it {\em asserts the exhaustiveness of pattern matches}. In an {\em actual}
 source language programmers may ommit pattern matches but here we will assume that all pattern matches 
@@ -95,42 +119,13 @@ will be represented in our language as:
 \end{array}\]
 Finally, our technical development and analysis in the following sections assume that programs have been 
 checked for type errors. 
-\begin{figure}
-\[\begin{array}{l} 
-\begin{array}{lrll}
-\multicolumn{3}{l}{\text{Types}} \\
-\tau,\sigma & ::=  & T\;\taus & \text{Datatypes} \\ 
-            & \mid & a \mid \tau -> \tau 
-\end{array}\\ \\ 
-%% \begin{array}{lrll}
-%% \multicolumn{3}{l}{\text{Datatype declarations}} \\
-%% dec & ::= & @data@\;T\;\ol{a} = \ol{K\;\taus}
-%% \end{array}\\ \\ 
-\begin{array}{lrll}
-\multicolumn{3}{l}{\text{Type environments and signatures}} \\
-\Gamma & ::=  & \cdot \mid \Gamma,x \\
-\Delta & ::=  & \cdot \mid \Delta,a \mid \Delta,x{:}\tau \\
-\Sigma & ::=  & \cdot \mid \Sigma,T{:}n \mid \Sigma,f{:}\forall\ol{a} @.@ \tau \mid \Sigma,K^{\ar}{:}\forall\ol{a} @.@ \oln{\tau}{\ar} -> @T@\;\as
-\end{array}\\ \\
-\begin{array}{lrll}
-\multicolumn{3}{l}{\text{Auxiliary functions}} \\
-%% constrs(\Sigma,T) & = & \{ K \mid (K{:}\forall \as @.@ \taus -> T\;\as) \in \Sigma \} \\
-(\cdot)^{-}            & = & \cdot \\
-(\Delta,a)^{-}         & = & \Delta^{-} \\
-(\Delta,(x{:}\tau)^{-} & = & \Delta^{-},x
-%% \tyar{D}{f} & = & n & \\ 
-%%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\oln{a}{n} @.@ \lambda\ol{x{:}\tau} @.@ u) \in D} \\
-%% \tmar{D}{f} & = & n & \\ 
-%%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D}
-\end{array}
-\end{array}\]
-\caption{Auxiliary definitions}\label{fig:auxiliary-defs}
-\end{figure}
 
 The syntax of closed values is also given in Figure~\ref{fig:syntax}. Since we do not 
 have arbitrary $\lambda$-abstractions, values can only be partial function applications
 $f^\ar[\ol{\tau}]\;\oln{e}{m < \ar}$, data constructor applications $K[\tau](\ol{e})$, 
 and the error term @BAD@. 
+
+\subsection{Operational semantics of $\cal L$}
 
 \spj{Why do we give an operational as well as denotational semantics?}
 The big-step operational semantics of our language is given in 
@@ -140,29 +135,29 @@ and ``getting stuck'', meaning that if $P \not|- e \Downarrow v$ then $e$ could 
 evaluation could get stuck. We return to this convenient for our purposes form of operational 
 semantics later. \spj{Where later? Also this sentence is hard to parse; indeed I'm not quite
 sure what it means.}
-\begin{figure*}
+\begin{figure}
 \[\begin{array}{c} 
-\ruleform{P |- u \Downarrow v} \\ \\
+\ruleform{P |- u \Downarrow v} \\ 
 \prooftree
 \begin{array}{c} \ \\ 
 \end{array}
 -------------------------------------{EVal}
 P |- v \Downarrow v
-~~~~
+~~~~~
 \begin{array}{c}
 (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
 P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v
 \end{array}
 -------------------------------------{EFun}
 P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow v
-~~~~
+~~~~~
 \begin{array}{c}  
 P |- e_1 \Downarrow v_1 \\
 P |- v_1\;e_2 \Downarrow w
 \end{array}
 ------------------------------------------------{EApp}
 P |- e_1\;e_2 \Downarrow w
-~~~~
+~~~~~
 \begin{array}{c}  
 P |- e_1 \Downarrow @BAD@ 
 \end{array}
@@ -182,7 +177,7 @@ P |- e'_i[\ol{e}_i/\ol{y}_i] \Downarrow w
 \end{array}
 ------------------------------------{ECase}
 P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow w
-~~~~
+~~~~~
 \begin{array}{c}
 P |- e \Downarrow @BAD@ \\
 \end{array}
@@ -197,7 +192,7 @@ P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@
 \endprooftree
 \end{array}\]
 \caption{Operational semantics of $\cal L$}\label{fig:opsem}
-\end{figure*}
+\end{figure}
 %% We can state some standard properties of the typing and evaluation relation.
 %% \begin{lemma}[Subject reduction]
 %% Assume $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau$
@@ -222,480 +217,188 @@ If $\Sigma;\cdot |- e : \tau$ and
 $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \tau$.
 \end{lemma}
 
-Figure~\ref{fig:syntax} also presents the syntax of {\em contracts} to
-keep all essential definitions grouped together, but in this section
-we will only focus on the language and its semantics. In
-Section~\ref{sect:contracts} we return to the syntax and semantics of
-contracts.
+%% Figure~\ref{fig:syntax} also presents the syntax of {\em contracts} to
+%% keep all essential definitions grouped together, but in this section
+%% we will only focus on the language and its semantics. In
+%% Section~\ref{sect:contracts} we return to the syntax and semantics of
+%% contracts.
 
-\subsection{Denotational semantics}\label{ssect:denot}
+%% \subsection{Denotational semantics}\label{ssect:denot}
 
-Having presented the language $\cal L$ and its operational semantics, we now return to 
-our roadmap which is to axiomatize and use the denotational semantics of programs to 
-perform static contract checking. In what follows we will assume a program $P$, 
-well-formed in a signature $\Sigma$, so that $\Sigma |- P$. Most of what follows is 
-an adaptation of folklore techniques to our setting and there are no 
-surprises -- we refer the reader to~\cite{winskel} or~\cite{benton+:coq-domains} 
-for a short and modern exposition of the standard methodology.
+%% Having presented the language $\cal L$ and its operational semantics, we now return to 
+%% our roadmap which is to axiomatize and use the denotational semantics of programs to 
+%% perform static contract checking. In what follows we will assume a program $P$, 
+%% well-formed in a signature $\Sigma$, so that $\Sigma |- P$. Most of what follows is 
+%% an adaptation of folklore techniques to our setting and there are no 
+%% surprises -- we refer the reader to~\cite{winskel} or~\cite{benton+:coq-domains} 
+%% for a short and modern exposition of the standard methodology.
 
-Given a signature $\Sigma$ we define a strict bi-functor $F$ on complete partial 
-orders (cpos), below:
-%% For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below, 
-%% assuming that $K_1\ldots K_k$ are all the constructors in $\Sigma$: 
-\[\begin{array}{lclll}
-  F(D^{-},D^{+}) & = & ( \quad{\prod_{\ar_1}{D^{+}}} & K_1^{\ar_1} \in \Sigma \\
-               & + & \;\quad\ldots                    & \ldots \\
-               & + & \;\quad{\prod_{\ar_k}{D^{+}}} & K_k^{\ar_k} \in \Sigma \\ 
-               & + & \;\quad(D^{-} =>_c D^{+}) \\
-               & + & \;\quad\unitcpo_{bad} \quad )_{\bot}
-\end{array}\]
-\spj{Why bi-functor? Why not just functor?}%% \dv{I am using Pitts' and Nick Benton's formulation and this 
-%% thing needs to be a bifunctor. It is not a functor if you have contra-varianance.} 
-The bi-functor $F$ is the lifting of a big sum: that sum consists of 
-(i) products, one for each possible constructor (even across different data types), (ii) the continuous
-function space from $D^{-}$ to $D^{+}$, and (iii) a unit cpo to denote @BAD@ values. 
-The notation $\prod_{n}{D}$ abbreviates $n$-ary products of cpos (the unit cpo $\unitcpo$ if $n = 0$). 
-The product and sum constructions are standard, but note that we use their non-strict versions. 
-The notation $C =>_c D$ denotes the cpo 
-induced by the space of continuous functions from the cpo $C$ to the cpo $D$. We use 
-the notation $\unitcpo_{bad}$ to 
-denote a single-element cpo -- the $bad$ subscript is just there for readability. 
-The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous 
-functions.
-\[\begin{array}{l}
-   \ret   : D =>_c D_\bot \\ 
-   \bind_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
-\end{array}\]
-with the obvious definitions. 
+%% Given a signature $\Sigma$ we define a strict bi-functor $F$ on complete partial 
+%% orders (cpos), below:
+%% %% For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below, 
+%% %% assuming that $K_1\ldots K_k$ are all the constructors in $\Sigma$: 
+%% \[\begin{array}{lclll}
+%%   F(D^{-},D^{+}) & = & ( \quad{\prod_{\ar_1}{D^{+}}} & K_1^{\ar_1} \in \Sigma \\
+%%                & + & \;\quad\ldots                    & \ldots \\
+%%                & + & \;\quad{\prod_{\ar_k}{D^{+}}} & K_k^{\ar_k} \in \Sigma \\ 
+%%                & + & \;\quad(D^{-} =>_c D^{+}) \\
+%%                & + & \;\quad\unitcpo_{bad} \quad )_{\bot}
+%% \end{array}\]
+%% \spj{Why bi-functor? Why not just functor?}%% \dv{I am using Pitts' and Nick Benton's formulation and this 
+%% %% thing needs to be a bifunctor. It is not a functor if you have contra-varianance.} 
+%% The bi-functor $F$ is the lifting of a big sum: that sum consists of 
+%% (i) products, one for each possible constructor (even across different data types), (ii) the continuous
+%% function space from $D^{-}$ to $D^{+}$, and (iii) a unit cpo to denote @BAD@ values. 
+%% The notation $\prod_{n}{D}$ abbreviates $n$-ary products of cpos (the unit cpo $\unitcpo$ if $n = 0$). 
+%% The product and sum constructions are standard, but note that we use their non-strict versions. 
+%% The notation $C =>_c D$ denotes the cpo 
+%% induced by the space of continuous functions from the cpo $C$ to the cpo $D$. We use 
+%% the notation $\unitcpo_{bad}$ to 
+%% denote a single-element cpo -- the $bad$ subscript is just there for readability. 
+%% The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous 
+%% functions.
+%% \[\begin{array}{l}
+%%    \ret   : D =>_c D_\bot \\ 
+%%    \bind_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
+%% \end{array}\]
+%% with the obvious definitions. 
 
-Observe that we have dropped all type information from the source language. The elements of the products 
-corresponding to data constructors are simply $D^{+}$ (instead of more a precise description from type 
-information) and the return types of data constructors are similarly ignored. This is not to say that 
-a more type-rich denotational semantics is not possible (or desirable even) but this simple denotational 
-semantics turns out to be sufficient for formalization and verification. 
+%% Observe that we have dropped all type information from the source language. The elements of the products 
+%% corresponding to data constructors are simply $D^{+}$ (instead of more a precise description from type 
+%% information) and the return types of data constructors are similarly ignored. This is not to say that 
+%% a more type-rich denotational semantics is not possible (or desirable even) but this simple denotational 
+%% semantics turns out to be sufficient for formalization and verification. 
 
-%% for $\lambda$-abstractions and @BAD@. Observe that we have 
-%% Moreover, the following continuous operations are defined:
-%% \[\begin{array}{l} 
-%%    \curry_{f : D\times E =>_c F} : D =>_c (E =>_C F) \\ 
-%%    \eval : (E =>_c D)\times E =>_c D 
+%% %% for $\lambda$-abstractions and @BAD@. Observe that we have 
+%% %% Moreover, the following continuous operations are defined:
+%% %% \[\begin{array}{l} 
+%% %%    \curry_{f : D\times E =>_c F} : D =>_c (E =>_C F) \\ 
+%% %%    \eval : (E =>_c D)\times E =>_c D 
+%% %% \end{array}\] 
+%% %% for any cpos $D, E, F$.
+
+%% \spj{What is ``the equation induced by F''?  Maybe $$D_{\infty} = F( D_{\infty}, D_{\infty})$$? 
+%% Let's write it down.}
+%% Using the standard {\em embedding-projection} pairs methodology we can show the following.
+%% \begin{lemma}\label{lem:rec-solution} 
+%% There exists a solution to the domain-recursive equation induced by $F$, call it $D_{\infty}$.
+%% Moreover, let a value-domain: $V_{\infty}$ be defined as:
+%%     \[V_{\infty} = \begin{array}[t]{ll}
+%%              \quad\;{\prod_{\ar_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
+%%              \; + \;\ldots                    & \ldots \\
+%%              \; + \;{\prod_{\ar_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\ 
+%%              \; + \;(D_{\infty} =>_c D_{\infty}) \\
+%%              \; + \;\unitcpo_{bad} \quad
+%%     \end{array}\]
+%% The following continuous functions also exist, each being the inverse of the 
+%% other (i.e. composing to the identity function on the corresponding cpo):
+%% \[\begin{array}{l}
+%%   \roll : (V_{\infty})_\bot =>_c D_{\infty} \\ 
+%%   \unroll : D_{\infty} =>_c (V_{\infty})_\bot
 %% \end{array}\] 
-%% for any cpos $D, E, F$.
-
-\spj{What is ``the equation induced by F''?  Maybe $$D_{\infty} = F( D_{\infty}, D_{\infty})$$? 
-Let's write it down.}
-Using the standard {\em embedding-projection} pairs methodology we can show the following.
-\begin{lemma}\label{lem:rec-solution} 
-There exists a solution to the domain-recursive equation induced by $F$, call it $D_{\infty}$.
-Moreover, let a value-domain: $V_{\infty}$ be defined as:
-    \[V_{\infty} = \begin{array}[t]{ll}
-             \quad\;{\prod_{\ar_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
-             \; + \;\ldots                    & \ldots \\
-             \; + \;{\prod_{\ar_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\ 
-             \; + \;(D_{\infty} =>_c D_{\infty}) \\
-             \; + \;\unitcpo_{bad} \quad
-    \end{array}\]
-The following continuous functions also exist, each being the inverse of the 
-other (i.e. composing to the identity function on the corresponding cpo):
-\[\begin{array}{l}
-  \roll : (V_{\infty})_\bot =>_c D_{\infty} \\ 
-  \unroll : D_{\infty} =>_c (V_{\infty})_\bot
-\end{array}\] 
-\end{lemma}
-
-%% We summarize the (standard) construction needed for the proof of Lemma~\ref{lem:rec-solution} based on embedding-projection pairs, 
-%% because some of its details will be useful later. Consider the chain of cpos $D_i$ defined as: 
-%% \[\begin{array}{lcl}
-%%    D_0 & = & \{\bot\} \\ 
-%%    D_{i+1} & = & F_{\Sigma}(D_i,D_i)
-%% \end{array}\]
-%% and moreover consider the corresponding {\em embeddings} $e_i : D_i =>_c D_{i+1}$ and 
-%% {\em projections} $p_i : D_{i+1} =>_c D_i$ defined as:
-%% \[\begin{array}{lcl}
-%%    e_0 & = & \dlambda d @.@ \bot_{D_1} \\
-%%    p_0 & = & \dlambda d @.@ \bot_{D_0} \\
-%%    e_{i+1} & = & F_{\Sigma}(p_i,e_i) \\
-%%    p_{i+1} & = & F_{\Sigma}(e_i,p_i)
-%% \end{array}\]
-%% The following is an easy fact to prove:
-%% \begin{lemma}
-%% For every $i$ and $x$ element of $D_i$ we have $p_i\cdot e_i(x) = x$. For
-%% every $y$ element of $D_{i+1}$ we have that $e_i\ cdot p_i(y) \sqsubseteq y$. 
 %% \end{lemma}
-%% Consider now the cpo defined by the carrier set 
-%%    \[ \{ x \in \Pi_{i \in \omega}D_i \;\mid\; x_n = p_n(x_{n+1}) \} \] 
-%% and the pointwise order induced by the order in each $D_i$, and $\bot$ element the 
-%% infinite tuple of the corresponding $\bot$ elements. This cpo {\em is} going to be the 
-%% set $D_{\infty}$. To prove this we need som more definitions. Let $j_{n,m} : D_n =>_c D_m$ 
-%% be defined as:
-%% \[\begin{array}{lcl}
-%%    j_{n,m}(d) & = & \left\{\begin{array}{ll} 
-%%                              e_{m-1}\cdot\ldots \cdot e_n(d) & n < m \\
-%%                              d                        & n = m \\
-%%                              p_{n-1}\cdot\ldots \cdot p_n(d) & n > m 
-%%                           \end{array}\right.
-%% \end{array}\]
-%% and define $j_i : D_i =>_c D_\infty$ as:
-%% \[\begin{array}{lcl}
-%%    j_i(d) & = & \langle j_{i,0}(d),j_{i,1}(d),\ldots \\
-%% \end{array}\]
-%% We can easily show that $j_i$ and $\pi_i$ (the $i$-th projection from a tuple) form
-%% an embedding-projection pair:
-%% \begin{lemma}
-%% For all $i$ and $x$ element of $D_{\infty}$ it is $j_i(\pi_i(x)) \sqsubseteq x$.
-%% For all $y$ element of $D_{i}$ it is $\pi_i(j_i(y)) = y$.
-%% \end{lemma}
-%% The most important theorem is that the limit of $j_i\cdot\pi_i$ is the identity.
-%% \begin{lemma}\label{lem:id-sqcup}
-%% For all $x$ elements of $D_{\infty}$ it is $\sqcup(j_i\cdot\pi_i)(x) = x$.
-%% \end{lemma}
-%% \begin{proof} We have one direction by the previous lemma and least upper bounds.
-%% So the hard direction is to show that $\sqcup(j_i\cdot\pi_i)(x) \sqsupseteq x$. 
-%% We know that:
-%% \[       \pi_n(j_n(\pi_n(d))) = \pi_n(d) \]
-%% by unfolding definitions and we know that $\sqcup(j_n\cdot\pi_n) \sqsupseteq j_n\cdot\pi_n$
-%% since it is a least upper bound. By monotonicity we then get that 
-%% \[      \pi_n(\sqcup(j_n\cdot\pi_n)(d)) \sqsupseteq \pi_n(d) \] 
-%% but that holds for ever $n$ which means that:
-%% \[       \sqcup(j_n\cdot\pi_n)(d) \sqsupseteq d \] 
-%% since $\sqsubseteq$ on $D_\infty$ is defined by the conjuction of the 
-%% pointwise $\sqsubseteq$ on each $D_i$.
-%% \end{proof}
-%% Now let us consider the chain 
-%% \[ F_{\Sigma}(D_0,D_0) \quad F_{\Sigma}(D_1,D_1) \quad \ldots \] 
-%% and the pointed cpo $F_{\Sigma}(D_{\infty},D_{\infty})$ we have that:
-%% \[\begin{array}{lcl}
-%%     F_{\Sigma}(p_i,e_i)   & : & F(D_i,D_i) =>_c F(D_{i+1},D_{i+1}) \\ 
-%%     F_{\Sigma}(\pi_i,j_i) & : & F(D_i,D_i) =>_c F(D_{\infty},D_{\infty})
-%% \end{array}\] 
-%% we will show that there exists an isomorphism $D_\infty \cong F_{\Sigma}(D_\infty,D_\infty)$.
-
-%% \begin{lemma} Define functions $\roll = \sqcup(j_{i+1}\cdot F_{\Sigma}(j_i,\pi_i))$ and 
-%% $\unroll = \sqcup (F_{\Sigma}(\pi_i,j_i)\cdot \pi_{i+1})$. They form the required isomorphism 
-%% $D_\infty \cong F_{\Sigma}(D_\infty,D_\infty)$.
-%% \end{lemma}
-%% This lemma concludes the proof of Lemma~\ref{lem:rec-solution}.
-
-%% The following fact will be extremely useful in establishing the existence of solutions
-%% to recursive equations {\em over} the recursively defined domain via approximating the
-%% denotations. Let us call $\rho_i = j_i\cdot\pi_i$. 
-
-%% \begin{theorem}\label{lem:min-inv-reqs} The following are true:
-%% \begin{itemize} 
-%%    \item $\unroll \cdot \rho_{i+1} \cdot \roll = F_{\Sigma}(\rho_i,\rho_i)$ 
-%%    \item $\sqcup\rho_i(d) = d$, for all elements $d$ of $D_{\infty}$.
-%% \end{itemize}
-%% \end{theorem}
-
-\paragraph{Definability of application}
-We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as a continuous
-function: 
-{\setlength{\arraycolsep}{2pt}
-\[\begin{array}{rcll}
-   \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll(\bind_g (\unroll (\pi_1(d))))} \\
-   \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
-                    &   &  , & \ldots \\
-                    &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
-                    &   &  , & \dlambda d' @.@ \unroll(d'(\pi_2(d))) \\
-                    &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ] 
-\end{array}\]}%
-Informally, what does the $\dapp$ combinator express? If the first
-argument is $\bot$ it will return $\bot$, if the first argument is an
-injection $\inj{bad}$ it will return the same, if it corresponds to a
-data constructor it will return $\bot$. Finally, if the first element
-is indeed a function, it will apply it.
-\spj{Why not use $\dapp(fun, arg) = ...$ rather than all this stuff with angle brackets and pis. 
-That just adds clutter.}
-As a notational convention, we have used notation $\langle , \rangle$ to introduce pairs and $[\ldots]$ to 
-eliminate ($n$-ary) sums. 
-\spj{I don't understand the $[\ldots]$ notation.}
-The projections $\pi_1$ and $\pi_2$ are the obvious continuous projections from the 
-binary product space of $D_{\infty}$. We use notation $\inj{K}$ to denote the continuous map that injects some $n$-ary product of $D_{\infty}$ 
-corresponding to the arity of constructor $K$ into the sum $V_{\infty}$.
-We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
-$\inj{bad}$ for the unit injection into $V_{\infty}$. We use ordinary application notation 
-$d(d')$ \spj{instead of $app(d,d')$?} \dv{No, instead of the @apply@ combinator of the cpo $D_\infty =>_c D_\infty$, which is different
-than $\dapp$ which has a completely different signature than @apply@ (its arguments are both elements of $D_\infty$)} when $d : D_\infty =>_c D_\infty$ and
-$d'$ is an element of $D_\infty$. \spj{Why inconsistent notation? Why not say $d':D_{\infty}$?}
-Indeed application, partial application, and currying are all definable in cpos of continuous functions, 
-so we will be using $\lambda$-calculus notation for our domain theory, as above. 
 
 
-\paragraph{Denotational semantics of expressions and programs}
+%% \paragraph{Definability of application}
+%% We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as a continuous
+%% function: 
+%% {\setlength{\arraycolsep}{2pt}
+%% \[\begin{array}{rcll}
+%%    \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll(\bind_g (\unroll (\pi_1(d))))} \\
+%%    \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
+%%                     &   &  , & \ldots \\
+%%                     &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
+%%                     &   &  , & \dlambda d' @.@ \unroll(d'(\pi_2(d))) \\
+%%                     &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ] 
+%% \end{array}\]}%
+%% Informally, what does the $\dapp$ combinator express? If the first
+%% argument is $\bot$ it will return $\bot$, if the first argument is an
+%% injection $\inj{bad}$ it will return the same, if it corresponds to a
+%% data constructor it will return $\bot$. Finally, if the first element
+%% is indeed a function, it will apply it.
+%% \spj{Why not use $\dapp(fun, arg) = ...$ rather than all this stuff with angle brackets and pis. 
+%% That just adds clutter.}
+%% As a notational convention, we have used notation $\langle , \rangle$ to introduce pairs and $[\ldots]$ to 
+%% eliminate ($n$-ary) sums. 
+%% \spj{I don't understand the $[\ldots]$ notation.}
+%% The projections $\pi_1$ and $\pi_2$ are the obvious continuous projections from the 
+%% binary product space of $D_{\infty}$. We use notation $\inj{K}$ to denote the continuous map that injects some $n$-ary product of $D_{\infty}$ 
+%% corresponding to the arity of constructor $K$ into the sum $V_{\infty}$.
+%% We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
+%% $\inj{bad}$ for the unit injection into $V_{\infty}$. We use ordinary application notation 
+%% $d(d')$ \spj{instead of $app(d,d')$?} \dv{No, instead of the @apply@ combinator of the cpo $D_\infty =>_c D_\infty$, which is different
+%% than $\dapp$ which has a completely different signature than @apply@ (its arguments are both elements of $D_\infty$)} when $d : D_\infty =>_c D_\infty$ and
+%% $d'$ is an element of $D_\infty$. \spj{Why inconsistent notation? Why not say $d':D_{\infty}$?}
+%% Indeed application, partial application, and currying are all definable in cpos of continuous functions, 
+%% so we will be using $\lambda$-calculus notation for our domain theory, as above. 
+
+
+%% \paragraph{Denotational semantics of expressions and programs}
+%% =======
+\subsection{Contracts}
+
 
 \begin{figure}
-$$
-\setlength{\arraycolsep}{2pt}
-\begin{array}{c}
-\begin{array}{rcl}
-\multicolumn{3}{l}{\interp{e}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\
-  \interp{x}{\sigma}{\rho} & = & \rho(x) \\ 
-  \interp{f\;[\taus]}{\sigma}{\rho} & = & \sigma(f) \\
-  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll(\ret(\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle))) \\ 
-  \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle) \\ 
-  \interp{@BAD@}{\sigma}{\rho} & = & \roll(\ret(\inj{bad}1)) \\[2mm] 
-\hline \\
-\multicolumn{3}{l}{\interp{u}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\
-  \interp{e}{\sigma}{\rho} & = & \interp{e}{\sigma}{\rho} \\
-  \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} 
-          & = & \roll(\bind_{g} (\unroll(\interp{e}{\sigma}{\rho}))) \\ 
-  \text{ where } g  & = & \begin{array}[t]{ll} 
-                             [ & h_{K_1} \\
-                             , & \ldots \\
-                             , & h_{K_k} \\
-                             , & \bot \\ 
-                             , & \dlambda b @.@ \ret(b) \hspace{2pt} ] 
-                           \end{array} \\ 
-              h_{K} & =  & \dlambda d @.@ \unroll(\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}}) \\ 
-                    &   &  \text{when } K \text{ is in the branches} \\
-              h_{K}  & = & \bot \\ 
-                    &   &  \text{otherwise}
-\end{array} \\
-\hline \\
-\begin{array}{rcl}
-\multicolumn{3}{l}{\dbrace{P} : (\FVarCpo =>_c D_{\infty}) =>_c (\FVarCpo =>_c D_{\infty})}  \\
-\dbrace{P}_{\sigma} f & = & 
-   \text{ if } (f |-> \Lambda\as @.@ \lambda\oln{x:\tau}{n} @.@ u) \in P \\
-&& \text{ then } \\
-&& \quad\quad \roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
-&& \quad\quad\quad \roll(\ret(\inj{->}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})))\ldots))) \\
-&& \text{ else } \bot 
-\end{array}
-\end{array}
-$$
-\caption{Denotational semantics of $\cal L$} \label{f:denot}
+\[\begin{array}{lcl}
+e \in \{ x\;\mid\;e_p\} & <=> &  e \not\Downarrow \text{ or } e_p[e/x] \not\Downarrow \text{ or} \\ 
+                        &     &  e_p[e/x] \Downarrow True \\
+e \in (x{:}\Ct_1) -> \Ct_2 & <=> & 
+                        \forall e' \in \Ct_1.\; (e\;e') \in \Ct_2[e'/x] \\
+e \in \Ct_1 \& \Ct_2 & <=> & e \in \Ct_1 \text{ and } e \in \Ct_2 \\
+e \in \CF            & <=> & \forall {\cal C}. BAD \not\in {\cal C} \Rightarrow e \not\Downarrow BAD
+\end{array} 
+\]
+\caption{Operational semantics of contracts} \label{f:contract-spec-op}
 \end{figure}
 
-Figure~\ref{f:denot} gives the denotational interpretations 
-of expressions $e$, right hand sides $u$, and programs $P$, in 
-terms of the domain-theoretic language and combinators we hae defined.
+We now turn our attention to contracts. The syntax of contracts
+is given in Figure~\ref{fig:syntax} and includes base contracts
+$\{ x \mid e \}$, arrow contructs $(x : \Ct_1) -> \Ct_2$, conjunctions
+$\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts} 
+includes other constructs as well, but these constructs are enough to verify 
+many programs and already demonstrate the interesting theoretical and practical problems.
 
-First, the denumerable set of term variable names $x_1,\ldots$ induces a discrete 
-cpo $\VarCpo$  and the denumerable set of function variable names $f_1,\ldots$ induces a discrete 
-cpo $\FVarCpo$. We define, {\em semantic term environments} to be the cpo $(\VarCpo =>_c D_{\infty})$, 
-and {\em semantic function environments} to be the cpo $(\FVarCpo =>_c D_{\infty})$. 
+We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
+for functions $f$.
+Figure~\ref{f:contract-spec-op} says what it means to say $e \in C$,
+based closely on earlier work \cite{xu}.  The specification is
+simple, declarative, and intended to be comprehensible to programmers.
+For example, an expression $e$ satisfies the function contract $\Ct_1 \& \Ct_2$ if and 
+only if $(e e')$ satisfies $\Ct_2$ whenever $e'$ satisfies $Ct_1$.
 
-Figure~\ref{f:denot} defines the denotational semantics of expressions
-$\dbrace{e}$ as a continuous map from these two environments to $D_{\infty}$.  
-A small technical remark: we write
-the definition with pattern matching notation
-$\langle \sigma,\rho \rangle$ (instead of using $\pi_1$ for projecting
-out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine,
-since $\times$ is not a lifted construction.
-
-The semantics of right-hand sides $u$ is defined similarly.
-A case expression is really translated into a denotational case expression, with the following intuition: For every
-constructor that appears in the branches $\ol{K\;\ys -> e_K}$ we eliminate it and return the denotation of the right-hand
-side, for the rest of the constructors we simply return $\bot$. Importantly we do {\em not} return $\inj{bad}$ in this 
-latter case, as all the missing cases can only be constructors of different datatypes than the 
-datatype that $K$ belongs to, because all @case@ expressions are complete (Section~\ref{s:syntax}). 
-As a consequence, returning the ``benign'' value $\bot$ is the right thing to do if we are 
-to completely ignore type errors
-in our denotational semantics. \spj{Have we mentioned that we are going to ``ignore'' 
-type errors?  Why is $\bot$ ``benign''?}
-
-Finally, Figure~\ref{f:denot} gives the semantics of a program $P$, which should
-be read recalling its syntax in Figure~\ref{fig:syntax}.
-Since $\dbrace{P})$ is continuous, its limit exists and is an element of the 
-cpo $\FVarCpo =>_c D_{\infty}$.
-
-\begin{definition}
-We will refer to the limit of the $\dbrace{P}$ as $\dbrace{P}^{\infty}$ in what follows. 
-Moreover, to reduce notational overhead below, for a program with no free variables we 
-will use notation $\dbrace{e}$ to mean $\interp{e}{\dbrace{P}^\infty}{\cdot}$.
-\end{definition}
-
-Types do not matter at all for our denotational semantics.
-\begin{lemma}[Type irrelevance]
-It is the case that $\interp{u}{\sigma}{\rho} = \interp{u[\ol{\tau}/\as]}{\sigma}{\rho}$ 
-for any type substitution of variable $\as$ to types $\taus$.
-%% and $\interp{e}{\sigma}{\rho} = \interp{e[\ol{\tau}/\as]}{\sigma}{\rho}$.
-\end{lemma}
-%% \begin{proof} Straightforward induction. \end{proof}
-The following is an essential lemma for establishing the soundness of denotational semantics:
-\begin{lemma}[Substitutivity]
-If $\Sigma;\Delta,x{:}\tau |- e : \tau$ and $\rho$ is a semantic environment 
-and $\Sigma;\Delta |- e' : \tau'$ then 
-\[ \interp{e}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{e[e'/x]}{\sigma}{\rho} \]
-and if $\Sigma;\Delta,x{:}\tau |- u : \tau$ then 
-\[ \interp{u}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{u[e'/x]}{\sigma}{\rho} \]
-\end{lemma}
-Finally, soundness asserts that evaluation respects the denotational semantics.\footnote{Depending on their taste
-readers may prefer to read this statement as: denotational semantics respects evaluation.}
-\begin{lemma}[Denotational semantics soundness]
-Assume $\Sigma |- P$ and $u$ with no free term variables. If $P |- u \Downarrow v$ then $\dbrace{u} = \dbrace{v} $.
-\end{lemma} 
-Finally we are interested in proving the following theorem
-\begin{theorem}[Computational adequacy]\label{thm:adequacy}
-Assume that $\Sigma |- P$ and $e$ contains no free term variables.
-If $\unroll(\dbrace{e}) = \ret(d)$ for some element $d$ of $V_{\infty}$, then 
-there exists a $v$ such that $P |- e \Downarrow v$.
-\end{theorem}
-
-The proof of this theorem is also standard domain theory so we only sketch the 
-high-level roadmap: The proof proceeds by defining a {\em logical relation} between 
-semantics and syntax, via the use of a bifunctor on admissible relations between elements 
-of $D_\infty$ and closed expressions, and using minimal 
-invariance~\cite{pitts-rel-domains} to show that this
-bifunctor has a fixpoint. Adequacy then follows from the {\em fundamental theorem} of this 
-logical relation, which asserts that every expression is related to its denotation.
-
-%% To do this we define a {\em logical relation} first between semantics 
-%% and syntax. Let $Rel \subseteq D_\infty \times Expr$ be the space of 
-%% {\em admissible} and {\em equality-respecting} relations between 
-%% denotations and closed (non-necessarily well-typed) terms. Some explanations:
-%% \begin{itemize}
-%%   \item $R \in Rel$ is {\em admissible} iff whenever 
-%%   $R(d_i,e)$ for every element of a chain $d_1\ldots$ then also $R(\sqcup_{\omega}d_i,e)$. 
-%%   \item $R \in Rel$ is {\em equality-respecting} iff for every 
-%%   $R(d,e)$ and $d' = d$ (according to the equality on $D_{\infty}$) it also is
-%%   $R(d',e)$. 
-%% \end{itemize}
-
-%% Let use define the following bi-functor on the space of $Rel$ relations:
-%% {\setlength{\arraycolsep}{2pt}
-%% \[\begin{array}{lcl}
-%%    F_{P}(R^{-},R^{+}) & = & \{ (d,e)\;\mid\;\forall \ol{d} @.@ \unroll(d) = \ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) ==> \\
-%%                    &   & \quad \exists \oln{e}{\ar} @.@ P |- e \Downarrow K_1[\taus](\ol{e}) \land (d_i,e_i) \in R^{+} \} \\ 
-%%                    & \cup & \ldots \\ 
-%%                    & \cup & \{ (d,e)\;\mid\;\forall d_0 @.@ \unroll(d) = \ret(\inj{->}(d_0)) ==> \\ 
-%%                    &   & \quad \exists v @.@ P |- e \Downarrow v \;\land \\ 
-%%                    &  & \quad\quad \forall (d',e') \in R^{-} @.@ (\dapp(d,d'),v\;e') \in R^{+} \}  \\
-%%                    & \cup & \{ (d,e)\;\mid\; \unroll(d) = \ret(\inj{bad}(1)) ==> \\ 
-%%                    &   & \quad P |- e \Downarrow @BAD@ \} 
-%% \end{array}\]}
-
-%% \begin{lemma} There exists negative and a positive fixpoint of $F_{P}$ and they coincide: let us call this
-%% $F_{P}^\infty$ -- it is isomorphic to $F_{P}(F_P^\infty,F_P^\infty)$.
-%% \end{lemma}
-%% \begin{proof}
-%% We can follow the standard roadmap described in the work of Pitts to show this, taking 
-%% advantage of the approximation on every element of $D_{\infty}$ given in 
-%% Lemma~\ref{lem:min-inv-reqs}.
-%% \end{proof}
-
-%% \begin{lemma}\label{lem:bot-in-fix}
-%% $(\roll(\bot),e) \in F_{P}^\infty$. \end{lemma}
-
-%% \begin{lemma}\label{lem:eval-respecting}
-%% If $(d,e) \in F_{P}^\infty$ and $P |- e \Downarrow v$ then $(d,v) \in F_{P}^\infty$.
-%% Moreover, if $(d,v) \in F_{P}^\infty$ and $P |- e \Downarrow v$ then $(d,e) \in F_{P}^\infty$.
-%% \end{lemma}
-%% \begin{proof}
-%% For the first part, 
-%% if $(d,e) \in F_{P}^\infty$ then $(d,e) \in F_{P}(F_{P}^\infty,F_{P}^\infty)$. 
-%% By the definition of $F_{P}(\cdot,\cdot)$ and by rule \rulename{EVal} the 
-%% result follows. The second part is a similar case analysis.
-%% \end{proof}
-
-%% \begin{lemma}[Fundamental theorem for expressions]\label{lem:fund-thm-exp}
-%% For all $\sigma$ such that $(\sigma(f),f\;[\taus]) \in F_P^\infty$ and 
-%% all $\rho$ and vectors of closed terms $\ol{e}$ such that $(\rho(x_i),e_i) \in F_P^\infty$ 
-%% and all $e$ with free variables in $\ol{x}$ it must be the case 
-%% that $(\interp{e}{\sigma}{\rho},e[\ol{e}/\ol{x}]) \in F_P^\infty$.
-%% \end{lemma}
-%% \begin{proof} The proof is by induction on $e$. 
-%% \begin{itemize}
-%%   \item Case $e = x_i$ for some $x_i \in \ol{x}$ follows by the assumptions.
-%%   \item Case $e = f\;[\taus]$ for some $f$ follows by assumptions.
-%%   \item Case $e = K^\ar[\taus](\oln{e'}{\ar})$. By induction hypothesis we 
-%%   have that for each $e'_i$ it is $(\interp{e'_i}{\sigma}{\rho},e'_i[\ol{e}/\ol{x}]) \in F_P^\infty$ and 
-%%   by using rule \rulename{EVal} we are done since 
-%%       \[ \interp{K^{\ar}[\taus](\oln{e'}{\ar})}{\sigma}{\rho} = \roll(\ret(\inj{K}(\langle\ol{\interp{e'_i}{\sigma}{\rho}}\rangle))) \]
-%%   \item Case $e = @BAD@$ follows by unfolding definitions.
-%%   \item Case $e = e_1\;e_2$. We need to show that
-%%      \[ (\interp{e_1\;e_2}{\sigma}{\rho},e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}]) \in F_P^\infty \] 
-%%   By induction hypothesis we have that 
-%%   \begin{eqnarray}
-%%      (\interp{e_1}{\sigma}{\rho},e_1[\ol{e}/\ol{x}]) \in F_P^\infty \label{eqn:e1} \\ 
-%%      (\interp{e_2}{\sigma}{\rho},e_2[\ol{e}/\ol{x}]) \in F_P^\infty \label{eqn:e2}
-%%   \end{eqnarray}
-%%   Equation~\ref{eqn:e1} gives four cases: First, if $\interp{e_1}{\sigma}{\rho} = \roll(\bot)$ then we 
-%%   are done since $\dapp(\bot,\_) = \roll(\bot)$ and $(\roll(\bot), e_1\;e_2) \in F_P^\infty$ by Lemma~\ref{lem:bot-in-fix}.
-%%   Second, if $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{K}(\langle\ol{d}\rangle)))$ for some constructor
-%%   $K$ then $\dapp(\interp{e_1}{\sigma}{\rho},\_) = \roll(\bot)$ and by similar reasoning as above we are done.
-%%   Third, if $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{bad}(1)))$ then it must be that $P |- e_1[\ol{e}/\ol{x}] \Downarrow @BAD@$ by
-%%   induction hypothesis, and by rule \rulename{EBadApp} we know that $P |- e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}] \Downarrow @BAD@$ hence, 
-%%   by Lemma~\ref{lem:eval-respecting} we are done. The final case is the interesting one, where
-%%   $\interp{e_1}{\sigma}{\rho} = \roll(\ret(\inj{->}(d_0)))$ in which case by induction hypothesis we know that 
-%%   $(d_0(\interp{e_2}{\sigma}{\rho}), v\;e_2[\ol{e}/\ol{x}]) \in F_P^\infty$ for $P |- e_1[\ol{e}/\ol{x}] \Downarrow v$. But we know that 
-%%   $v\;e_2[\ol{e}/\ol{x}]$ evaluates to a value {\em iff} $e_1[\ol{e}/\ol{x}]\;e_2[\ol{e}/\ol{x}]$ evaluates to a value and by 
-%%   Lemma~\ref{lem:eval-respecting} we are done.
-%% \end{itemize}
-%% \end{proof}
+Crucially, base contracts $\{x|e\}$ allow arbitrary $\cal L$
+expressions (in our implementation, arbitrary Haskell expressions),
+rather than being restricted to some well behaved meta-language.  This
+is great for the programmer because the language and its library
+functions is familiar, but it poses a challenge for verification
+because these expressions in contracts may themselves diverge or
+crash.
 
 
-%% \begin{lemma}[Fundamental theorem for top-level expressions]\label{lem:fund-thm-case}
-%% For all $\sigma$ such that $(\sigma(f),f\;[\taus]) \in F_P^\infty$ and 
-%% all $\rho$ and vectors of closed terms $\ol{e}$ such that $(\rho(x_i),e_i) \in F_P^\infty$ 
-%% and all $u$ with free variables in $\ol{x}$ it must be the case 
-%% that $(\interp{u}{\sigma}{\rho},u[\ol{e}/\ol{x}]) \in F_P^\infty$.
-%% \end{lemma}
-%% \begin{proof} By induction on $u$. If $u$ is a term $e$ then we are immediately done
-%% by Lemma~\ref{lem:fund-thm-exp}. If $u = @case@\;e\;@of@\;\ol{K\;\ys -> e'}$ then the 
-%% result follows by appealing to the induction hypothesis for $e$ and performing a case 
-%% analysis on $\interp{e}{\sigma}{\rho}$ -- in the interesting case we appeal further to
-%% Lemma~\ref{lem:fund-thm-exp} for a matching $e_K$ and the evaluation-respecting lemma, 
-%% Lemma~\ref{lem:eval-respecting}.
-%% \end{proof}
-
-%% Finally, for the recursive functions environment $P$ we prove the following.
-%% \begin{lemma} For any $f$, $(\dbrace{P}^\infty(f),f\;[\taus]) \in F_P^\infty$. \end{lemma}
-%% \begin{proof}
-%% Since $F_P^\infty$ is itself an {\em admissible} relation, we need only prove that:
-%% \[ \forall i @.@ \forall f @.@ (\dbrace{P}^i(f),f\;[\taus]) \in F_P^\infty \] 
-%% which we do by induction on $i$. For $i = 0$ we are immediately done by Lemma~\ref{lem:bot-in-fix}.
-%% Let us assume that the property is true for $i$. We must show it is true for $i+1$. That is, 
-%% we must show that $(\dbrace{P}^{i+1}(f),f\;[\taus]) \in F_P^\infty$. Hence, if $f$ has arity $n$, by
-%% the definition of $\dbrace{P}$ and the definition of the logical relation it is enough to show that
-%% for all $(\oln{d}{n},\oln{e}{n}) \in F_P^\infty$ it must be the case that 
-%% \[    (\interp{u}{\dbrace{P}^i}{\ol{x |-> d}}, u[\ol{e}/\ol{x}]) \in F_P^\infty \] 
-%% for $f |-> (\Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P$. But that follows by 
-%% Lemma~\ref{lem:fund-thm-case}, since by induction hypothesis it is the case that for 
-%% every $f$ we have $(\dbrace{P}^i(f),f\;[\ol{\tau}]) \in F_P^\infty$.
-%% \end{proof} 
-
-%% \begin{corollary}\label{cor:fund-thm-top}
-%% For every closed expression $e$ in $P$ (not-necessarily well-typed) we have that 
-%% $(\interp{e}{\dbrace{P}^\infty}{\cdot}, e) \in F_P^\infty$. 
-%% \end{corollary}
-
-%% From this corollary, adequacy follows by unfolding definitions.
-
-%% \begin{corollary}[Model-based-reasoning]
-%% If $\Sigma |- P$ and and $e_1$ contains no free term variables and $e_2$ contains no free term 
-%% variables. 
-
-%% $\Sigma;\cdot |- e_1 : \tau$ and $\Sigma;\cdot |- e_2 : \tau$, 
-%% then for every closed $e$ such that $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau -> Bool$,
-%% if $\interp{e_1}{\dbrace{P}^\infty}{\cdot} = \interp{e_2}{\dbrace{P}^\infty}{\cdot}$ then  
-%% $P |- e\;e_1 \Downarrow$ iff $P |- e\;e_2 \Downarrow$. 
-%% \end{corollary}
-%% \begin{proof}
-%% For one direction assume that $P |- e\;e_1 \Downarrow w$, hence by computational soundness it must be that 
-%% $\interp{e\;e_1}{\dbrace{P}^\infty}{\cdot} = \roll(\ret(d))$. By assumptions we must also 
-%% have that $\interp{e\;e_2}{\dbrace{P}^\infty}{\cdot} = \roll(\ret(d))$. By the fundamental theorem 
-%% we know that 
-%% \[ (\interp{e\;e_2}{\dbrace{P}^\infty}{\cdot}, e\;e_2) \in F_{P}^\infty \] 
-%% and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
-%% \end{proof}
-
+% -----------------------------------------------------------------
 \section{Translating $\cal L$ to first-order logic} \label{ssect:denot-fol}
 
-Recall our plan: we wish to translate programs and contracts to first-order logic
-so that we can prove that programs satisfy their contracts. We start by formally 
-defining the first-order language which will be the image of our translation. 
+Our goal is to answer the question ``does expression $e$ satisfy
+contract $C$?''.  Our plan is to translate both the expression and the
+contract into first-order logic (FOL), and get a standard FOL prover
+to do the heavy lifting.  
 
-This syntax is given in Figure~\ref{fig:fol-image}. Terms include function 
-applications $f(\ol{t})$, constructor applications $K(\ol{t})$, variables. They 
-also include, for each data constructor $K^\ar$ in the signature $\Sigma$ with 
-arity $\ar$ a set of {\em selector functions} $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.
-Not all functions are fully applied, so to accommodate partial applications, we use 
-the term $app(t,s)$. Functions that are not applied, but rather passed on as essentially 
-function pointers will be represented as variables (or nullary functions) $f_{ptr}$. Finally 
-we introduce two new syntactic constructs $\unr$ and $\bad$. As an abreviation we often use
-$app(t,\ol{s})$ for the sequence of applications to each $s_i$, as 
-Figure~\ref{fig:fol-image} shows.
+\spj{Is this next paragraph right?  I want to set the scene.}
+What does it mean to translate an expression to first-order logic?
+We are primarily interested in reasoning about equality, so we might
+hope for this (informally):
+$$
+e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_{FOL} \etrans{}{}{e_2}
+$$
+where $=_S$ means semantic equality, $=_{FOL}$ means equality in first-order logic,
+and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can 
+reason about the equality of Haskell terms by translating them into FOL using
+a FOL theorem prover. 
+
+In this section we formalise our new translation, and describe how we use it to
+verify contracts.
+
+\subsection{The FOL language}
 
 \begin{figure}
 \[\begin{array}{c} 
@@ -717,10 +420,22 @@ Figure~\ref{fig:fol-image} shows.
 \multicolumn{4}{l}{app(t,\oln{s}{n}) = (\ldots(app(t,s_1),\ldots s_n)\ldots)}
 \end{array}
 \end{array}\]
-\caption{Image of translation to FOL}\label{fig:fol-image}
+\caption{Syntax of FOL}\label{fig:fol-image}
 \end{figure}
 
-To group interesting definitions together, Figure~\ref{fig:fol-image}
+We begin with the syntax of the FOL language, which
+is given in Figure~\ref{fig:fol-image}. Terms include function 
+applications $f(\ol{t})$, constructor applications $K(\ol{t})$, variables. They 
+also include, for each data constructor $K^\ar$ in the signature $\Sigma$ with 
+arity $\ar$ a set of {\em selector functions} $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.
+Not all functions are fully applied, so to accommodate partial applications, we use 
+the term $app(t,s)$. Functions that are not applied, but rather passed on as essentially 
+function pointers will be represented as variables (or nullary functions) $f_{ptr}$. Finally 
+we introduce two new syntactic constructs $\unr$ and $\bad$. As an abreviation we often use
+$app(t,\ol{s})$ for the sequence of applications to each $s_i$, as 
+Figure~\ref{fig:fol-image} shows.
+
+Figure~\ref{fig:fol-image}
 also includes the syntax of formulae that will appear in our translation.
 It is just first-order logic with equality, plus a predicate $\lcf{t}$ for 
 crash-freedom, whose semantics we discuss in Section~\ref{sect:contracts}.
@@ -799,10 +514,10 @@ crash-freedom, whose semantics we discuss in Section~\ref{sect:contracts}.
 \endprooftree 
 
 \end{array}\]
-\caption{Translation to FOL terms}\label{fig:etrans}
+\caption{Translation of programs to logic}\label{fig:etrans}
 \end{figure}
 
-\paragraph{Translation of expressions to FOL}
+\subsection{Translation of expressions to FOL}
 
 The translation of expressions $e$ which may contain term variables from $\Gamma$ to 
 first-order logic terms is given in Figure~\ref{fig:etrans} with the function
@@ -810,32 +525,6 @@ $\etrans{}{\Gamma}{e}$. Variables map to variables, functions map to function po
 applications map to applications of $app(\cdot,\cdot)$, constructors map to constructor
 function applications and @BAD@ maps to $\bad$.
 
-It is now time to give an interpretation to our FOL terms. Our idea is to use the 
-denotational semantics domain $D_\infty$ {\em itself} as the carrier set of the model. 
-We then need to give an interpretation of the functions and constants in our first-order
-signature as elements of $D_\infty$. Happily this is straightforward to do:
-\[\begin{array}{rcl}
-   \linterp{f^{\ar}}(d_1,\ldots,d_\ar) & = & \dapp(\dbrace{f},\oln{d}{\ar}) \\ 
-   \linterp{app}(d_1,d_2)     & = & \dapp(d_1,d_2) \\
-   \linterp{f_{ptr}}  & = & \dbrace{f} \\
-   \linterp{K^{\ar}}(d_1,\ldots,d_\ar) & = & \roll(\ret(\inj{K}\langle d_1,\ldots,d_\ar\rangle)) \\ 
-   \linterp{\sel{K}{i}}(d) & = &  \roll(\bind_g(\unroll(d))) \\ 
-     \text{where } g  & = & [\;\bot \\ 
-                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for K}) \\ 
-                      &   & ,\;\bot \\
-                      &   & ,\;\ldots\\
-                      &   & ,\;\bot\; ] \\
-  \linterp{unr}       & = & \bot 
-\end{array}\]
-The essential soundness theorem that states that our interpretation makes sense is
-the following. 
-\begin{theorem}[Interpretation respects denotations] 
-Assume that $\Sigma |- P$ and expression $e$ does not contain any free variables. 
-Then, if $\etrans{}{\cdot}{e} = t$ then $\linterp{t} = \dbrace{e}$.
-\end{theorem}
-The proof is an easy induction on the size of the term $e$.
-
-\paragraph{Translation of programs and {\tt case} expressions}
 A program $P$ is translated to a first order logic formula with the function 
 $\dtrans{}{P}$. For each function definition of a function $f^\ar$ we generate
 a quantified formula $\forall \xs @.@ \utrans{}{\ol{x}}{f(\ol{x}) \sim u}$ where $u$ is the 
@@ -845,6 +534,8 @@ first-order term $t$ to a term corresponding to $u$. The context $\Gamma$ is pre
 for book-keeping purposes. As Figure~\ref{fig:etrans} shows there are two cases to 
 consider. If $u$ is just a @case@-free expression $e$, in which case we generate
 an equality formula (rule \rulename{DExp}. 
+
+\subsection{Data types and {\tt case} expressions}
 
 The most interesting rule is \rulename{DCase}. If the translation of the scrutinee
 $t$ is equal to $\bad$ then the left-hand-side $s$ must be equal to $\bad$. If it is 
@@ -857,77 +548,72 @@ we attempt to scrutinize a constructor of a different type in a case expression,
 resulting denotation is simply $\bot$. This reinforces our desire to treat type errors
 as $\bot$ values. 
 
-Indeed the denotational domain $D_\infty$ along with the interpretation 
-${\cal I}$ constitutes a model of the formulae generated by $\dtrans{}{P}$. 
+\subsection{Higher order functions}
 
-\begin{theorem}\label{thm:models-defs}
-If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
-\end{theorem}
+\spj{Here I want us to describe how app works.}
 
-\paragraph{Axiomatization of denotational semantics}
+\subsection{Translation of contracts to FOL}
 
-We have seen that the interpretations of the FOL representations of terms 
-correspond precisely to the denotational semantics of terms. In order to be able to 
-prove properties about these denotations in first-order logic we had better
-axiomatize some of the useful properties of $D_\infty$.
-
-Figure~\ref{fig:prelude} gives an axiomatization. For notational convenience the reader
-should think that each of these rules can potentially give a conjunction of formulae.
-The axiom \rulename{AxDisjBU} asserts that $\bad$ cannot be equated to $\unr$. 
-Rule \rulename{AxDisjC} is really givin a conjunction of axioms. It asserts that all 
-constructors are disjoint with each other and \rulename{AxDisjCBU} asserts that they 
-are also disjoint from $\bad$ and $\unr$. 
-Axiom group \rulename{AxPtr} asserts that full applications of function pointers 
-are equal to the actual function applications and \rulename{AxApp} describes the behavior
-of $app(\cdot,\cdot)$ when the first argument is $\bad$ or $\unr$. Finally the selector
-functions describe how we can project a value out of a datatype. 
-
-\begin{figure}
-\[\begin{array}{c}
-\ruleform{\Th_\infty} \\ \\ 
-{\setlength{\arraycolsep}{2pt}
+\begin{figure}\small
+\[\begin{array}{c} 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\prooftree
+  \begin{array}{c}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+  \end{array}
+  ------------------------------------------{CTransBase}
+  \begin{array}{l}
+   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
+  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+  \;\;\formula{(t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)}
+  \end{array}
+  ~~~~~ 
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+  \end{array} 
+  ------------------------------------------{CTransArr}
+  \begin{array}{l} 
+  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+  \formula{\forall x @.@ \neg \phi_1 \lor \phi_2} 
+  \end{array}
+  ~~~~~
+  \begin{array}{c}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+  \end{array}
+  ------------------------------------------{CTransConj}
+  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+  ~~~~~
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+  -------------------------------------------{CTransCf}
+  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\lcf{t}}
+ \endprooftree \\ \\ 
+\ruleform{\Th_\lcfZ} \\ \\ 
 \begin{array}{lll} 
- \textsc{AxDisjBU} & \formula{\bad \neq \unr}  \\ 
- \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
-                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
- \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
- \textsc{AxPtr}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
-               & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
- %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- \textsc{AxApp}  & \formula{\forall x @.@ app(\bad,x){=}\bad /\ app(\unr,x){=}\unr}    \\ \\
- %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
- %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
- %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
- \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
-                  & \text{for every } K^\ar \in \Sigma \text{ and } i \in 1..n \\ \\
-\end{array}}
+ \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
+\end{array}
 \end{array}\]
-\caption{A theory of $D_\infty$}\label{fig:prelude}
+\caption{Translation of contracts to logic}\label{fig:contracts-minless}
 \end{figure}
 
-It is straightforward again to show the following theorem: 
-\begin{theorem}\label{thm:models-inf}
-If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \Th_\infty$. 
-\end{theorem} 
+We now turn to expressing contract semantics in first-order logic. 
+We do not translate a contract; rather we translate the claim $e \in C$.
+Once we have translated $e \in \Ct$ to a first-order logic formula, we can
+ask the prover to prove it; and, if successful, we can claim that indeed
+$e$ does satisfy $C$.  Of course that needs proof, which we address in Section~\ref{xxx}.
 
-Interestingly, our formalization is not complete -- $D_\infty$ has a complex structure 
-and there are many more equalities that one could add to the axiomatization. For instance, 
-here are some more axioms that are validated by the denotational model:
-\[\begin{array}{l}
-    \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
-    \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
-    \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
-    \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  
-    \text{ and } K \in \Sigma \text{ with } m > n
-%% \\
-%%     \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n 
-\end{array}\]
-These axioms assert that partial applications cannot be equated to 
-any constructor, $\bot$ nor $\inj{@BAD@}(1)$. If the reader is worried that without a 
-complete formalization of all equalities of $D_\infty$ it is impossible to prove any 
-programs correct, we would like to reassure them that that is not the case as we shall
-see in the next section.
+Figure~\ref{fig:contracts-minless} presents the details of the 
+function $\ctrans{}{\Gamma}{e \in \Ct}$.  We also include 
+an axiomatization of crash-freedom with the axiom groups \rulename{AxCfBU} and 
+\rulename{AxCfC}. The first axiom asserts that $\unr$ is crash-free and $\bad$ is not, 
+whereas the second axiom asserts that a constructor value is crash-free if and only iff 
+all of its children nodes are crash-free. 
+
+\subsection{Proving that a function satisfies a contract}
+
+\spj{How to actually prove that a function satisfies a contract.  Or maybe
+it's enough to forward-reference the implementation section}
