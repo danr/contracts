@@ -563,61 +563,6 @@ We may now define the interpretation of $\CF$ contracts using this fixpoint:
 
 \subsection{Contracts in first-order logic}\label{sect:contracts-fol}
 
-\begin{figure}\small
-\[\begin{array}{c} 
-\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
-\prooftree
-  \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-  \end{array}
-  ------------------------------------------{CTransBase}
-  \begin{array}{l}
-   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
-  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-  \;\;\formula{(t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)}
-  \end{array}
-  ~~~~~ 
-  \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
-  \end{array} 
-  ------------------------------------------{CTransArr}
-  \begin{array}{l} 
-  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
-  \formula{\forall x @.@ \neg \phi_1 \lor \phi_2} 
-  \end{array}
-  ~~~~~
-  \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
-  \end{array}
-  ------------------------------------------{CTransConj}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
-  ~~~~~
-  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-  -------------------------------------------{CTransCf}
-  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\lcf{t}}
- \endprooftree \\ \\ 
-\ruleform{\Th_\lcfZ} \\ \\ 
-\begin{array}{lll} 
- \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
- \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
-                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
-\end{array}
-\end{array}\]
-\caption{Translation of contracts to logic}\label{fig:contracts-minless}
-\end{figure}
-
-We now turn to expressing contract semantics in first-order logic. 
-Figure~\ref{fig:contracts-minless} presents the details of the 
-function $\ctrans{}{\Gamma}{e \in \Ct}$ which reflects the statement that the 
-denotation of $e$ should belong in the denotation of $\Ct$.  We also include 
-an axiomatization of crash-freedom with the axiom groups \rulename{AxCfBU} and 
-\rulename{AxCfC}. The first axiom asserts that $\unr$ is crash-free and $\bad$ is not, 
-whereas the second axiom asserts that a constructor value is crash-free if and only iff 
-all of its children nodes are crash-free. 
-
 In terms of semantics we give an interpretation to the logical predicate $\lcf{\cdot}$ as:
 \[           \linterp{\lcfZ}(d) = d \in F_\lcfZ^\infty  \] 
 As a consequence the following two lemmas hold: 
