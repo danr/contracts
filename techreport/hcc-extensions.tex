@@ -289,6 +289,9 @@ Appendix.
 \end{proof}
 
 \paragraph{Minimization in contracts}
+\newcommand{\ctransmin}[3]{\ctrans{#1}{#2}{#3}^{min}} 
+\newcommand{\calI}{{\cal J}}
+
 We have showed that, given a strict trace, our new theory admits a finite model. But what is its proving 
 power? In order to prove a contract we may have to appeal to some axiom from the theory. But, alas, most
 axioms in $\ThMin$ are guarded by $min(\cdot)$ predicates, effectively casting them unusable if we are 
@@ -298,12 +301,75 @@ The solution to this problem is to modify the translation of contracts as well, 
 or provide $min(\cdot)$ predicates that can allow axioms from $\ThMin$ to trigger. The modified 
 contract translation as well as an axiomatization of $\Th_\lcfZ^{min}$ is in Figure~\ref{fig:min-typing}.
 
-\dv{That's where I have reached. More tomorrow}
+An important differentiation compared to Figure~\ref{fig:contracts-minless} is that we have introduced
+a positive variant of the contract translation $\ctransmin{}{\Gamma}{e \in \Ct}$ as well as a 
+negative variatn $\ctransmin{}{\Gamma}{e \notin \Ct}$. The reason for this is the subtle interaction of
+the $min(\cdot)$ predicates. 
+
+Our goal will be to find a contradiction to $\ctransmin{}{\Gamma}{e \notin \Ct}$, so we start by explaining
+the negative judgement. Rule \rulename{NCBase} asserts that we have in hand a value $t$ and a predicate 
+$t'[t/x]$ which are both in the $min(\cdot)$ predicate. Intuitively this means that we have in hand a trace 
+of the execution of the predicate. Moreover the value does not diverge, nor does the predicate diverge, nor
+does it return $\True$. This constitutes a contradiction. Rule \rulename{NCArr} asserts that there exists an
+argument that does satisfy its contract, but the application does not satisfy the contract. Rule \rulename{NCCf}
+asserts that we have an execution trace of $t$ (with $min(t)$) and $t$ is not crash-free.
+
+If we cannot find a contradiction to a statement $\ctransmin{}{\Gamma}{e \notin \Ct}$ our intention is to allow  
+us to {\em use} the positive assumption $\ctrans{}{\Gamma}{e \in \Ct}$ to prove other goals. Hence rule \rulename{CBase} 
+introduces an implication which asserts that if $t$ is in the execution trace then we learn more information about 
+the predicate -- (i)~it belongs in the $min(\cdot)$ predicate and is (ii)~either $\unr$ or $\True$. The reason behind
+(i) is because we need to generate enough $min(\cdot)$ predicates in order to allow function definition axioms that 
+are related to the predicate to trigger and evaluate it. The rest of the cases are symmetric versions of the negative
+case. 
+
+The following lemma connects the positive and negative translations to the original translation $\ctrans{}{\Gamma}{e \in \Ct}$. 
+
+\begin{lemma}\label{lem:contract-min} Assume a model $\langle M,\calI\rangle$ such that $\calI(min)(d)$ holds for every $d : M$. Then 
+the following are true, assuming that $dom(\Gamma) \subseteq dom(\calI)$:
+\begin{itemize} 
+  \item If $\langle M,\calI\rangle \models \neg \ctransmin{}{\Gamma}{e \notin \Ct}$ then $\langle M,\calI\rangle\models \ctrans{}{\Gamma}{e \in \Ct}$
+  \item If $\langle M,\calI\rangle \models \ctrans{}{\Gamma}{e \in \Ct}$ then $\langle M,\calI\rangle \models \ctransmin{}{\Gamma}{e \in \Ct}$.
+\end{itemize}
+\end{lemma}
+\begin{proof} We prove the two cases simultaneously by induction on the structure of the contract $\Ct$:
+\begin{itemize*}
+  \item For the first part, the cases for rules \rulename{NCBase}, \rulename{NNCf}, \rulename{CConj} are straightforward. The only 
+        interesting case is the \rulename{NCArr}, where we have that 
+        \[\begin{array}{l}
+             \neg \ctransmin{}{\Gamma}{e \in (x : \Ct_1) -> \Ct_2}  = \\ 
+             \quad\quad \forall x @.@ \neg \ctransmin{}{\Gamma,x}{x \in \Ct_1} \lor \neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}
+        \end{array}\]
+        Pick an $d$ and assume $\ctrans{}{\Gamma,x}{x \in \Ct_1}$ holds in the model extened with $x |-> d$. 
+        By induction hypothesis (second case) it must be the case that $\ctransmin{}{\Gamma,x}{x \in \Ct_1}$ in this model, and hence $\neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}$.
+        By induction hypothesis then (first case) we get $\ctrans{}{\Gamma,x}{e\;x \in \Ct_2}$ as required.
+  \item The second part is symmetric by appealing in the \rulename{CArr} case to the induction hypotheses for both sides.
+\end{itemize*} 
+\end{proof}
+
+The following is an easy observation. 
+\begin{lemma}\label{lem:min-model} If $\langle M,\calI\rangle$ is a model of $\Th \land \Th_\lcfZ \land \dtrans{}{P}$ then the same model, extended with
+$I_m(min)(d) = true$ for every $d \in M$, is a model of $\ThMin \land \Th_\lcfZ^{min} \land \dtrans{}{P}^{min}$. 
+\end{lemma}
+However the next theorem is the most important result about minimization. 
+\begin{theorem}[Soundness of min translation]\label{thm:min-soundness} If $\ThMin\land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min} |- \neg \ctransmin{}{}{e \notin \Ct}$ then 
+                   $\Th \land \Th_{\lcfZ} \land \dtrans{}{P} |- \ctrans{}{}{e \in \Ct}$ and hence $\dbrace{\Ct}(\dbrace{e})$.
+\end{theorem}
+\begin{proof}
+Pick a model $\langle M, \calI\rangle$ of $\Th \land \Th_{\lcfZ} \land \dtrans{}{P}$ and extend its interpretation 
+so that $\calI(min)(d) = true$. By Lemma~\ref{lem:min-model} this means that the the extended model is a model of 
+$\ThMin\land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min}$ and hence this is also a model of $\neg \ctransmin{}{}{e \notin \Ct}$. 
+By Lemma~\ref{lem:contract-min} (first case) this is also a model of $\ctrans{}{}{e \in \Ct}$.
+\end{proof} 
+Theorem~\ref{thm:min-soundness} shows that we may simply generate $\ThMin \land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min} \land \neg \ctransmin{}{}{e \notin \Ct}$
+and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then its negation is valid and from the theorem we learn that $\dbrace{\Ct}(\dbrace{e})$.
+
+
+
 
 
 \begin{figure}\small
 \[\begin{array}{c} 
-\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
 \prooftree
   \begin{array}{c}
    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
@@ -311,34 +377,34 @@ contract translation as well as an axiomatization of $\Th_\lcfZ^{min}$ is in Fig
   \end{array}
   ------------------------------------------{CBase}
   \begin{array}{l}
-   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \highlight{min(t) => } \\
+   \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \highlight{min(t) => } \\
   %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
    \quad \formula{\highlight{(min(t'[t/x])\;\land}} \\ 
    \quad \formula{\;\;((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
   \end{array}
   ~~~~~ 
   \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
-  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+  \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
   \end{array} 
   ------------------------------------------{CArr}
   \begin{array}{l} 
-  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+  \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
   \formula{\forall x @.@ \phi_1 \lor \phi_2}
   \end{array}
   ~~~~~
   \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
   \end{array}
   ------------------------------------------{CConj}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
   ~~~~~
   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
   -------------------------------------------{CCf}
-  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t) => \lcf{t}}}
+  \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t) => \lcf{t}}}
  \endprooftree  \\ \\ 
-\ruleform{\ctrans{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
+\ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
 \prooftree
   \begin{array}{c}
    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
@@ -346,31 +412,31 @@ contract translation as well as an axiomatization of $\Th_\lcfZ^{min}$ is in Fig
   \end{array}
   ------------------------------------------{NCBase}
   \begin{array}{l}
-   \ctrans{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
+   \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
    \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
    \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
   \end{array}
   ~~~~~ 
   \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-  \ctrans{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
+  \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
   \end{array} 
   ------------------------------------------{NCArr}
   \begin{array}{l} 
-  \ctrans{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
+  \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
   \formula{\exists x @.@ \phi_1 \land \phi_2}
   \end{array}
   ~~~~~
   \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
-  \ctrans{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
+  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
   \end{array}
   ------------------------------------------{NCConj}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
   ~~~~~
   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
   -------------------------------------------{NCCf}
-  \ctrans{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t) \land \neg\lcf{t}}}
+  \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t) \land \neg\lcf{t}}}
  \endprooftree \\ \\ 
 \ruleform{\Th_\lcfZ^{min}} \\ \\ 
 \begin{array}{lll} 
