@@ -48,7 +48,7 @@ printCore msg core = do
     endl
 
 processFile :: Params -> FilePath -> IO ()
-processFile Params{..} file = do
+processFile params@Params{..} file = do
 
     let dsconf = DesugarConf
                      { debug_float_out = db_float_out
@@ -146,7 +146,7 @@ processFile Params{..} file = do
 
     forM_ stmts $ \stmt@Statement{..} -> do
         let (proofs,msgs_tr_contr)
-                = runHaloM halt_env (trStatement stmts fix_info stmt)
+                = runHaloM halt_env (trStatement params stmts fix_info stmt)
 
         when db_trans (printMsgs msgs_tr_contr)
 

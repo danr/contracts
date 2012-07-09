@@ -16,7 +16,7 @@ trap 'exit 1' INT
 rm -rfv *.tptp
 
 # Generate all contracts
-hcc $@ -d
+hcc $@ -i -d
 
 # Result is stored in .tmp
 # Arguments

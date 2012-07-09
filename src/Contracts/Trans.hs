@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Contracts.Trans where
 
 import CoreSyn
@@ -6,6 +7,7 @@ import Var
 import Contracts.Types
 import Contracts.FixpointInduction
 import Contracts.Theory
+import Contracts.Params
 
 import Halo.PrimCon
 import Halo.ExprTrans
@@ -27,9 +29,16 @@ findStatement ss c = case find ((c ==) . statement_name) ss of
     Just s -> s
     Nothing -> error $ "Cannot find used assumption contract " ++ show c
 
-trStatement :: [Statement] -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trStatement ss fix_info stm = do
-    parts_and_content <- (:) <$> trPlain (trNeg True) stm <*> trFPI fix_info stm
+trStatement :: Params -> [Statement] -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
+trStatement Params{..} ss fix_info stm = do
+
+    fpi_content <- trFPI fix_info stm
+    plain_content <- trPlain (trNeg True) stm
+
+    let parts_and_content
+            | fpi_no_plain && not (null fpi_content) = fpi_content
+            | otherwise = plain_content : fpi_content
+
     let used_statements = map (findStatement ss) (statement_using stm)
     (using,deps) <- flip mapAndUnzipM used_statements $ \used_stm -> do
          (_,content) <- trPlain trPos used_stm
