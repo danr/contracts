@@ -30,10 +30,10 @@ findStatement ss c = case find ((c ==) . statement_name) ss of
     Nothing -> error $ "Cannot find used assumption contract " ++ show c
 
 trStatement :: Params -> [Statement] -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trStatement Params{..} ss fix_info stm = do
+trStatement params@Params{..} ss fix_info stm = do
 
-    fpi_content <- trFPI fix_info stm
-    plain_content <- trPlain (trNeg True) stm
+    fpi_content <- trFPI params fix_info stm
+    plain_content <- trPlain (trNeg params Goal Skolemise) stm
 
     let parts_and_content
             | fpi_no_plain && not (null fpi_content) = fpi_content
@@ -41,7 +41,7 @@ trStatement Params{..} ss fix_info stm = do
 
     let used_statements = map (findStatement ss) (statement_using stm)
     (using,deps) <- flip mapAndUnzipM used_statements $ \used_stm -> do
-         (_,content) <- trPlain trPos used_stm
+         (_,content) <- trPlain (trPos params Assumption) used_stm
          return $ content
 
     let extend (part,(clauses,contents)) =
@@ -49,8 +49,8 @@ trStatement Params{..} ss fix_info stm = do
 
     return $ map extend parts_and_content
 
-trFPI :: FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trFPI fix_info stm@(Statement n f c _using deps)
+trFPI :: Params -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
+trFPI params fix_info stm@(Statement n f c _using deps)
     | fpiApplicable fix_info f = do
 
         let [f_base,f_hyp,f_concl]
@@ -71,13 +71,13 @@ trFPI fix_info stm@(Statement n f c _using deps)
 
         (tr_base,ptrs_base) <- capturePtrs $
             return . clause NegatedConjecture <$>
-            trNeg True (Var f_base) (rename_c ConstantUNR)
+            trNeg params Goal Skolemise (Var f_base) (rename_c ConstantUNR)
 
         (tr_step,ptrs_step) <- capturePtrs $ do
             hyp   <- clause Hypothesis <$>
-                        trPos (Var f_hyp) (rename_c Hyp)
+                        trPos params Assumption (Var f_hyp) (rename_c Hyp)
             concl <- clause NegatedConjecture <$>
-                        trNeg True (Var f_concl) (rename_c Concl)
+                        trNeg params Goal Skolemise (Var f_concl) (rename_c Concl)
             return [hyp,concl]
 
         let content_base = map Function deps_base ++ map Pointer ptrs_base
@@ -102,37 +102,49 @@ trPlain tr_fun stm@(Statement n v c _ deps) = do
 
     return (Plain,(clauses,content_dep))
 
-trPos :: CoreExpr -> Contract -> HaloM Formula'
-trPos e c = case c of
+data Skolem = Skolemise | Quantify
+  deriving (Eq,Ord,Show)
+
+data Mode = Goal | Assumption
+  deriving (Eq,Ord,Show)
+
+trPos :: Params -> Mode -> CoreExpr -> Contract -> HaloM Formula'
+trPos params@Params{..} mode e c = case c of
     Pred p -> do
         x  <- trExpr e
         px <- trExpr p
-        return $ min' x ==> (min' px /\ (x === unr \/ px === unr \/ px === true))
+        if symmetric_min || mode == Goal
+            then return $ min' x /\ (min' px /\ (x === unr \/ px === unr \/ px === true))
+            else return $ min' x ==> (min' px /\ (x === unr \/ px === unr \/ px === true))
     CF -> do
         e_tr <- trExpr e
-        return $ min' e_tr ==> cf e_tr
-    And c1 c2 -> (/\) <$> trPos e c1 <*> trPos e c2
+        if symmetric_min || mode == Goal
+            then return $ min' e_tr /\ cf e_tr
+            else return $ min' e_tr ==> cf e_tr
+    And c1 c2 -> (/\) <$> trPos params mode e c1 <*> trPos params mode e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
         fx <- trExpr (e `App` Var v)
-        l <- trNeg False (Var v) c1
-        r <- trPos (e `App` Var v) c2
+        l <- trNeg params mode Quantify (Var v) c1
+        r <- trPos params mode (e `App` Var v) c2
         return $ forall' [v] (l \/ r)
 
-trNeg :: Bool -> CoreExpr -> Contract -> HaloM Formula'
-trNeg skolemise e c = case c of
+trNeg :: Params -> Mode -> Skolem -> CoreExpr -> Contract -> HaloM Formula'
+trNeg params@Params{..} mode skolemise e c = case c of
     Pred p -> do
         x  <- trExpr e
         px <- trExpr p
         return $ min' x /\ min' px /\ x =/= unr /\ (px === false \/ px === bad)
-          -- Make it a flag to say px =/= True /\ px =/= unr just for experimentation and our own understanding.
 
     CF -> do
         e_tr <- trExpr e
         return $ min' e_tr /\ neg (cf e_tr)
 
-    And c1 c2 -> (\/) <$> trNeg skolemise e c1 <*> trNeg skolemise e c2
+    And c1 c2 -> (\/) <$> trNeg params mode skolemise e c1
+                      <*> trNeg params mode skolemise e c2
 
-    Arrow v c1 c2 -> local (if skolemise then addSkolem v else pushQuant [v]) $ do
-        l <- trPos (Var v) c1
-        r <- trNeg skolemise (e `App` Var v) c2
-        return $ (not skolemise ? exists' [v]) (l /\ r)
+    Arrow v c1 c2 -> local (case skolemise of
+                                Skolemise -> addSkolem v
+                                Quantify  -> pushQuant [v]) $ do
+        l <- trPos params mode (Var v) c1
+        r <- trNeg params mode skolemise (e `App` Var v) c2
+        return $ (skolemise == Quantify ? exists' [v]) (l /\ r)
