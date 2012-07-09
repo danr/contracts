@@ -28,6 +28,7 @@ data Params = Params
     , dump_fpi_core    :: Bool
     , dump_tptp        :: Bool
     , dump_contracts   :: Bool
+    , dump_subthys     :: Bool
     }
   deriving (Show,Data,Typeable)
 
@@ -60,6 +61,7 @@ defParams = Params
     , dump_fpi_core    = False &= help "Dump core after fixpoint generation"
     , dump_tptp        = False &= help "Dump all generated tptp"
     , dump_contracts   = False &= help "Dump the internal representation of contracts"
+    , dump_subthys     = False &= help "Dump the subtheories needed for contracts"
     }
     &= summary "Haskell Contracts Checker v0.1 Dan Rosén danr@student.gu.se"
     &= program "hcc"

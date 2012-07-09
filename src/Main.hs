@@ -162,6 +162,10 @@ processFile params@Params{..} file = do
 
             putStrLn $ "Writing " ++ show filename
 
+            when dump_subthys $ do
+                putStrLn $ "Subtheories: "
+                mapM_ print subtheories'
+
             writeFile filename tptp
 
 main :: IO ()
