@@ -15,6 +15,7 @@ data Params = Params
     , squishy_booleans :: Bool
     , dollar_min       :: Bool
     , or_discr         :: Bool
+    , fpi_no_plain     :: Bool
 
     , db_float_out     :: Bool
     , db_lift          :: Bool
@@ -45,6 +46,7 @@ defParams = Params
     , squishy_booleans = False &= name "s" &= help "Don't force true /= false, put min antecedent there"
     , dollar_min       = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr         = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
+    , fpi_no_plain     = False &= name "i" &= help "If you can apply fpi, don't generate without induction"
 
     , db_float_out     = False &= groupname "\nDebugging output"
                                &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
