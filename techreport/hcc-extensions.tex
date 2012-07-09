@@ -612,4 +612,28 @@ our testsuite.
 
 \subsection{Induction}\label{sect:induction}
 
+An important practical extension is the ability to prove contracts by induction. Unfortunately in 
+Haskell, datatypes are not inductive and hence ``ordinary'' induction without some extra care is 
+out of the question\dv{cite Dan's master thesis about datatype induction even for Haskell programs?}.
+\dv{Do we need an example or is this obvious? Simon?}
 
+Fortunately, we can still perform {\em fixpoint induction} whenever we would like to prove something 
+about a new function. Fixpoint induction is justified by the following principle below:
+
+\begin{lemma} Let $\Ct$ be a closed contract -- then $\dbrace{\Ct}$ is an 
+admissible predicate. Moreover $\bot \in \dbrace{\Ct}$. \end{lemma}
+\begin{proof}
+The fact that $\bot$ belongs in every contract can be proven easily by inspection.
+Admissibility follows from the fact that (i) the fixpoint $F_\lcfZ^{\infty}$ is admissible, 
+and (ii)~the base contracts are admissible since the denotations of Haskell functions 
+are continuous.
+\end{proof}
+
+In practical terms this means that, given a recursive function $f |-> \Lambda \as @.@ \ol{x{:}\tau} @.@ e[f]$, 
+we can prove that $\dbrace{\Ct}(\dbrace{f})$ if we can prove that 
+$ \dbrace{P}^{k}(f) \in \dbrace{\Ct}$ implies $\dbrace{P}^{k+1}(f) \in \dbrace{\Ct}$. Moreover, we have that 
+$ \dbrace{P}^{0}(f) \in \dbrace{\Ct}$ (corollary of the lemma above), and the induction step above can be 
+used to show that all the elements of the infinite chain whose limit is $\dbrace{f}$ are in the denotation of 
+the contract $\Ct$. Hence, by admissibility of contract denotations, the limit itself $\dbrace{f} \in \dbrace{\Ct}$. 
+We omit further details as they are simply tedious tidying up of definitions. This induction principle is the basis
+of our contract checking tool for recursive definitions.
