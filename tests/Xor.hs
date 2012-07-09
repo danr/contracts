@@ -29,7 +29,7 @@ unsat_invariant_cf = invariant ::: CF --> CF
 
 unsat_ind_contr_cf = ind ::: CF --> CF
 
--- | Indating retains the invariant /and/ is crash free
+-- | Ind retains the invariant /and/ is crash free
 unsat_ind_contr_retain
     = ind -- ::: (CF --> CF)
           ::: (Pred invariant :->
