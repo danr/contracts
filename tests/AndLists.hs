@@ -57,6 +57,8 @@ unsat_neg_contr = neg ::: retain invariant
     unsat_map_invariant
   `Using`
     unsat_invariant_cf
+  `Using`
+    unsat_all_cf
 
 -- * Auxiliary functions
 
