@@ -207,19 +207,27 @@ predicates.
 Our goal will be to find a contradiction to $\ctransmin{}{\Gamma}{e \notin \Ct}$, so we start by explaining
 the negative variant. Observe that the formula $\ctransmin{}{\Gamma}{e \notin \Ct}$ 
 always give rise to a conjunction of $min$ predicates as the base cases (rule \rulename{NCBase} and \rulename{NCCf})
-assert $min$ predicates. For instance if we are translating 
-$\ctransmin{}{\Gamma}{f \notin \CF -> \CF -> \CF}$ we will get the following:
-\[\begin{array}{l}
-        \exists x y @.@ \ctransmin{}{\Gamma}{x \in \CF}\;\land\;\ctransmin{}{\Gamma}{y \in \CF}\;\land \\ 
-          \quad min(app(app(f_{ptr},x),y))\;\land \neg\lcf{app(app(f_{ptr},x),y)}
+assert $min$ predicates. Consider this very simple example:
+\begin{code}
+g x  = True 
+\end{code} 
+and we wish to show that $g$ satisfies $\CF -> \CF$, we may assert the existence of a crash-free $x$, such that 
+$app(g,x)$ is not crash-free. However, recall that the axioms that we have generated for $g$ are: 
+\[\begin{array}{l} 
+   \forall x. min(app(g_{ptr},x)) => app(g_{ptr},x) = g(x) \\ 
+   \forall x. min(g(x)) => g(x) = True
 \end{array}\] 
-where $app(app(t,x),y) = \etrans{}{\Gamma}{e\;x\;y}$. The theorem prover will then attempt to find a 
-model for this formula, or derive a contradiction). The $min$ predicates that are available will ``drive'' 
-the application of function axioms from the assumptions allowing function applications to simplify to 
-their bodies. For instance, if the original program includes a function definition $f |-> \lambda (x{:}\tau) (y{:}\tau) @.@ \True$ 
-then the $min(app(f_{ptr},x),y)$ assumption will allow axiom \rulename{AxPtr} to trigger, and subsequently 
-the definition of $f$ will be unfolded to eventually learn that $app(app(f_{ptr},x),y) = \True$ for which
-we have that $\lcf{True}$.
+This means that, if we have no information that $min(app(g_{ptr},x))$ we are not in a position 
+to assert that the result is $True$ which is crash-free! In fact for any value $y$ that is not 
+in the $min$ predicate there is a countermodel, e.g. $g(y) = \bad$. Therefore the formula 
+$\ctransmin{}{\Gamma}{e \notin \Ct}$ inserts enough $min$ predicates in order to ``drive'' 
+the application of function axioms from the assumptions. In our example this manifests as: 
+\[\begin{array}{l} 
+   \ctransmin{}{}{g \notin \CF -> \CF} = \\
+  \exists x @.@ \ctransmin{}{}{x \in \CF} \land min(app(g_{ptr},x)) \land \\ 
+  \quad\;\; \neg\lcf{app(g_{ptr},x)}
+\end{array}\] 
+which is now unsatisfiable, as required. 
 
 The positive variant $\ctransmin{}{\Gamma}{e \in \Ct}$ is first introduced when 
 trying to derive a contradiction for an arrow contract (rule \rulename{NCTrans}): 
@@ -238,18 +246,28 @@ be to simply assign:
      \quad (t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)
 \end{array}\]
 where $t'$ is the FOL translation of $e'$ and $t$ is the FOL translation of $e$. 
-However, in many practical examples we may have to use the truth value of a predicate to actually learn something about its
-argument. For instance if the predicate $e'$ is the following predicate, 
+However, in many practical examples we may have to use the truth value of a predicate to actually learn something 
+about its argument. Consider the following example:
 \begin{code}
-pred []     = True 
-pred (y:ys) = False
+f True  = True
+f False = error "bad!"
 \end{code}
-\dv{Dan, can we make a concrete example?} 
-by knowing that the value of the predicate is @False@ on some argument @x@, we can potentially learn that the
-argument we are after to derive a contradiction is some cons cell @y:ys@. {\em However} we can't really learn 
-this information unless we {\em also} have a @pred x@ in the $min(\cdot)$ predicate. If we do have this information, 
-we can unfold the definition of @pred@ and figure out the information about @x@. Our solution to this problem to 
-add a $min(t'[t/x])$ predicate that will now allow us to use information from the value of the predicate $t'[t/x]$ 
+and suppose we would like to prove that @f@ satisfies the contract $\CF \& \{ y \mid (id\;y) \} -> \CF$. Intuitively, 
+the precondition should only be satisfied by the $\True$ value or $\unr$. However let us examine what happens. We try
+to derive a contradiction from:
+\[\begin{array}{l}
+    \exists x @.@ \ctransmin{}{\Gamma}{x \in \CF} \land \ctransmin{}{\Gamma}{x \in \{ y \mid (id\;y)\}} \land \\
+    \phantom{\exists x \;\;} \ctransmin{}{\Gamma}{f\;x \notin \CF} 
+\end{array}\] 
+With the aforementioned definition of positive contracts, 
+a theorem prover will try to come up with some crash free $x$ such that $app(id,x) = \unr \lor app(id,x) = True$
+and such that $f\;x$ is not crash-free. However, observe that the value $False$ will satisfy the above requirements! 
+We do not have available a predicate $min(app(id,x))$ and hence we cannot reduce $app(id,x)$ to $x$ and learn that $x$ 
+can only be $\unr$ or $True$. Hence the contract has become satisfiable whereas this simple function really does belong
+in the denotational semantics of its contract! 
+
+The solution to this problem is to state that we are actually {\em interested} in the value of the predicate. Formally, 
+we add a $min(t'[t/x])$ predicate that will now allow us to use information from the value of the predicate $t'[t/x]$ 
 to learn information about $t$:
 \[\begin{array}{l}    \ctransmin{}{\Gamma}{e \in \{ x \mid e' } = \\ 
    \quad \highlight{min(t'[t/x]} \land \\ 
@@ -293,6 +311,7 @@ two substantially different axioms than we had in the $min$-less world:
  \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
                  & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
 \end{array}\]
+\dv{We need one example here as well.} 
 Axiom \rulename{AxCfMin} asserts that if we have managed to prove that a value is crash-free 
 then {\em at some point} we have been interested in that value, or that it is $\unr$. Axiom 
 \rulename{AxCfC2} asserts that if we are interested in a constructor value $K(\ol{x})$ which is 
@@ -311,25 +330,26 @@ the original translation $\ctrans{}{\Gamma}{e \in \Ct}$.
 
 \begin{lemma}\label{lem:contract-min} Assume a model $\langle M,\calI\rangle$ such that $\calI(min)(d)$ holds for every $d \in M$. 
 Then the following are true, assuming that that $dom(\Gamma) \subseteq dom(\calI)$:
-\begin{itemize} 
+\begin{itemize*} 
   \item If $\langle M,\calI\rangle \models \neg \ctransmin{}{\Gamma}{e \notin \Ct}$ then $\langle M,\calI\rangle\models \ctrans{}{\Gamma}{e \in \Ct}$
   \item If $\langle M,\calI\rangle \models \ctrans{}{\Gamma}{e \in \Ct}$ then $\langle M,\calI\rangle \models \ctransmin{}{\Gamma}{e \in \Ct}$.
-\end{itemize}
+\end{itemize*}
 \end{lemma}
-\begin{proof} We prove the two cases simultaneously by induction on the structure of the contract $\Ct$:
-\begin{itemize*}
-  \item For the first part, the cases for rules \rulename{NCBase}, \rulename{NNCf}, \rulename{CConj} are straightforward. The only 
-        interesting case is the \rulename{NCArr}, where we have that 
-        \[\begin{array}{l}
-             \neg \ctransmin{}{\Gamma}{e \in (x : \Ct_1) -> \Ct_2}  = \\ 
-             \quad\quad \forall x @.@ \neg \ctransmin{}{\Gamma,x}{x \in \Ct_1} \lor \neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}
-        \end{array}\]
-        Pick an $d$ and assume $\ctrans{}{\Gamma,x}{x \in \Ct_1}$ holds in the model extened with $x |-> d$. 
-        By induction hypothesis (second case) it must be the case that $\ctransmin{}{\Gamma,x}{x \in \Ct_1}$ in this model, and hence $\neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}$.
-        By induction hypothesis then (first case) we get $\ctrans{}{\Gamma,x}{e\;x \in \Ct_2}$ as required.
-  \item The second part is symmetric by appealing in the \rulename{CArr} case to the induction hypotheses for both sides.
-\end{itemize*} 
-\end{proof}
+%% \begin{proof} We prove the two cases simultaneously by induction on the structure of the contract $\Ct$:
+%% \begin{itemize*}
+%%   \item For the first part, the cases for rules \rulename{NCBase}, \rulename{NNCf}, \rulename{CConj} are straightforward. The only 
+%%         interesting case is the \rulename{NCArr}, where we have that 
+%%         \[\begin{array}{l}
+%%              \neg \ctransmin{}{\Gamma}{e \in (x : \Ct_1) -> \Ct_2}  = \\ 
+%%              \quad\quad \forall x @.@ \neg \ctransmin{}{\Gamma,x}{x \in \Ct_1} \lor \neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}
+%%         \end{array}\]
+%%         Pick an $d$ and assume $\ctrans{}{\Gamma,x}{x \in \Ct_1}$ holds in the model extened with $x |-> d$. 
+%%         By induction hypothesis (second case) it must be the case that $\ctransmin{}{\Gamma,x}{x \in \Ct_1}$ in this model, and hence $\neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}$.
+%%         By induction hypothesis then (first case) we get $\ctrans{}{\Gamma,x}{e\;x \in \Ct_2}$ as required.
+%%   \item The second part is symmetric by appealing in the \rulename{CArr} case to the induction hypotheses for both sides.
+%% \end{itemize*} 
+%% \end{proof}
+
 The following is an easy observation. 
 \begin{lemma}\label{lem:min-model} If $\langle M,\calI\rangle$ is a model of $\Th \land \Th_\lcfZ \land \dtrans{}{P}$ then the same model, extended with
 $\calI_m(min)(d) = true$ for every $d \in M$, is a model of $\ThMin \land \Th_\lcfZ^{min} \land \dtrans{}{P}^{min}$. 
@@ -447,7 +467,7 @@ model in the case where there exists a counterexample in the $min$-enabled trans
 \caption{Translation of contracts with minimization}\label{fig:min-typing}
 \end{figure}
 
-Can we guarantee formally in some cases the existence of a finite model of the theory $\Th_{infty}^{min}$?
+Can we {\em guarantee} formally in some cases the existence of a finite model of the theory $\Th_{infty}^{min}$?
 The answer is yes for many practically important cases. We may define formally a variation on evaluation, 
 $P |- e \SDownarrow v$ which is stricter than $P |- e \Downarrow$ in evaluating {\em all} subterms of a term.
 For instance it includes a rule:
@@ -457,26 +477,28 @@ P |- \highlight{\ol{e} \SDownarrow \ol{v}}
 P |- K[\taus](\ol{e}) \SDownarrow K[\taus](\ol{e})
 \endprooftree\end{array}\]
 Notice that if $P |- e \SDownarrow v$ then $P |- e \Downarrow v$ (A precise formulation of $P |- e \SDownarrow v$ 
-can be found in the Appendix). 
+can be found in the Appendix). Observe that despite being stricter, the $\SDownarrow$ relation does not cause more 
+@BAD@ values to be thrown.
 
-Our finite model theorem is the following:
-\begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ then there exists 
-a finite set $S^{min}$ and an interpretation ${\cal I}^{min}$ such that 
-$\langle S^{min},{\cal I}^{min}\rangle \models \ThMin$. Moreover 
-$\langle S^{min},{\cal I}^{min}\rangle \models \ptrans{}{P}^{min}$. 
-\end{theorem}
-
-In fact, if we have a concrete trace of failure of a contract, we can get the following:
+%% Our finite model theorem is the following:
+%% \begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ then there exists 
+%% a finite set $S^{min}$ and an interpretation ${\cal I}^{min}$ such that 
+%% $\langle S^{min},{\cal I}^{min}\rangle \models \ThMin$. Moreover 
+%% $\langle S^{min},{\cal I}^{min}\rangle \models \ptrans{}{P}^{min}$. 
+%% \end{theorem}
+We can, for evaluations in $\SDownarrow$, guarantee the existence of finite models. 
 \begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ and 
 $P |- e'[e/x] \SDownarrow @BAD@$ or $P |- e'[e/x] \SDownarrow False$, then 
 there exists a finite set $S^{min}$ and an interpretation ${\calI}^{min}$ such that 
 \[ \langle S^{min},{\calI}^{min}\rangle \models \ThMin \land \Th_{\lcfZ}^{min} \land \ptrans{}{P}^{min} \]
 and moreover $\langle S^{min},{\calI}^{min}\rangle \models \ctransmin{}{}{e \notin \{ x \mid e' \}}$.
 \end{theorem}
-
-In practice this means that we get a guarantee for a finite model for every failed trace that does 
-not involve infinite values. We believe that this is possible to generalize to arbitrary traces 
-though this might require further changes in our $min$-enabled translation.
+Intuitively the guarantee for a finite model is for a counterexample trace that does not involve some
+infinite value (because that would not belong in the $\SDownarrow$ evaluation). We believe that this 
+is possible to generalize to arbitrary traces though this might require further changes in our 
+$min$-enabled translation. Although the theorem is not the most general theorem that one could desire, 
+in practice we have observed that we always get finite countermodels from satisfiable queries in 
+our testsuite.
 
 %% However, we are interested in finite models of the theory $\Th_\infty^{min}$ and in what 
 %% follows we show how to construct a finite model of $\ThMin$, starting from an execution 
