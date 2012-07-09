@@ -374,11 +374,12 @@ for functions $f$.
 Figure~\ref{f:contract-spec-op} says what it means to say $e \in C$,
 based closely on earlier work \cite{xu+:contracts}.  The specification is
 simple, declarative, and intended to be comprehensible to programmers.
-For example, an expression $e$ satisfies the function contract $\Ct_1 \& \Ct_2$ if and
-only if $(e e')$ satisfies $\Ct_2$ whenever $e'$ satisfies $Ct_1$.
+For example, an expression $e$ satisfies the function 
+contract $\Ct_1 \rightarrow \Ct_2$ if and 
+only if $(e\; e')$ satisfies $\Ct_2$ whenever $e'$ satisfies $\Ct_1$.
 
 Crucially, base contracts $\{x|e\}$ allow arbitrary $\cal L$
-expressions (in our implementation, arbitrary Haskell expressions),
+expressions $e$ (in our implementation, arbitrary Haskell expressions),
 rather than being restricted to some well behaved meta-language.  This
 is great for the programmer because the language and its library
 functions is familiar, but it poses a challenge for verification
@@ -393,7 +394,6 @@ Our goal is to answer the question ``does expression $e$ satisfy
 contract $C$?''.  Our plan is to translate both the expression and the
 contract into first-order logic (FOL), and get a standard FOL prover
 to do the heavy lifting.
-
 In this section we formalise our new translation, and describe how we use it to
 verify contracts.
 
@@ -440,8 +440,8 @@ $app(t,\ol{s})$ for the sequence of applications to each $s_i$, as
 Figure~\ref{fig:fol-image} shows.
 
 The formulae of Figure~\ref{fig:fol-image} is just first-order logic
-with equality, plus a predicate $\lcf{t}$ for crash-freedom, whose
-semantics we discuss in Section~\ref{sect:contracts}.
+with equality, plus a predicate $\lcf{t}$ for crash-freedom, which
+we discuss in Section~\ref{s:cf}.
 
 \subsection{Translation of expressions to FOL}
 
@@ -685,7 +685,7 @@ The second and third say that the contract holds if $e'$ diverges or is semantic
 equal to @True@.  The choices embodied in this rule were discussed at length
 in earlier work \cite{xu+:contracts} and we do not rehearse it here.
 
-\subsection{Crash-freedom}
+\subsection{Crash-freedom} \label{s:cf-fol}
 
 The claim $e \in @CF@$, pronounced ``$e$ is crash-free'', means that $e$ cannot
 crash \emph{regardless of context}.  So, for example @(BAD, True)@ is not crash-free

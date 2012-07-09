@@ -1,5 +1,5 @@
 Our account so far has been largely informal.  How can we be sure
-that if the FOL prover says ``Yes!  This FOL term is provable'', then
+that if the FOL prover says ``Yes!  This FOL formula is provable'', then
 the corresponding $\cal L$ program indeed satisfies the claimed contract?
 
 To prove this claim we take a denotational approach.  
@@ -8,7 +8,7 @@ our setting and there are no surprises -- we refer the reader
 to~\cite{winskel} or~\cite{benton+:coq-domains} for a short and modern
 exposition of the standard methodology.
 
-\subsection{Preliminaries}
+\subsection{Technical preliminaries}
 
 We will assume a program $P$, well-formed in a signature $\Sigma$, so
 that $\Sigma |- P$ (Section~\ref{s:syntax}).  
@@ -452,6 +452,37 @@ logical relation, which asserts that every expression is related to its denotati
 %% \end{proof}
 
 \subsection{Semantics of contracts}
+
+\spj{I have created Figure~\ref{f:den-sem-contracts}, but it nees love and attention. It's
+really only half done, sep the first two equations.}
+
+\begin{figure}
+$$
+\setlength{\arraycolsep}{2pt}
+\begin{array}{rcl}
+\multicolumn{3}{c}{
+\ruleform{\dbrace{\Ct} \subseteq D_{\infty}} }
+\\ \\
+\dbrace{x \mid e}_\rho 
+ & = & \{d \begin{array}[t]{ll} \mid & \unroll(d) = \bot \\
+                  \lor & \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot \\
+                  \lor & \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1)
+             \end{array} \}
+\\
+\dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho} 
+ & = & \text{for all } d_x \in D_\infty \\ 
+    &&   \quad\quad \text{if }
+                     \dbrace{\Ct_1}_\rho(d_x)\text{ then }
+                     \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) 
+\\
+\dbrace{\Ct_1 \& \Ct_2}_\rho 
+ & = & \{ d | d \in \dbrace{\Ct_1}_\rho(d) /\ d \in \dbrace{\Ct_2}_\rho \}
+\\
+\dbrace{\CF}_\rho & = &  \Fcf^{\infty} 
+\end{array}
+$$
+\caption{Dentotations of contracts} \label{f:den-sem-contracts}
+\end{figure}
 
 The specification of what it means for a function to satisfy a
 contract (Figure~\ref{f:contract-spec-op}) is cast in terms of
