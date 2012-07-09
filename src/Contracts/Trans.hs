@@ -119,7 +119,6 @@ trPos params@Params{..} mode e c = case c of
         return $ min' e_tr ==> cf e_tr
     And c1 c2 -> (/\) <$> trPos params mode e c1 <*> trPos params mode e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
-        fx <- trExpr (e `App` Var v)
         l <- trNeg params mode Quantify (Var v) c1
         r <- trPos params mode (e `App` Var v) c2
         return $ forall' [v] (l \/ r)
