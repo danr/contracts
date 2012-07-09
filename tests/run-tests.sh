@@ -14,7 +14,7 @@
 trap 'exit 1' INT
 
 # Remove all tptp files here
-rm -rfv *.tptp
+rm -v *.tptp
 
 # Generate all contracts
 hcc $@ -d -i -b
