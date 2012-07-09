@@ -111,16 +111,12 @@ data Mode = Goal | Assumption
 trPos :: Params -> Mode -> CoreExpr -> Contract -> HaloM Formula'
 trPos params@Params{..} mode e c = case c of
     Pred p -> do
-        x  <- trExpr e
+        ex <- trExpr e
         px <- trExpr p
-        if symmetric_min || mode == Goal
-            then return $ min' x /\ (min' px /\ (x === unr \/ px === unr \/ px === true))
-            else return $ min' x ==> (min' px /\ (x === unr \/ px === unr \/ px === true))
+        return $ min' ex ==> (min' px /\ (ex === unr \/ px === unr \/ px === true))
     CF -> do
         e_tr <- trExpr e
-        if symmetric_min || mode == Goal
-            then return $ min' e_tr /\ cf e_tr
-            else return $ min' e_tr ==> cf e_tr
+        return $ min' e_tr ==> cf e_tr
     And c1 c2 -> (/\) <$> trPos params mode e c1 <*> trPos params mode e c2
     Arrow v c1 c2 -> local (pushQuant [v]) $ do
         fx <- trExpr (e `App` Var v)
@@ -131,9 +127,9 @@ trPos params@Params{..} mode e c = case c of
 trNeg :: Params -> Mode -> Skolem -> CoreExpr -> Contract -> HaloM Formula'
 trNeg params@Params{..} mode skolemise e c = case c of
     Pred p -> do
-        x  <- trExpr e
+        ex <- trExpr e
         px <- trExpr p
-        return $ min' x /\ min' px /\ x =/= unr /\ (px === false \/ px === bad)
+        return $ min' ex /\ min' px /\ ex =/= unr /\ (px === false \/ px === bad)
 
     CF -> do
         e_tr <- trExpr e
