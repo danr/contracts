@@ -382,18 +382,6 @@ contract $C$?''.  Our plan is to translate both the expression and the
 contract into first-order logic (FOL), and get a standard FOL prover
 to do the heavy lifting.  
 
-\spj{Is this next paragraph right?  I want to set the scene.}
-What does it mean to translate an expression to first-order logic?
-We are primarily interested in reasoning about equality, so we might
-hope for this (informally):
-$$
-e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_{FOL} \etrans{}{}{e_2}
-$$
-where $=_S$ means semantic equality, $=_{FOL}$ means equality in first-order logic,
-and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can 
-reason about the equality of Haskell terms by translating them into FOL using
-a FOL theorem prover. 
-
 In this section we formalise our new translation, and describe how we use it to
 verify contracts.
 
@@ -415,31 +403,37 @@ verify contracts.
       & \mid & t_1 = t_2  & \text{Equality} \\ 
       & \mid & \phi \land \phi \mid \phi \lor \phi \mid \neg \phi \\
       & \mid & \forall x @.@ \phi \mid \exists x @.@ \phi \\ \\ 
-\multicolumn{3}{l}{\text{Abbreviation}} \\ 
-\multicolumn{4}{l}{app(t,\oln{s}{n}) = (\ldots(app(t,s_1),\ldots s_n)\ldots)}
+\end{array}
+\\
+\multicolumn{1}{l}{\text{Abbreviations}} \\ 
+\begin{array}{rcl}
+app(t,\oln{s}{n} & = & (\ldots(app(t,s_1),\ldots s_n)\ldots) \\
+\phi_1 \Rightarrow \phi_2 & = & \neg \phi_1 \lor \phi_2
 \end{array}
 \end{array}\]
 \caption{Syntax of FOL}\label{fig:fol-image}
 \end{figure}
 
-We begin with the syntax of the FOL language, which
-is given in Figure~\ref{fig:fol-image}. Terms include function 
-applications $f(\ol{t})$, constructor applications $K(\ol{t})$, variables. They 
-also include, for each data constructor $K^\ar$ in the signature $\Sigma$ with 
-arity $\ar$ a set of {\em selector functions} $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.
-Not all functions are fully applied, so to accommodate partial applications, we use 
-the term $app(t,s)$. Functions that are not applied, but rather passed on as essentially 
-function pointers will be represented as variables (or nullary functions) $f_{ptr}$. Finally 
-we introduce two new syntactic constructs $\unr$ and $\bad$. As an abreviation we often use
-$app(t,\ol{s})$ for the sequence of applications to each $s_i$, as 
+We begin with the syntax of the FOL language, which is given in
+Figure~\ref{fig:fol-image}. There are two syntactic forms,
+\emph{terms} and \emph{formulae}. Terms include function applications
+$f(\ol{t})$, constructor applications $K(\ol{t})$, variables. They
+also include, for each data constructor $K^\ar$ in the signature
+$\Sigma$ with arity $\ar$ a set of {\em selector functions}
+$\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.  The terms $app(t,s)$ and
+$f_{ptr}$ concern the higher-order aspects of $\cal L$, which we
+discuss in (see Section~\ref{s:hof}).  Finally we introduce two new
+syntactic constructs $\unr$ and $\bad$. As an abreviation we often use
+$app(t,\ol{s})$ for the sequence of applications to each $s_i$, as
 Figure~\ref{fig:fol-image} shows.
 
-Figure~\ref{fig:fol-image}
-also includes the syntax of formulae that will appear in our translation.
-It is just first-order logic with equality, plus a predicate $\lcf{t}$ for 
-crash-freedom, whose semantics we discuss in Section~\ref{sect:contracts}.
+The formulae of Figure~\ref{fig:fol-image} is just first-order logic
+with equality, plus a predicate $\lcf{t}$ for crash-freedom, whose
+semantics we discuss in Section~\ref{sect:contracts}.
 
+\subsection{Translation of expressions to FOL} \label{s:hof}
 
+% ---------------------------------------------------
 \begin{figure}\small
 \setlength{\arraycolsep}{2pt} 
 \[\begin{array}{c} 
@@ -448,130 +442,170 @@ crash-freedom, whose semantics we discuss in Section~\ref{sect:contracts}.
 \etrans{\Sigma}{\Gamma}{x} & = & \formula{x} \\
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]} & = & \formula{f_{ptr}} \\
 \etrans{\Sigma}{\Gamma}{K[\ol{\tau}](\ol{e})} & = & \formula{K(\ol{\etrans{e}{\Gamma}{t}})} \\
-\etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{t_1}{\Gamma},
-                                                     \etrans{\Sigma}{t_1}{\Gamma})} \\
+\etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{\Gamma}{t_1},
+                                                     \etrans{\Sigma}{\Gamma}{t_1})} \\
 \etrans{\Sigma}{\Gamma}{@BAD@} & = & \formula{\bad}
 \end{array}
 \\ \\
-\ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
+\ruleform{\utrans{\Sigma}{u}{s} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
-\dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = e} 
-  & = & \formula{f(\ol{x}) = \etrans{\Sigma}{\Gamma}{e}} \\
-\multicolumn{3}{l}{\dtrans{\Sigma}
-    {f \;\ol{a}\;\ol{(x{:}\tau)} = @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}} \\
+\utrans{\Sigma}{e}{s}
+  & = & \formula{(s = \etrans{\Sigma}{\Gamma}{e})} \\
+\multicolumn{3}{l}{\utrans{\Sigma}
+    {@case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}{s}} \\
 \multicolumn{3}{l}{
 \quad 
   \begin{array}[t]{rl}
     = & \formula{(t = \bad => s = bad)} \\ 
-    \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots}  \\
+    \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = \etrans{\Sigma}{\Gamma}{e'_1})\;\land \ldots}  \\
     \land & \formula{(t{\neq}\bad\;\land\;
-                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr)} \\
-    \mbox{where} &  
-         \begin{array}[t]{rcl} 
-            s & = & f(\ol{x}) \\  
-            t & = & \etrans{\Sigma}{\Gamma}{e} 
-         \end{array}
+                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr} \\
+    \mbox{where} & t  =  \etrans{\Sigma}{\Gamma}{e} 
  \end{array}
 }
 \end{array}
 \\ \\
+\ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
+\begin{array}{rcl}
+  \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u} 
+    & =     & \formula{\forall \ol{x} @.@ \utrans{\sigma}{u}(f(\ol{x}))} \\
+    & \land & \formula{\forall \ol{x} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+\end{array}
+\\ \\
 \ruleform{\ptrans{\Sigma}{P} = \formula{\phi} } \quad
-\ptrans{\Sigma}{\ol{d}} = \ol{\dtrans{\Sigma}{d}}
-% \ruleform{\Dtrans{\Sigma}{\Gamma}{u} = \formula{\phi} } \\ \\
-% 
-% \prooftree
-%   \begin{array}{c}
-%   (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma
-%   \end{array}
-%   --------------------------------------{TFVar}
-%   \etrans{\Sigma}{\Gamma}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
-%   ~~~~ 
-%   x \in \Gamma 
-%   --------------------------------------{TVar}
-%   \etrans{\Sigma}{\Gamma}{x} = \formula{x}
-%   ~~~~~ 
-%   \begin{array}{c}
-%   (K{:}\forall\oln{a}{n} @.@ \ol{\tau} -> T\;\as) \in \Sigma \quad
-%   \ol{\etrans{\Sigma}{\Gamma}{e} = \formula{t}}
-%   \end{array}
-%   --------------------------------------{TCon}
-%   \etrans{\Sigma}{\Gamma}{K[\oln{\tau}{n}](\ol{e})} = \formula{K(\ol{t})}
-%   ~~~~~
-%   \phantom{\Gamma}
-%   --------------------------------------{TBad}
-%   \etrans{\Sigma}{\Gamma}{@BAD@} = \formula{\bad}
-%   ~~~~
-%   \begin{array}{c}
-%   \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \\
-%   \etrans{\Sigma}{\Gamma}{e_2} = \formula{t_2}
-%   \end{array}
-%   --------------------------------------{TApp}
-%   \etrans{\Sigma}{\Gamma}{e_1\;e_2} = \formula{app(t_1,t_2)}
-% \endprooftree \\ \\ 
-% \ruleform{\utrans{\Sigma}{\Gamma}{f\;\ol{a}\;\ol{x{:}\tau} = u} = \formula{\phi}} \\ \\ 
-% \\
-% \prooftree
-%    \etrans{\Sigma}{\Gamma}{e} = \formula{t}
-%    ----------------------------------------{DExp}
-%    \utrans{\Sigma}{\Gamma}{f\;\ol{a}\;\ol{x{:}\tau} = e} = \formula{f(\ol{x}) = t} 
-%    ~~~~~
-%   \begin{array}{l}
-%   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \\
-% %%  constrs(\Sigma,T) = \ol{K} \\
-%   \text{for each branch}\;(K\;\oln{y}{l} -> e') \text{ it is } \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
-% %%  \begin{array}{l}
-% %% %%           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
-% %%            \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
-% %%   \end{array}
-%   \end{array}
-%   ------------------------------------------{DCase}
-%   {  \setlength{\arraycolsep}{2pt} 
-%   \begin{array}{l}
-%   \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
-%   \;\;\formula{ \begin{array}{l} 
-%           (t = \bad => s = bad)\;\land \\ 
-%           (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1}\;\land \ldots \land \\
-%           (t{\neq}\bad\;\land\;t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s{=}\unr) 
-% %% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
-% %%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
-% %%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
-%                    \end{array}
-%            }
-%   \end{array}}
-% \endprooftree \\ \\ 
-% \ruleform{ \Dtrans{\Sigma}{P} = \formula{\phi}} \\ \\ 
-% \prooftree
-%      \begin{array}{l}       
-%        \text{for each} (f\;\ol{a}\;\ol{x{:}\tau} = u \in P \\ 
-%           \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
-%      \end{array}
-%      --------------------{TDefs}
-%      \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
-% \endprooftree 
+\ptrans{\Sigma}{\ol{d}} = \bigwedge \ol{\dtrans{\Sigma}{d}}
+\\ \\
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\begin{array}{rcl}
+\ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} 
+  & = & \formula{t{=}\unr} \\ 
+  & \lor & \formula{t'[t/x]{=}\unr} \\
+  & \lor & \formula{t'[t/x]{=}\True} \\
+  & \mbox{where} & 
+    \begin{array}[t]{rcl}
+      t  & = & \etrans{\Sigma}{\Gamma}{e} \\
+      t' & = & \etrans{\Sigma}{\Gamma}{e} 
+    \end{array}
+\\
+\ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} 
+  & = & \formula{\forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} 
+                          \Rightarrow \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
+\\
+\ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} 
+   & = & \formula{ \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} /\ \ctrans{\Sigma}{\Gamma}{e \in \Ct_2}}
+\\
+\ctrans{\Sigma}{\Gamma}{e \in \CF} & = & \formula{\lcf{\etrans{\Sigma}{\Gamma}{e}}}
+\end{array}
 \end{array}\]
-\caption{Translation of programs to logic}\label{fig:etrans}
+\caption{Translation of programs and contracts to logic}\label{fig:etrans}
+\end{figure}
+% ---------------------------------------------------
+\begin{figure}\small
+\setlength{\arraycolsep}{1pt} 
+\[\begin{array}{c} 
+\begin{array}{ll} 
+\multicolumn{2}{l}{\text{Axioms for fixed constants}} \\
+ \textsc{AxAppBad}  & \formula{\forall x @.@ app(\bad,x){=}\bad}  \\
+ \textsc{AxAppUnr}  & \formula{\forall x @.@ app(\unr,x){=}\unr}    \\
+ \textsc{AxDisjBU} & \formula{\bad \neq \unr}  \\ 
+ \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+\\
+\multicolumn{2}{l}{\mbox{Axioms for data constructors}} \\
+ \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+ \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
+ %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
+ %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
+ %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
+ %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \text{for every } K^\ar \in \Sigma \text{ and } i \in 1..n
+\end{array}
+\end{array}\]
+\caption{Axioms of the FOL constants}\label{fig:prelude}
 \end{figure}
 
-\subsection{Translation of expressions to FOL}
+% ---------------------------------------------------
+\spj{Is this next paragraph right?  I want to set the scene.}
+What exactly does it mean to translate an expression to first-order logic?
+We are primarily interested in reasoning about equality, so we might
+hope for this (informally):
+$$
+e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_{FOL} \etrans{}{}{e_2}
+$$
+where $=_S$ means semantic equality, $=_{FOL}$ means equality in first-order logic,
+and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can 
+reason about the equality of Haskell terms by translating them into FOL using
+a FOL theorem prover. 
 
-The translation of expressions $e$ which may contain term variables from $\Gamma$ to 
-first-order logic terms is given in Figure~\ref{fig:etrans} with the function
-$\etrans{}{\Gamma}{e}$. Variables map to variables, functions map to function pointers, 
-applications map to applications of $app(\cdot,\cdot)$, constructors map to constructor
-function applications and @BAD@ maps to $\bad$.
+The translation of programs, definitions, and expressions to FOL
+is given in Figure~\ref{fig:etrans}.
+The function $\ptrans{}{P}$ translates a program to a conjunction of formulae,
+one for each definition $d$, while $\dtrans{}{d}$ in turn translates 
+a definition $d$.
+The first forumula in $\dtrans{}{}$'s right-hand side invokes the translation
+$\utrans{}{u}{f(\ol{x})}$ for the right hand side $u$, passing in the term $f(\ol{x})$,
+and quantifying over the $\ol{x}$.  We will deal with the second formula shortly.
 
-A program $P$ is translated to a first order logic formula with the function 
-$\dtrans{}{P}$. For each function definition of a function $f^\ar$ we generate
-a quantified formula $\forall \xs @.@ \utrans{}{\ol{x}}{f(\ol{x}) \sim u}$ where $u$ is the 
-right-hand side of the definition of $f$ in $P$. The function 
-$\utrans{}{\Gamma}{t \sim u}$ generates the necessary formula to equate the left-hand-side
-first-order term $t$ to a term corresponding to $u$. The context $\Gamma$ is present
-for book-keeping purposes. As Figure~\ref{fig:etrans} shows there are two cases to 
-consider. If $u$ is just a @case@-free expression $e$, in which case we generate
-an equality formula (rule \rulename{DExp}. 
+Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}), $\utrans{}{u}{s}$
+simply returns a formula asserting the equality $s = \etrans{}{}{e}$. 
+That is, we use a new constant $f$ in the logic for each function definition in the
+program, and assert that any application of $f$ is equal to (the logical translation of)
+$f$'s right hand side. Notice that we erase type arguments in the translation
+since they do not affect the semantics.
 
-\subsection{Data types and {\tt case} expressions}
+Lastly $\etrans{}{}{e}$ deals with expressions.  If $\cal L$ was 
+a first-order language the translation would be easy:
+$$
+\etrans{\Sigma}{\Gamma}{f[\ol{\tau}]\;\ol{e}} = \formula{f(\ol{\etrans{}{}{e}})} \\
+$$
+At first it might be surprising that we can also translate a \emph{higher-order} language
+$\cal L$ into first order logic, but in fact it is easy to do so, as 
+Figure~\ref{fig:etrans} shows.  We introduce into the logic
+(a) a single new constant $app$, standing
+for application, and (b) a nullary constant $f_{ptr}$ for each function $f$ 
+(see Figure~\ref{fig:fol-image}).
+Then, the equations for $\etrans{}{}{}$ translate application in $\cal L$ to 
+a use of $app$ in FOL, and any mention of function $f$ in $\cal L$ to a use
+of $f_{ptr}$ in the logic.  For example:
+$$
+\etrans{}{}{@map f xs@} = app( app( @map@_{ptr}, @f@_{ptr}), @xs@)
+$$
+assuming that @map@ and @f@ are top-level functions in the $\cal L$-program, and
+@xs@ is a local variable.  Once enough $app$ applications stack up, so that 
+$@map@_{ptr}$ is applied to two arguments, can invoke @map@ directly in the logic,
+an idea we expression with the following axiom:
+$$
+\forall x y.\;app(app(@map@_{ptr}, x), y) = @map@(x,y)
+$$
+These axioms, one for each function $f$, are generated by the second
+clause of the rules for $\dtrans{}{}{}$ in Figure~\ref{fig:etrans}.
+(The notation $app(f,\ol{x})$ is defined in Figure~\ref{fig:fol-image}.)
+You can think of $@map@_{ptr}$ as a ``pointer to'', or ``name of'' of, @map@.
+The $app$ axiom for @map@ translates a saturated use of @map@'s pointer into
+a call of @map@ itself.   
 
+\subsection{Data types and {\tt case} expressions} \label{s:case-fol}
+
+The second equation for $\utrans{}{u}{}$ in Figure~\ref{fig:etrans} deals with
+@case@ expressions, by generating a conjuntion of formulae, as follows:
+\begin{itemize}
+\item If the scrutinee $t$ is $bad$ (meaning divergence or a use of @error@) then
+the result $s$ of the @case@ expression is also $bad$.  That is, @case@ is strict in
+its scrutinee.
+\item If the scrutinee is an application of one of the constructors $K_i$ mentioned
+in one of the @case@ alternatives, then the result $s$ is equal to the corresponding
+right-hand side (after quantifying the variables bound by the @case@).
+\item Otherwise the result is $unr$.  The formula 
+  $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$ 
+is just the clumsy FOL way to say ``$t$ is not built with constructor $K_1$.
+\end{itemize}
 The most interesting rule is \rulename{DCase}. If the translation of the scrutinee
 $t$ is equal to $\bad$ then the left-hand-side $s$ must be equal to $\bad$. If it is 
 equal to some constructor application from the case expressions then the right 
@@ -583,57 +617,19 @@ we attempt to scrutinize a constructor of a different type in a case expression,
 resulting denotation is simply $\bot$. This reinforces our desire to treat type errors
 as $\bot$ values. 
 
-\subsection{Higher order functions}
-
-\spj{Here I want us to describe how app works.}
-
 \subsection{Translation of contracts to FOL}
 
-\begin{figure}\small
-\[\begin{array}{c} 
-\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
-\prooftree
-  \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-  \end{array}
-  ------------------------------------------{CTransBase}
-  \begin{array}{l}
-   \ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
-  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-  \;\;\formula{(t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)}
-  \end{array}
-  ~~~~~ 
-  \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-  \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
-  \end{array} 
-  ------------------------------------------{CTransArr}
-  \begin{array}{l} 
-  \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
-  \formula{\forall x @.@ \neg \phi_1 \lor \phi_2} 
-  \end{array}
-  ~~~~~
-  \begin{array}{c}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
-  \end{array}
-  ------------------------------------------{CTransConj}
-  \ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
-  ~~~~~
-  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-  -------------------------------------------{CTransCf}
-  \ctrans{\Sigma}{\Gamma}{e \in \CF} = \formula{\lcf{t}}
- \endprooftree \\ \\ 
-\ruleform{\Th_\lcfZ} \\ \\ 
-\begin{array}{lll} 
- \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
- \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
-                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma
-\end{array}
-\end{array}\]
-\caption{Translation of contracts to logic}\label{fig:contracts-minless}
-\end{figure}
+Figure~\ref{fig:prelude} gives an axiomatization. For notational convenience the reader
+should think that each of these rules can potentially give a conjunction of formulae.
+The axiom \rulename{AxDisjBU} asserts that $\bad$ cannot be equated to $\unr$. 
+Rule \rulename{AxDisjC} is really givin a conjunction of axioms. It asserts that all 
+constructors are disjoint with each other and \rulename{AxDisjCBU} asserts that they 
+are also disjoint from $\bad$ and $\unr$. 
+Axiom group \rulename{AxPtr} asserts that full applications of function pointers 
+are equal to the actual function applications and \rulename{AxApp} describes the behavior
+of $app(\cdot,\cdot)$ when the first argument is $\bad$ or $\unr$. Finally the selector
+functions describe how we can project a value out of a datatype. 
+
 
 We now turn to expressing contract semantics in first-order logic. 
 We do not translate a contract; rather we translate the claim $e \in C$.
@@ -647,6 +643,10 @@ an axiomatization of crash-freedom with the axiom groups \rulename{AxCfBU} and
 \rulename{AxCfC}. The first axiom asserts that $\unr$ is crash-free and $\bad$ is not, 
 whereas the second axiom asserts that a constructor value is crash-free if and only iff 
 all of its children nodes are crash-free. 
+
+\subsection{Bad, unreachable, and crash-freedom}
+
+\spj{desribe these}
 
 \subsection{Proving that a function satisfies a contract}
 
