@@ -30,7 +30,7 @@ app p []     ys = ys
 unsat_app_cf = app ::: (CF --> CF) --> CF --> CF --> CF
 
 -- This contract should really be quantified over a p
-unsat_app_any_homomorphism =
+big_unsat_app_any_morphism =
     app ::: ((CF --> CF) :-> \p
          -> CF :-> \xs
          -> CF :-> \ys
@@ -38,7 +38,7 @@ unsat_app_any_homomorphism =
   `Using` unsat_any_cf
 
 -- This contract should really be quantified over a p
-sat_app_any_homomorphism_missing_using =
+big_sat_app_any_morphism_fail =
     app ::: ((CF --> CF) :-> \p
          -> CF :-> \xs
          -> CF :-> \ys
