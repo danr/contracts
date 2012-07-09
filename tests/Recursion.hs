@@ -28,7 +28,7 @@ ind :: Nat -> Nat
 ind Z     = Z
 ind (S x) = S (ind x)
 
-ind_cf = ind ::: CF --> CF
+unsat_ind_cf = ind ::: CF --> CF
 
 max :: Nat -> Nat -> Nat
 max Z y         = y

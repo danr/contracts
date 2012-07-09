@@ -8,6 +8,10 @@ dist
 .\#*
 *~
 
+# Tests temp
+tests/.tmp
+tests/.z3.tmp
+
 # Latex temp
 *.aux
 *.log

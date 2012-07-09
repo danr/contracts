@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # If the contract name contains holds, thm, or unsat it should
 # indeed hold, otherwise there should be a countermodel.
@@ -16,7 +17,7 @@ trap 'exit 1' INT
 rm -rfv *.tptp
 
 # Generate all contracts
-hcc $@ -d
+hcc $@ -d -i
 
 # Result is stored in .tmp
 # Arguments
@@ -25,10 +26,10 @@ hcc $@ -d
 #    $3 : says what the tool name is
 function res_parser {
 #    echo "Res parser $1 $2 from $3"
-    if [[ `grep -i $1 .tmp` ]]; then
+    if [[ `grep -i " $1" .tmp` ]]; then
         echo "OK from $3"
         return 0
-    elif [[ `grep -i $2 .tmp` ]]; then
+    elif [[ `grep -i " $2" .tmp` ]]; then
         echo "=== FAIL from $3 ==="
         cat .tmp
         echo "=== END OF FAIL ==="
@@ -62,32 +63,42 @@ function run_vampire {
     res_parser $3 $4 vampire
 }
 
+# Arguments
+#   $1 : Timeout in seconds
+#   $2 : Filename
+#   $3 : good grep
+#   $4 : bad grep
+function run_z3 {
+#    echo "z3 $3"
+    sed 's/\$min/min/g' $2 > .z3.tmp
+    (timeout $1 z3 -tptp -nw .z3.tmp | grep status) > .tmp
+    res_parser $3 $4 z3
+}
+
 
 for FILE in `find -iname '*.tptp'`
 do
     # holds=0 if it should hold, 1 otherwise
     holds=`echo $FILE | egrep '(unsat|thm|holds)'`
-    echo -n "$FILE, should be "
     # if you don't want to test both of these,
     # add an appropriate continue:
     if [[ $holds ]]; then
-        echo UNSAT
-        # echo 'Skipping...'; continue
-        good=" unsat"
-        bad=" sat"
+        # continue
+        echo "$FILE, should be UNSAT"
+        good="unsat"
+        bad="sat"
     else
-        echo SAT
-        # echo 'Skipping...'; continue
-        good=" sat"
-        bad=" unsat"
+        # continue
+        echo "$FILE, should be SAT"
+        good="sat"
+        bad="unsat"
     fi
     # Remove a tool by uncommenting a line
-    run_koentool paradox 2 $FILE $good $bad ||
+    run_koentool paradox 2  $FILE $good $bad ||
     run_koentool equinox 10 $FILE $good $bad ||
-    run_vampire 10 $FILE $good $bad ||
+    run_z3               10 $FILE $good $bad ||
+    run_vampire          10 $FILE $good $bad ||
     echo "All tools timed out"
     echo
 done
 
-# Cannot do z3 because we print min as $min
-#          (timeout 1 z3 -tptp -nw $FILE | grep SZS) \

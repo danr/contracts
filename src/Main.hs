@@ -48,7 +48,7 @@ printCore msg core = do
     endl
 
 processFile :: Params -> FilePath -> IO ()
-processFile Params{..} file = do
+processFile params@Params{..} file = do
 
     let dsconf = DesugarConf
                      { debug_float_out = db_float_out
@@ -104,7 +104,7 @@ processFile Params{..} file = do
             , unr_and_bad       = True
             , ext_eq            = False
             -- ^ False for now, no good story about min and ext-eq
-            , disjoint_booleans = not squishy_booleans
+            , disjoint_booleans = True -- not squishy_booleans
             , or_discr          = or_discr
             }
 
@@ -146,7 +146,7 @@ processFile Params{..} file = do
 
     forM_ stmts $ \stmt@Statement{..} -> do
         let (proofs,msgs_tr_contr)
-                = runHaloM halt_env (trStatement stmts fix_info stmt)
+                = runHaloM halt_env (trStatement params stmts fix_info stmt)
 
         when db_trans (printMsgs msgs_tr_contr)
 
@@ -161,6 +161,10 @@ processFile Params{..} file = do
                                proofPartSuffix proof_part ++ ".tptp"
 
             putStrLn $ "Writing " ++ show filename
+
+            when dump_subthys $ do
+                putStrLn $ "Subtheories: "
+                mapM_ print subtheories'
 
             writeFile filename tptp
 
