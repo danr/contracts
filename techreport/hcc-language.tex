@@ -7,29 +7,13 @@ end to translate Haskell into language $\cal L$.
 
 \subsection{Syntax of $\cal L$} \label{s:syntax}
 
-Figure~\ref{fig:syntax} presents the syntax of $\cal L$. 
-A program $P$ consists of a set of recursive 
-function definitions $f_1^{\ar_1}\ldots f_n^{\ar_n}$ each associated with an {\em arity} $\ar \geq 1$ 
-which records the number of explicit abstractions of this function. Each of the function definitions
-is of the form $\Lambda\as @.@ \lambda \ol{x{:}\tau} @.@ u$. A term $u$ is either a @case@ expression 
-or a @case@-free expression $e$. A @case@-free expression consists of variables $x$, function variables 
-$f[\taus]$ fully applied to their type arguments, applications $e_1\;e_2$, data constructor 
-applications $K[\taus](\ol{e})$, as well as the special value @BAD@, which will be used to model 
-failure as a throwable error term. In what follows we will be treating expressions $e$ as a subset 
-of expressions $u$ to save some notation overhead. As a notation, we use $\oln{x}{n}$ for sequences
-of elements of size $n$. When $n$ is ommitted $\ol{x}$ has a size which is implied by the context or 
-is not interesting.
-
 \begin{figure}
 \[\begin{array}{l} 
 \begin{array}{lrll}
-\multicolumn{3}{l}{\text{Programs, right-hand sides, and expressions}} \\
-P   & ::= & @fix@\;(f_1^{\ar_1},...,f_k^{\ar_k})\;@=@ \\ 
-    &     & \quad\quad (\Lambda\as_1 @.@ \lambda{\oln{x{:}\tau}{\ar_1}} @.@ u_1,...,
-                                                \Lambda\as_k @.@ \lambda{\oln{x{:}\tau}{\ar_k}} @.@ u_k) \\
-%% %% d   & ::= & f |-> \Lambda\ol{a} @.@ \lambda\ol{x{:}\tau} @.@ u \\ 
-u   & ::= & e \mid @case@\;e\;@of@\;\ol{K\;\ol{y} -> e} \\ 
-%%D   & ::= & \cdot \mid D,d \\
+\multicolumn{3}{l}{\text{Programs, definitions, and expressions}} \\
+P   & ::= & d_1 \ldots d_n \\
+d   & ::= & f\; \ol{a} \; \ol{(x\!:\!\tau)} = u \\
+u   & ::= & e \; \mid \; @case@\;e\;@of@\;\ol{K\;\ol{y} -> e}
 \end{array}
 \\ 
 \begin{array}{lrll}
@@ -80,6 +64,22 @@ e  & ::=  & x            & \text{Variables} \\
 \caption{Syntax of $\cal L$ and its contracts}\label{fig:syntax}
 \end{figure}
 
+Figure~\ref{fig:syntax} presents the syntax of $\cal L$.  A program
+$P$ consists of a set of recursive function definitions $d_1 \ldots
+d_n$. Each definition has a left hand side that binds its type-variable and
+term-variable parameters;
+if $f$ has $n$ term-variable parameters we say that 
+it has arity $n$, and sometimes write it $f^n$.
+The right hand side $u$ of a definition is either a @case@ expression or a
+@case@-free expression $e$.  A @case@-free expression consists of
+variables $x$, function variables $f[\taus]$ fully applied to their
+type arguments, applications $e_1\;e_2$, data constructor applications
+$K[\taus](\ol{e})$, as well as the special value @BAD@, which will be
+used to model failure as a throwable error term. As a notation, we use
+$\oln{x}{n}$ for sequences of elements of size $n$. When $n$ is
+ommitted $\ol{x}$ has a size which is implied by the context or is not
+interesting.
+
 Our language embodies several convenient syntactic constraints: (i)~$\lambda$
 abstractions occur only at the top-level, (ii)~@case@-expressions can
 only immediately follow a function definition, and (iii) constructors
@@ -110,12 +110,11 @@ are exhaustive. Originally-incomplete cases have been completed to return the cr
 instance, the program:
 \begin{code}
 head :: [a] -> [a]
-head (x::xs) = x
+head (x:xs) = x
 \end{code}
 will be represented in our language as:
 \[\begin{array}{l}
-   \Lambda a @.@ \lambda (x{:}[a]) @.@ \\
-   \quad @case@\;x\;@of@ \{ [] -> @BAD@ ; (x::xs) -> x \} 
+   @head@\; a\; (x{:}[a]) = @case@\;x\;@of@ \{ [] -> @BAD@ ; (x:xs) -> x \} 
 \end{array}\]
 Finally, our technical development and analysis in the following sections assume that programs have been 
 checked for type errors. 
@@ -145,7 +144,7 @@ sure what it means.}
 P |- v \Downarrow v
 ~~~~~
 \begin{array}{c}
-(f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+(f \;\ol{a}\;\oln{(x{:}\tau)}{m} = u) \in P \\
 P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v
 \end{array}
 -------------------------------------{EFun}
@@ -405,8 +404,8 @@ verify contracts.
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Terms}} \\
   s,t & ::=  & x                          & \text{Variables} \\ 
-      &      & f(\ol{t})                  & \text{Functions} \\
-      &      & K(\ol{t})                  & \text{Constructor functions} \\ 
+      & \mid & f(\ol{t})                  & \text{Function applications} \\
+      & \mid & K(\ol{t})                  & \text{Constructor applications} \\ 
       & \mid & \sel{K}{i}(t)              & \text{Constructor selectors} \\ 
       & \mid & f_{ptr} \mid app(t,s)       & \text{Pointers and application} \\
       & \mid & \unr \mid \bad             & \text{Unreachable, bad} \\ \\
@@ -442,77 +441,113 @@ crash-freedom, whose semantics we discuss in Section~\ref{sect:contracts}.
 
 
 \begin{figure}\small
+\setlength{\arraycolsep}{2pt} 
 \[\begin{array}{c} 
 \ruleform{\etrans{\Sigma}{\Gamma}{e} = \formula{t} } \\ \\
-\prooftree
-  \begin{array}{c}
-  (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma
-  \end{array}
-  --------------------------------------{TFVar}
-  \etrans{\Sigma}{\Gamma}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
-  ~~~~ 
-  x \in \Gamma 
-  --------------------------------------{TVar}
-  \etrans{\Sigma}{\Gamma}{x} = \formula{x}
-  ~~~~~ 
-  \begin{array}{c}
-  (K{:}\forall\oln{a}{n} @.@ \ol{\tau} -> T\;\as) \in \Sigma \quad
-  \ol{\etrans{\Sigma}{\Gamma}{e} = \formula{t}}
-  \end{array}
-  --------------------------------------{TCon}
-  \etrans{\Sigma}{\Gamma}{K[\oln{\tau}{n}](\ol{e})} = \formula{K(\ol{t})}
-  ~~~~~
-  \phantom{\Gamma}
-  --------------------------------------{TBad}
-  \etrans{\Sigma}{\Gamma}{@BAD@} = \formula{\bad}
-  ~~~~
-  \begin{array}{c}
-  \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \\
-  \etrans{\Sigma}{\Gamma}{e_2} = \formula{t_2}
-  \end{array}
-  --------------------------------------{TApp}
-  \etrans{\Sigma}{\Gamma}{e_1\;e_2} = \formula{app(t_1,t_2)}
-\endprooftree \\ \\ 
-\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u} = \formula{\phi}} \\ \\ 
-\prooftree
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
-   ----------------------------------------{DExp}
-   \utrans{\Sigma}{\Gamma}{s \sim e } = \formula{s = t} 
-   ~~~~~
-  \begin{array}{l}
-  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \\
-%%  constrs(\Sigma,T) = \ol{K} \\
-  \text{for each branch}\;(K\;\oln{y}{l} -> e') \text{ it is } \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
-%%  \begin{array}{l}
-%% %%           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
-%%            \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
-%%   \end{array}
-  \end{array}
-  ------------------------------------------{DCase}
-  {  \setlength{\arraycolsep}{2pt} 
-  \begin{array}{l}
-  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
-  \;\;\formula{ \begin{array}{l} 
-          (t = \bad => s = bad)\;\land \\ 
-          (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1}\;\land \ldots \land \\
-          (t{\neq}\bad\;\land\;t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s{=}\unr) 
-%% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
-%%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
-%%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
-                   \end{array}
-           }
-  \end{array}}
-\endprooftree \\ \\ 
-\ruleform{ \Dtrans{\Sigma}{P} = \formula{\phi}} \\ \\ 
-\prooftree
-     \begin{array}{l}       
-       \text{for each} (f |-> \Lambda\oln{a}{n} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\ 
-          \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
-     \end{array}
-     --------------------{TDefs}
-     \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
-\endprooftree 
-
+\begin{array}{rcl}
+\etrans{\Sigma}{\Gamma}{x} & = & \formula{x} \\
+\etrans{\Sigma}{\Gamma}{f[\ol{\tau}]} & = & \formula{f_{ptr}} \\
+\etrans{\Sigma}{\Gamma}{K[\ol{\tau}](\ol{e})} & = & \formula{K(\ol{\etrans{e}{\Gamma}{t}})} \\
+\etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{t_1}{\Gamma},
+                                                     \etrans{\Sigma}{t_1}{\Gamma})} \\
+\etrans{\Sigma}{\Gamma}{@BAD@} & = & \formula{\bad}
+\end{array}
+\\ \\
+\ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
+\begin{array}{rcl}
+\dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = e} 
+  & = & \formula{f(\ol{x}) = \etrans{\Sigma}{\Gamma}{e}} \\
+\multicolumn{3}{l}{\dtrans{\Sigma}
+    {f \;\ol{a}\;\ol{(x{:}\tau)} = @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}} \\
+\multicolumn{3}{l}{
+\quad 
+  \begin{array}[t]{rl}
+    = & \formula{(t = \bad => s = bad)} \\ 
+    \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots}  \\
+    \land & \formula{(t{\neq}\bad\;\land\;
+                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr)} \\
+    \mbox{where} &  
+         \begin{array}[t]{rcl} 
+            s & = & f(\ol{x}) \\  
+            t & = & \etrans{\Sigma}{\Gamma}{e} 
+         \end{array}
+ \end{array}
+}
+\end{array}
+\\ \\
+\ruleform{\ptrans{\Sigma}{P} = \formula{\phi} } \quad
+\ptrans{\Sigma}{\ol{d}} = \ol{\dtrans{\Sigma}{d}}
+% \ruleform{\Dtrans{\Sigma}{\Gamma}{u} = \formula{\phi} } \\ \\
+% 
+% \prooftree
+%   \begin{array}{c}
+%   (f{:}\forall\oln{a}{n} @.@ \tau) \in \Sigma
+%   \end{array}
+%   --------------------------------------{TFVar}
+%   \etrans{\Sigma}{\Gamma}{f[\oln{\tau}{n}]} = \formula{f_{ptr}}
+%   ~~~~ 
+%   x \in \Gamma 
+%   --------------------------------------{TVar}
+%   \etrans{\Sigma}{\Gamma}{x} = \formula{x}
+%   ~~~~~ 
+%   \begin{array}{c}
+%   (K{:}\forall\oln{a}{n} @.@ \ol{\tau} -> T\;\as) \in \Sigma \quad
+%   \ol{\etrans{\Sigma}{\Gamma}{e} = \formula{t}}
+%   \end{array}
+%   --------------------------------------{TCon}
+%   \etrans{\Sigma}{\Gamma}{K[\oln{\tau}{n}](\ol{e})} = \formula{K(\ol{t})}
+%   ~~~~~
+%   \phantom{\Gamma}
+%   --------------------------------------{TBad}
+%   \etrans{\Sigma}{\Gamma}{@BAD@} = \formula{\bad}
+%   ~~~~
+%   \begin{array}{c}
+%   \etrans{\Sigma}{\Gamma}{e_1} = \formula{t_1} \\
+%   \etrans{\Sigma}{\Gamma}{e_2} = \formula{t_2}
+%   \end{array}
+%   --------------------------------------{TApp}
+%   \etrans{\Sigma}{\Gamma}{e_1\;e_2} = \formula{app(t_1,t_2)}
+% \endprooftree \\ \\ 
+% \ruleform{\utrans{\Sigma}{\Gamma}{f\;\ol{a}\;\ol{x{:}\tau} = u} = \formula{\phi}} \\ \\ 
+% \\
+% \prooftree
+%    \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+%    ----------------------------------------{DExp}
+%    \utrans{\Sigma}{\Gamma}{f\;\ol{a}\;\ol{x{:}\tau} = e} = \formula{f(\ol{x}) = t} 
+%    ~~~~~
+%   \begin{array}{l}
+%   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \\
+% %%  constrs(\Sigma,T) = \ol{K} \\
+%   \text{for each branch}\;(K\;\oln{y}{l} -> e') \text{ it is } \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+% %%  \begin{array}{l}
+% %% %%           (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+% %%            \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+% %%   \end{array}
+%   \end{array}
+%   ------------------------------------------{DCase}
+%   {  \setlength{\arraycolsep}{2pt} 
+%   \begin{array}{l}
+%   \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}} = \\
+%   \;\;\formula{ \begin{array}{l} 
+%           (t = \bad => s = bad)\;\land \\ 
+%           (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1}\;\land \ldots \land \\
+%           (t{\neq}\bad\;\land\;t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s{=}\unr) 
+% %% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
+% %%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+% %%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
+%                    \end{array}
+%            }
+%   \end{array}}
+% \endprooftree \\ \\ 
+% \ruleform{ \Dtrans{\Sigma}{P} = \formula{\phi}} \\ \\ 
+% \prooftree
+%      \begin{array}{l}       
+%        \text{for each} (f\;\ol{a}\;\ol{x{:}\tau} = u \in P \\ 
+%           \quad \utrans{\Sigma}{\ol{x}}{f(\ol{x}) \sim u} = \formula{\phi}
+%      \end{array}
+%      --------------------{TDefs}
+%      \Dtrans{\Sigma}{P} = \bigwedge_{P} \formula{\forall \ol{x} @.@ \phi}
+% \endprooftree 
 \end{array}\]
 \caption{Translation of programs to logic}\label{fig:etrans}
 \end{figure}
