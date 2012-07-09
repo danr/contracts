@@ -468,7 +468,7 @@ semantics we discuss in Section~\ref{sect:contracts}.
 \ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
   \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u} 
-    & =     & \formula{\forall \ol{x} @.@ \utrans{\sigma}{u}(f(\ol{x}))} \\
+    & =     & \formula{\forall \ol{x} @.@ \utrans{\sigma}{u}{f(\ol{x})}} \\
     & \land & \formula{\forall \ol{x} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
 \end{array}
 \\ \\
