@@ -12,10 +12,10 @@ data Params = Params
     , fof              :: Bool
     , comments         :: Bool
     , core_optimise    :: Bool
-    , squishy_booleans :: Bool
     , dollar_min       :: Bool
     , or_discr         :: Bool
     , fpi_no_plain     :: Bool
+    , symmetric_min    :: Bool
 
     , db_float_out     :: Bool
     , db_lift          :: Bool
@@ -43,10 +43,10 @@ defParams = Params
     , fof              = False &= name "f" &= help "Generate theories in CNF rather than fof when possible"
     , comments         = False &= name "C" &= help "Don't print comments in TPTP file (current default is on for debugging purposes)"
     , core_optimise    = False &= name "O" &= help "Run the core2core optimising pass"
-    , squishy_booleans = False &= name "s" &= help "Don't force true /= false, put min antecedent there"
     , dollar_min       = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr         = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , fpi_no_plain     = False &= name "i" &= help "If you can apply fpi, don't generate without induction"
+    , symmetric_min    = False &= name "s" &= help "Use Dimitrios' new symmetric min ideas"
 
     , db_float_out     = False &= groupname "\nDebugging output"
                                &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
