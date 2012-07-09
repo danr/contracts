@@ -24,8 +24,8 @@ risers (x:y:xs) = case risers (y:xs) of
 null []    = True
 null (_:_) = False
 
-full []    = False
-full (_:_) = True
+nonEmpty []    = False
+nonEmpty (_:_) = True
 
 not True = False
 not False = True
@@ -57,8 +57,8 @@ unsat_risersBy_contr =
              --> CF :&: Pred (not . null)
              --> CF :&: Pred (not . null)
 
-unsat_risersBy_full_contr :: Statement
-unsat_risersBy_full_contr =
+unsat_risersBy_nonEmpty_contr :: Statement
+unsat_risersBy_nonEmpty_contr =
     risersBy ::: (CF --> CF --> CF)
-             --> CF :&: Pred full
-             --> CF :&: Pred full
+             --> CF :&: Pred nonEmpty
+             --> CF :&: Pred nonEmpty

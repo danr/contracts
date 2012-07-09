@@ -31,10 +31,8 @@ unsat_ind_contr_cf = ind ::: CF --> CF
 
 -- | Ind retains the invariant /and/ is crash free
 unsat_ind_contr_retain
-    = ind -- ::: (CF --> CF)
-          ::: (Pred invariant :->
-                       \ y -> (Pred (\r -> invariant y && invariant r)))
-          -- :&: (CF :&: Pred invariant --> Pred invariant)
+    = ind ::: (Pred invariant :->
+                \ y -> (Pred (\r -> invariant y && invariant r)))
     `Using`
       unsat_invariant_cf
     `Using`
@@ -42,3 +40,5 @@ unsat_ind_contr_retain
 
 
 
+         -- ::: (CF --> CF)
+         -- :&: (CF :&: Pred invariant --> Pred invariant)
