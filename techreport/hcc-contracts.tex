@@ -45,7 +45,7 @@ Observe that we have dropped all type information from the source language. The 
 corresponding to data constructors are simply $D^{+}$ (instead of more a precise description from type 
 information) and the return types of data constructors are similarly ignored. This is not to say that 
 a more type-rich denotational semantics is not possible (or desirable even) but this simple denotational 
-semantics turns out to be sufficient for formalization and verification. 
+semantics turns out to be sufficient for formalisation and verification. 
 
 %% for $\lambda$-abstractions and @BAD@. Observe that we have 
 %% Moreover, the following continuous operations are defined:
@@ -239,7 +239,7 @@ $$
 
 Figure~\ref{f:denot} gives the denotational interpretations 
 of expressions $e$, right hand sides $u$, and programs $P$, in 
-terms of the domain-theoretic language and combinators we hae defined.
+terms of the domain-theoretic language and combinators we have defined.
 
 First, the denumerable set of term variable names $x_1,\ldots$ induces a discrete 
 cpo $\VarCpo$  and the denumerable set of function variable names $f_1,\ldots$ induces a discrete 
@@ -304,11 +304,11 @@ there exists a $v$ such that $P |- e \Downarrow v$.
 \end{theorem}
 
 The proof of this theorem is also standard domain theory so we only sketch the 
-high-level roadmap: The proof proceeds by defining a {\em logical relation} between 
-semantics and syntax, via the use of a bifunctor on admissible relations between elements 
+high-level road-map: The proof proceeds by defining a {\em logical relation} between 
+semantics and syntax, via the use of a bi-functor on admissible relations between elements 
 of $D_\infty$ and closed expressions, and using minimal 
 invariance~\cite{pitts-rel-domains} to show that this
-bifunctor has a fixpoint. Adequacy then follows from the {\em fundamental theorem} of this 
+bi-functor has a fixpoint. Adequacy then follows from the {\em fundamental theorem} of this 
 logical relation, which asserts that every expression is related to its denotation.
 
 %% To do this we define a {\em logical relation} first between semantics 
@@ -456,11 +456,11 @@ logical relation, which asserts that every expression is related to its denotati
 The specification of what it means for a function to satisfy a
 contract (Figure~\ref{f:contract-spec-op}) is cast in terms of
 \emph{operational} semantics but we re-cast it here in \emph{denotational} terms.
-The two do not match perfectly but, as we dicuss in Section~\ref{sect:discussion}, 
+The two do not match perfectly but, as we discuss in Section~\ref{sect:discussion}, 
 the mis-match is unimportant.
 
 
-The semantics of contracts is to a certain extaint a matter of design decisions, and previous
+The semantics of contracts is to a certain extent a matter of design decisions, and previous
 work has discussed several decisions. Our goal is to define a predicate 
 \[              \dbrace{\Ct}_\rho : D_\infty -> @Prop@   \]
 where $\Ct$ is a contract with free term variables in the semantic environment $\rho$. Below
@@ -523,7 +523,7 @@ denotations $S^{-},S^{+} \subseteq D_\infty$.
                    &      & \quad\quad\text{ if } \unroll(d) = \ret(\inj{->}(d_0)) \text{ then } \\ 
                    &      & \quad\quad\text{ for all }\;d' \in S^{-} \text{ it is } d_0(d') \in S^{+} \}  \\
 \end{array}\]}
-The intersection of admissible sets is admissible so the $\Fcf$ bifunctor has a negative and positive fixpoint, and by minimal 
+The intersection of admissible sets is admissible so the $\Fcf$ bi-functor has a negative and positive fixpoint, and by minimal 
 invariance they coincide (one direction follows by Tarski-Knaster, the other can be inductively proved using the fact that the 
 lub of the chain of embedding-projections is the identity and the fact that this 
 functor preserves admissibility for the covariant argument). Let us call this admissible set $\Fcf^{\infty} \subseteq D_{\infty}$.
@@ -576,7 +576,7 @@ that $\langle D_\infty,{\cal I}\rangle \models \phi$ iff $\dbrace{\Ct}(\dbrace{e
 \end{theorem}
 
 Finally, by computational adequacy, we can connect the denotational semantics and 
-a corresponding operational nottion of satisfcation at least for base contracts. 
+a corresponding operational notion of satisfaction at least for base contracts. 
 
 \begin{corollary} Assume that $e$ and $\Ct$ contain no term variables and 
 assume that $\ctrans{}{\cdot}{e \in \{x \mid e_p\}} = \formula{\phi}$. It is the case 
@@ -585,7 +585,7 @@ $P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Dow
 \end{corollary}
 We have mentioned before that big-step semantics is convenient and here it shows why: by 
 stating that $P \not|- e \Downarrow$ we allow $e$ to diverge or have a stuck evaluation, 
-which will both be modeled as $\bot$ in the denotational semantics that we have presented.
+which will both be modelled as $\bot$ in the denotational semantics that we have presented.
 In fact, by choosing weaker predicates for crash-freedom in the denotational world we can
 give a precise 1-1 correspondence with operational semantics for non-arrow contracts. 
 Section~\ref{sect:discussion} gives a more thorough discussion on connecting 
@@ -602,7 +602,7 @@ It is straightforward again to show the following theorem:
 If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \Th_\infty$. 
 \end{theorem} 
 
-Interestingly, our formalization is not complete -- $D_\infty$ has a complex structure 
+Interestingly, our formalisation is not complete -- $D_\infty$ has a complex structure 
 and there are many more equalities that one could add to the axiomatization. For instance, 
 here are some more axioms that are validated by the denotational model:
 \[\begin{array}{l}
@@ -616,7 +616,7 @@ here are some more axioms that are validated by the denotational model:
 \end{array}\]
 These axioms assert that partial applications cannot be equated to 
 any constructor, $\bot$ nor $\inj{@BAD@}(1)$. If the reader is worried that without a 
-complete formalization of all equalities of $D_\infty$ it is impossible to prove any 
+complete formalisation of all equalities of $D_\infty$ it is impossible to prove any 
 programs correct, we would like to reassure them that that is not the case as we shall
 see in the next section.
 

@@ -1,4 +1,4 @@
-To formalize the ideas behind our implementation, we define a
+To formalise the ideas behind our implementation, we define a
 tiny source language $\cal L$:
 polymorphic, higher-order, call-by-name $\lambda$-calculus with
 algebraic datatypes, pattern matching, and recursion.  
@@ -77,7 +77,7 @@ type arguments, applications $e_1\;e_2$, data constructor applications
 $K[\taus](\ol{e})$, as well as the special value @BAD@, which will be
 used to model failure as a throwable error term. As a notation, we use
 $\oln{x}{n}$ for sequences of elements of size $n$. When $n$ is
-ommitted $\ol{x}$ has a size which is implied by the context or is not
+omitted $\ol{x}$ has a size which is implied by the context or is not
 interesting.
 
 Our language embodies several convenient syntactic constraints: (i)~$\lambda$
@@ -93,7 +93,7 @@ instead extremely convenient for the translation of programs to
 first-order logic.
 
 Figure~\ref{fig:syntax} embodies one other inessential choice in order to 
-facilitate the formalization and implementation: we assume that 
+facilitate the formalisation and implementation: we assume that 
 functions have arity at least one (disallowing CAF's).  \spj{Disallowing CAFs is quite significant.
 We need to say more about why.} \dv{It is not essential -- it was in some previous version of a proof. I will fix this.}
 
@@ -111,7 +111,7 @@ assume that programs have been checked for type errors.
 
 One property that we require from the typing relation is
 that it {\em asserts the exhaustiveness of pattern matches}. In an
-{\em actual} source language programmers may ommit pattern matches but
+{\em actual} source language programmers may omit pattern matches but
 here we will assume that all pattern matches are
 exhaustive. Originally-incomplete cases have been completed to return
 the crashing term @BAD@. For instance, the program:
@@ -209,7 +209,7 @@ P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@
 %% Assume $\Sigma |- P$ and $\Sigma;\cdot |- e : \tau$
 %% If $P |- e \Downarrow w$ then $P |- value(w)$ and $\Sigma;\cdot |- w : \tau$.
 %% \end{lemma}
-The operational semantics of Figure~\ref{fig:opsem} has the possibility of non-deterministism because
+The operational semantics of Figure~\ref{fig:opsem} has the possibility of non-determinism because
 of the overlapping of several rules for applications. But that is not a problem, as we can prove that evaluation 
 is deterministic using the following two lemmas.
 \begin{lemma}[Value determinacy]
@@ -364,7 +364,7 @@ e \in \CF            & <=> & \forall {\cal C}. BAD \not\in {\cal C} \Rightarrow 
 
 We now turn our attention to contracts. The syntax of contracts
 is given in Figure~\ref{fig:syntax} and includes base contracts
-$\{ x \mid e \}$, arrow contructs $(x : \Ct_1) -> \Ct_2$, conjunctions
+$\{ x \mid e \}$, arrow contracts $(x : \Ct_1) -> \Ct_2$, conjunctions
 $\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts} 
 includes other constructs as well, but these constructs are enough to verify 
 many programs and already demonstrate the interesting theoretical and practical problems.
@@ -435,7 +435,7 @@ $\Sigma$ with arity $\ar$ a set of {\em selector functions}
 $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.  The terms $app(t,s)$ and
 $f_{ptr}$ concern the higher-order aspects of $\cal L$, which we
 discuss in (see Section~\ref{s:hof}).  Finally we introduce two new
-syntactic constructs $\unr$ and $\bad$. As an abreviation we often use
+syntactic constructs $\unr$ and $\bad$. As an abbreviation we often use
 $app(t,\ol{s})$ for the sequence of applications to each $s_i$, as
 Figure~\ref{fig:fol-image} shows.
 
@@ -620,7 +620,7 @@ a call of @map@ itself.
 \subsection{Data types and {\tt case} expressions} \label{s:case-fol}
 
 The second equation for $\utrans{}{u}{s}$ in Figure~\ref{fig:etrans} deals with
-@case@ expressions, by generating a conjuntion of formulae, as follows:
+@case@ expressions, by generating a conjunction of formulae, as follows:
 \begin{itemize}
 \item If the scrutinee $t$ is $bad$ (meaning that evaluating it invokes @BAD@) then
 the result $s$ of the @case@ expression is also $bad$.  That is, @case@ is strict in
@@ -634,7 +634,7 @@ negation of the previous preconditions; the formula
   $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$ 
 is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$.
 \end{itemize}
-Whe do we need the last clause? Consider the function @not@:
+Why do we need the last clause? Consider the function @not@:
 \begin{code}
   not :: Bool -> Bool
   not True = False
@@ -669,7 +669,7 @@ formula, we can ask the prover to prove it; and, if successful, we can
 claim that indeed $e$ does satisfy $C$.  Of course that needs proof,
 which we address in Section~\ref{xxx}.
 
-Figure~\ref{fig:contracts-minless} presents the tanslation
+Figure~\ref{fig:contracts-minless} presents the translation
 $\ctrans{}{\Gamma}{e \in \Ct}$; there are four equations corresponding
 to the syntax of contracts in Figure~\ref{fig:syntax}.
 The last three cases are delightfully simple and direct.  Conjunction of contracts
@@ -689,7 +689,7 @@ in earlier work \cite{xu+:contracts} and we do not rehearse it here.
 
 The claim $e \in @CF@$, pronounced ``$e$ is crash-free'', means that $e$ cannot
 crash \emph{regardless of context}.  So, for example @(BAD, True)@ is not crash-free
-bacause it can crash if evaluated in the contex @fst (BAD, True)@.  Of course,
+because it can crash if evaluated in the context @fst (BAD, True)@.  Of course,
 the context itself should not be the source of the crash; for example @(True,False)@ is
 crash-free even though @BAD (True,False)@ will crash.
 
