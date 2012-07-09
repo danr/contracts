@@ -595,48 +595,6 @@ the denotational contract satisfaction to a more operational one.
 \subsection{Axiomatization of denotational semantics}
 \spj{Is this section in the right place?}
 
-We have seen that the interpretations of the FOL representations of terms 
-correspond precisely to the denotational semantics of terms. In order to be able to 
-prove properties about these denotations in first-order logic we had better
-axiomatize some of the useful properties of $D_\infty$.
-
-Figure~\ref{fig:prelude} gives an axiomatization. For notational convenience the reader
-should think that each of these rules can potentially give a conjunction of formulae.
-The axiom \rulename{AxDisjBU} asserts that $\bad$ cannot be equated to $\unr$. 
-Rule \rulename{AxDisjC} is really givin a conjunction of axioms. It asserts that all 
-constructors are disjoint with each other and \rulename{AxDisjCBU} asserts that they 
-are also disjoint from $\bad$ and $\unr$. 
-Axiom group \rulename{AxPtr} asserts that full applications of function pointers 
-are equal to the actual function applications and \rulename{AxApp} describes the behavior
-of $app(\cdot,\cdot)$ when the first argument is $\bad$ or $\unr$. Finally the selector
-functions describe how we can project a value out of a datatype. 
-
-\begin{figure}
-\[\begin{array}{c}
-\ruleform{\Th_\infty} \\ \\ 
-{\setlength{\arraycolsep}{2pt}
-\begin{array}{lll} 
- \textsc{AxDisjBU} & \formula{\bad \neq \unr}  \\ 
- \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
-                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
- \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
- \textsc{AxPtr}  & \formula{\forall \oln{x}{n} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
-               & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
- %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- \textsc{AxApp}  & \formula{\forall x @.@ app(\bad,x){=}\bad /\ app(\unr,x){=}\unr}    \\ \\
- %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
- %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
- %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
- \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
-                  & \text{for every } K^\ar \in \Sigma \text{ and } i \in 1..n \\ \\
-\end{array}}
-\end{array}\]
-\caption{A theory of $D_\infty$}\label{fig:prelude}
-\end{figure}
 
 It is straightforward again to show the following theorem: 
 \begin{theorem}\label{thm:models-inf}

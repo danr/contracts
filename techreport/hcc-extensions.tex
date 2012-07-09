@@ -117,14 +117,14 @@ has been modified to guard the constructor value to be in $min(\cdot)$ as one wo
 
 \begin{figure}\small
 \[\begin{array}{c}
-\ruleform{\utrans{\Sigma}{\Gamma}{t \sim u}^{min} = \formula{\phi}} \\ \\ 
+\ruleform{\uutrans{\Sigma}{\Gamma}{t \sim u}^{min} = \formula{\phi}} \\ \\ 
 \prooftree
    \begin{array}{c}
    \etrans{\Sigma}{\Gamma}{e} = \formula{t}
    \end{array}
    ----------------------------------------{DExp}
    \begin{array}{l} 
-   \utrans{\Sigma}{\Gamma}{s \sim e }^{min} = \formula{\highlight{min(s)} => (s = t)} 
+   \uutrans{\Sigma}{\Gamma}{s \sim e }^{min} = \formula{\highlight{min(s)} => (s = t)} 
    \end{array}
    ~~~~~
   \begin{array}{l}
@@ -139,7 +139,7 @@ has been modified to guard the constructor value to be in $min(\cdot)$ as one wo
   ------------------------------------------{DCase}
   {\setlength{\arraycolsep}{1pt} 
   \begin{array}{l}
-  \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}^{min} = \\
+  \uutrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}^{min} = \\
   \;\;\formula{ \begin{array}{l} 
      \highlight{min(s)} => \\
      \begin{array}{ll}
@@ -172,7 +172,7 @@ has been modified to guard the constructor value to be in $min(\cdot)$ as one wo
 \end{figure}
 
 The translation of programs to accomodate minimization requires only modification 
-to the $\utrans{}{\Gamma}{u}$ judgement, which now become $\utrans{}{\Gamma}{u}^{min}$. Its definition
+to the $\uutrans{}{\Gamma}{u}$ judgement, which now become $\uutrans{}{\Gamma}{u}^{min}$. Its definition
 is given in Figure~\ref{fig:min-def-trans-min}. Rule \rulename{DExp} is unfolding a function
 defininion only if the result of the function is in the $min(\cdot)$ set. Rule \rulename{DCase}
 has the same flavor. However if we have $min(s)$ then the focus of evaluation in the counterexample

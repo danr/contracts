@@ -5,6 +5,12 @@
 \begin{document} 
 \preprintfooter{\textbf{--- DRAFT ---}}
 
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\dblfloatpagefraction}{0.8}
+
 %%% Extra definitions -- move to hcc-techreport at some point (carefully to not break that!)
 \newcommand{\Ct}{{\tt C}}
 \newcommand{\CF}{{\tt CF}}
@@ -24,9 +30,13 @@
 \newcommand{\unr}{\mathop{unr}}
 \newcommand{\bad}{\mathop{bad}}
 \newcommand{\sel}[2]{\mathop{sel\_#1\!\_#2}}
-\newcommand{\ctrans}[3]{{\cal C}\{\!\!\{#3\}\!\!\}_{#2}}
-\newcommand{\etrans}[3]{{\cal E}\{\!\!\{#3\}\!\!\}_{#2}}
-\newcommand{\utrans}[3]{{\cal U}\{\!\!\{#3\}\!\!\}_{#2}}
+\newcommand{\ctrans}[3]{{\cal C}\{\!\!\{#3\}\!\!\}}
+\newcommand{\etrans}[3]{{\cal E}\{\!\!\{#3\}\!\!\}}
+\newcommand{\utrans}[3]{{\cal U}(#3)\{\!\!\{#2\}\!\!\}}
+
+% Get rid of this -- just temporay
+\newcommand{\uutrans}[3]{{\cal U}\{\!\!\{#3\}\!\!\}}
+
 \newcommand{\dtrans}[2]{{\cal D}\{\!\!\{#2\}\!\!\}}
 \newcommand{\ptrans}[2]{{\cal P}\{\!\!\{#2\}\!\!\}}
 %% Gadgets of domain theory 
