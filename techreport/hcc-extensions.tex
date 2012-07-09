@@ -2,7 +2,7 @@ So far we have described the basic translation of the denotational semantics, pr
 to first-order logic. However, to enable verification of contracts in practice we must consider two 
 important extensions, outlined in the rest of this section.
 
-\subsection{Minimization of countermodels}\label{sect:minimization}
+\subsection{A heuristic for minimization of countermodels}\label{sect:minimization}
 
 For a query of the form $\Th \land \Th_\lcfZ \land \neg \ctrans{}{P}{e \in \Ct}$, a SAT solver will search for
 a model. When such a model exists, it will nclude tables for the function symbols in the formula. Notice that functions 
@@ -40,10 +40,8 @@ the case that a counterexample exists.
 
 To achieve this effect, we introduce a predicate $min(\cdot)$ that, intuitively, is true
 for the terms that have been evaluated during the execution of a counterexample. We use the
-name $min$ because the purpose of this predicate is to minimize countermodels. 
-We return to give a formal interpretation to $min(\cdot)$ later in this section but this 
-intuition should suffice for explaining the modifications to the theory, and the program and 
-contract translations. 
+name $min$ because the purpose of this predicate is to minimize countermodels. We often 
+refer to the terms in the $min(\cdot)$ predicate as the ``set of terms we are interested in''.
 
 \begin{figure} 
 {\small
@@ -112,8 +110,7 @@ has touched an appliation of $app(f_{ptr},\ol{x})$ then we should be able to der
 $f(\ol{x}) = app(f_{ptr},\ol{x})$, which will further allow us to gain knowledge about the definition of the function.
 The intuition behind \rulename{AxAppMin} is easy: if the term $min(app(x,y))$ has appeared in the evaluation trace, 
 we have definitely evaluated the argument and hence we have $min(x)$. Finally, the selector axiom group \rulename{AxInj}
-has been modified to guard the constructor value to be in $min(\cdot)$ as one would expect. 
-
+has been modified to guard the selector value as one would expect.
 
 \begin{figure}\small
 \[\begin{array}{c}
@@ -170,6 +167,8 @@ has been modified to guard the constructor value to be in $min(\cdot)$ as one wo
 \end{array}\]
 \caption{Program translation with minimization}\label{fig:min-def-trans-min}
 \end{figure}
+\newcommand{\ThMin}{\Th_{\infty}^{min}}
+\newcommand{\SDownarrow}{\downarrow}
 
 The translation of programs to accomodate minimization requires only modification 
 to the $\uutrans{}{\Gamma}{u}$ judgement, which now become $\uutrans{}{\Gamma}{u}^{min}$. Its definition
@@ -179,18 +178,309 @@ has the same flavor. However if we have $min(s)$ then the focus of evaluation in
 will move on to the scrutinee of the case expression, and hence we get a $min(t)$ predicate, where the 
 term $t$ is the FOL translation of the case scrutinee $e$.
 
-\paragraph{Semantics of minimization}
-\newcommand{\ThMin}{\Th_{\infty}^{min}}
-\newcommand{\SDownarrow}{\downarrow}
-
-Before diving to the more intricate details of minimization and its semantics, it is worth pointing out that 
-extending ${\cal I}$ so that ${\cal I}(min)(d)$ holds for every $d : D_\infty$ creates an interpretation that 
-validates $\ThMin$. 
+An easy property of this translation is that it yields a theory that still admits the denotational model 
+when we interpret $min$ as the everywhere-true predicate:
 \begin{theorem} $\langle D_\infty, {\cal I}\uplus min |-> \lambda d.true\rangle \models \ThMin$. \end{theorem} 
 
-However, we are interested in finite models of the theory $\Th_\infty^{min}$ and in what 
-follows we show how to construct a finite model of $\ThMin$, starting from an execution 
-trace $P |- e \Downarrow v$ that satisfies certain conditions. 
+However, we shall later prove that, unlike $\Th_\infty$, the new theory $\ThMin$ does admit in many practical 
+cases finite models along with infinite ones (such as $\langle D_{\infty},{\cal I}\rangle$), and these finite 
+models are directly induced from finite traces of failed programs.
+
+
+
+\subsection{Minimization in contracts}
+\newcommand{\ctransmin}[3]{\ctrans{#1}{#2}{#3}^{min}} 
+\newcommand{\calI}{{\cal J}}
+
+We have showed that, given a strict trace, our new theory admits a finite model. But what is its proving 
+power? In order to prove a contract we may have to appeal to some axiom from the theory. But, alas, most
+axioms in $\ThMin$ are guarded by $min(\cdot)$ predicates, effectively casting them unusable if we are 
+trying to prove contracts that arise from the translation in Figure~\ref{fig:contracts-minless}.
+
+Our solution to this problem is to modify the translation of contracts as well to use $min(\cdot)$ predicates.
+The modified contract translation as well as an axiomatization of $\Th_\lcfZ^{min}$ is in Figure~\ref{fig:min-typing}.
+An important deviation compared to our previous contract translation in Figure~\ref{fig:contracts-minless} is the
+splitting of the contract translation to a positive variant $\ctransmin{}{\Gamma}{e \in \Ct}$ and a negative 
+variant $\ctransmin{}{\Gamma}{e \notin \Ct}$. The reason for this is a subtle interaction of the $min(\cdot)$ 
+predicates. 
+
+Our goal will be to find a contradiction to $\ctransmin{}{\Gamma}{e \notin \Ct}$, so we start by explaining
+the negative variant. Observe that the formula $\ctransmin{}{\Gamma}{e \notin \Ct}$ 
+always give rise to a conjunction of $min$ predicates as the base cases (rule \rulename{NCBase} and \rulename{NCCf})
+assert $min$ predicates. For instance if we are translating 
+$\ctransmin{}{\Gamma}{f \notin \CF -> \CF -> \CF}$ we will get the following:
+\[\begin{array}{l}
+        \exists x y @.@ \ctransmin{}{\Gamma}{x \in \CF}\;\land\;\ctransmin{}{\Gamma}{y \in \CF}\;\land \\ 
+          \quad min(app(app(f_{ptr},x),y))\;\land \neg\lcf{app(app(f_{ptr},x),y)}
+\end{array}\] 
+where $app(app(t,x),y) = \etrans{}{\Gamma}{e\;x\;y}$. The theorem prover will then attempt to find a 
+model for this formula, or derive a contradiction). The $min$ predicates that are available will ``drive'' 
+the application of function axioms from the assumptions allowing function applications to simplify to 
+their bodies. For instance, if the original program includes a function definition $f |-> \lambda (x{:}\tau) (y{:}\tau) @.@ \True$ 
+then the $min(app(f_{ptr},x),y)$ assumption will allow axiom \rulename{AxPtr} to trigger, and subsequently 
+the definition of $f$ will be unfolded to eventually learn that $app(app(f_{ptr},x),y) = \True$ for which
+we have that $\lcf{True}$.
+
+The positive variant $\ctransmin{}{\Gamma}{e \in \Ct}$ is first introduced when 
+trying to derive a contradiction for an arrow contract (rule \rulename{NCTrans}): 
+\[\begin{array}{l}
+   \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2}  = \\
+    \exists x @.@ \highlight{\ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1}} \land \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2}
+\end{array}\]
+It corresponds to adding an assumption $\ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1}$ and trying to 
+derive a contradiction for the conclusion of the arrow contract. 
+
+Designing an effective positive variant for practical verification turns out to be the subject of 
+delicate design choices. Let us consider the base case \rulename{CBase}. One naive approach would 
+be to simply assign: 
+\[\begin{array}{l}
+     \ctransmin{}{\Gamma}{e \in \{ x \mid e' } = \\ 
+     \quad (t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)
+\end{array}\]
+where $t'$ is the FOL translation of $e'$ and $t$ is the FOL translation of $e$. 
+However, in many practical examples we may have to use the truth value of a predicate to actually learn something about its
+argument. For instance if the predicate $e'$ is the following predicate, 
+\begin{code}
+pred []     = True 
+pred (y:ys) = False
+\end{code}
+\dv{Dan, can we make a concrete example?} 
+by knowing that the value of the predicate is @False@ on some argument @x@, we can potentially learn that the
+argument we are after to derive a contradiction is some cons cell @y:ys@. {\em However} we can't really learn 
+this information unless we {\em also} have a @pred x@ in the $min(\cdot)$ predicate. If we do have this information, 
+we can unfold the definition of @pred@ and figure out the information about @x@. Our solution to this problem to 
+add a $min(t'[t/x])$ predicate that will now allow us to use information from the value of the predicate $t'[t/x]$ 
+to learn information about $t$:
+\[\begin{array}{l}    \ctransmin{}{\Gamma}{e \in \{ x \mid e' } = \\ 
+   \quad \highlight{min(t'[t/x]} \land \\ 
+   \quad \quad ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True))
+\end{array}\]
+Sadly, this choice has an unfortunate consequence: there are now {\em too many} terms that belong in 
+the $min$-predicate. Consider for instance that the following positive contract has been produced:
+\[\begin{array}{l}
+    \ctransmin{}{\Gamma}{e \in \Ct_1 -> \{x \mid e'\}} = \\ 
+        \quad \forall x. \ctransmin{}{\Gamma}{x \notin \Ct_1} \lor (min(t'[t/x]) \land \ldots )
+\end{array}\] 
+where again $t$ is the translation of $e$ and $t'$ is the translation of $e'$. This axiom is problematic
+from an efficiency point of view as it asserts that {\em for every} x, either it does not belong in $\Ct_1$
+or we have $min(t'[t/x])$. This means that way too many values may start appearing in the $min(\cdot)$ tables,
+which in turn can cause uncontrollable instantiation of axioms and generation of new terms. 
+Indeed a few higher-order examples that require induction demonstrate an unacceptable
+degradation in performance using the above variation of the rule. 
+
+Observe however that we should never really have to learn the value of a predicate $t'[t/x]$ unless we 
+are actually interested in the value $t$ above. If not, it is quite unlikely that any information about
+$t'[t/x]$ will result in some progress in finding a contradiction. Guided by this intuition, we further modify 
+the rule \rulename{CBase} to introduce a {\em guard} which allows the rule to trigger only if $t$ itself is
+in the $min$ predicate: 
+\[\begin{array}{l}
+    \ctransmin{}{\Gamma}{e \in \{ x \mid e' } = \\ 
+    \highlight{min(t) => } \\ 
+    \quad (\highlight{min(t'[t/x])} \land \\ 
+    \quad\quad \land ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))
+\end{array} \]
+and this is our final variant of rule \rulename{CBase}.
+
+Similar design choices apply for $\CF$ contracts: in the negative case we assert that we are interested
+in a term $t$ (rule \rulename{NCCf}) and try to derive a contradiction to the negation of crash-freedom.
+In the positive case we guard crash-freedom by a $min$ assumption. Some delicate choices however have still
+been made in the axiomatization of crash-freedom in Figure~\ref{fig:min-typing}. In particular we have now
+two substantially different axioms than we had in the $min$-less world:
+\[\begin{array}{lll} 
+ \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
+ %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
+ %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
+                 & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
+\end{array}\]
+Axiom \rulename{AxCfMin} asserts that if we have managed to prove that a value is crash-free 
+then {\em at some point} we have been interested in that value, or that it is $\unr$. Axiom 
+\rulename{AxCfC2} asserts that if we are interested in a constructor value $K(\ol{x})$ which is 
+nevertheless not crash-free, we know that there must exist some $x_i$ which we have been intrested 
+in, and is nevertheless crash-free.
+
+\paragraph{Soundness}
+These choices are extremely delicate and have been derived very carefully from our intuitions about 
+evaluation traces as well as practical experience from examples, but there is actually a very large 
+design space in the placement of $min$. Fortunately for many variations of these rules, and in particular
+for the set that we have chosen to present in this paper, soundness with respect to the denotational 
+semantics is not difficult to see. 
+
+The following lemma connects the positive and negative translations to 
+the original translation $\ctrans{}{\Gamma}{e \in \Ct}$. 
+
+\begin{lemma}\label{lem:contract-min} Assume a model $\langle M,\calI\rangle$ such that $\calI(min)(d)$ holds for every $d \in M$. 
+Then the following are true, assuming that that $dom(\Gamma) \subseteq dom(\calI)$:
+\begin{itemize} 
+  \item If $\langle M,\calI\rangle \models \neg \ctransmin{}{\Gamma}{e \notin \Ct}$ then $\langle M,\calI\rangle\models \ctrans{}{\Gamma}{e \in \Ct}$
+  \item If $\langle M,\calI\rangle \models \ctrans{}{\Gamma}{e \in \Ct}$ then $\langle M,\calI\rangle \models \ctransmin{}{\Gamma}{e \in \Ct}$.
+\end{itemize}
+\end{lemma}
+\begin{proof} We prove the two cases simultaneously by induction on the structure of the contract $\Ct$:
+\begin{itemize*}
+  \item For the first part, the cases for rules \rulename{NCBase}, \rulename{NNCf}, \rulename{CConj} are straightforward. The only 
+        interesting case is the \rulename{NCArr}, where we have that 
+        \[\begin{array}{l}
+             \neg \ctransmin{}{\Gamma}{e \in (x : \Ct_1) -> \Ct_2}  = \\ 
+             \quad\quad \forall x @.@ \neg \ctransmin{}{\Gamma,x}{x \in \Ct_1} \lor \neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}
+        \end{array}\]
+        Pick an $d$ and assume $\ctrans{}{\Gamma,x}{x \in \Ct_1}$ holds in the model extened with $x |-> d$. 
+        By induction hypothesis (second case) it must be the case that $\ctransmin{}{\Gamma,x}{x \in \Ct_1}$ in this model, and hence $\neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}$.
+        By induction hypothesis then (first case) we get $\ctrans{}{\Gamma,x}{e\;x \in \Ct_2}$ as required.
+  \item The second part is symmetric by appealing in the \rulename{CArr} case to the induction hypotheses for both sides.
+\end{itemize*} 
+\end{proof}
+The following is an easy observation. 
+\begin{lemma}\label{lem:min-model} If $\langle M,\calI\rangle$ is a model of $\Th \land \Th_\lcfZ \land \dtrans{}{P}$ then the same model, extended with
+$\calI_m(min)(d) = true$ for every $d \in M$, is a model of $\ThMin \land \Th_\lcfZ^{min} \land \dtrans{}{P}^{min}$. 
+\end{lemma}
+However the next theorem is the most important result about minimization. 
+\begin{theorem}[Soundness of min translation]\label{thm:min-soundness} If $\ThMin\land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min} |- \neg \ctransmin{}{}{e \notin \Ct}$ then 
+                   $\Th \land \Th_{\lcfZ} \land \dtrans{}{P} |- \ctrans{}{}{e \in \Ct}$ and hence $\dbrace{\Ct}(\dbrace{e})$.
+\end{theorem}
+\begin{proof}
+Pick a model $\langle M, \calI\rangle$ of $\Th \land \Th_{\lcfZ} \land \dtrans{}{P}$ and extend its interpretation 
+so that $\calI(min)(d) = true$. By Lemma~\ref{lem:min-model} this means that the the extended model is a model of 
+$\ThMin\land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min}$ and hence this is also a model of $\neg \ctransmin{}{}{e \notin \Ct}$. 
+By Lemma~\ref{lem:contract-min} (first case) this is also a model of $\ctrans{}{}{e \in \Ct}$.
+\end{proof} 
+Theorem~\ref{thm:min-soundness} shows that we may simply generate $\ThMin \land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min} \land \neg \ctransmin{}{}{e \notin \Ct}$
+and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then its negation is valid and from the theorem we learn that $\dbrace{\Ct}(\dbrace{e})$.
+
+
+\paragraph{Completeness}
+
+Is it true that everything that we can prove using 
+the $min$-less theory, is also provable using the $min$-enabled translation? 
+That is most likely not the case, although we are not aware of counterexamples. However, as we show
+in the Section~\ref{hcc-evaluation} we have identified that our heuristics for minimization work much 
+better than the $min$-less version: For the 90 small programs in our testsuite, the theorem provers 
+finish on average faster when a contract is provable, and a finite model checker always finds a finite 
+model in the case where there exists a counterexample in the $min$-enabled translation.
+
+
+\paragraph{Finite model guarantees} 
+
+%% \begin{figure}\small
+%% \[\begin{array}{c} 
+%% \ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%   \begin{array}{c}
+%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+%%    \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+%%   \end{array}
+%%   ------------------------------------------{CBase}
+%%   \begin{array}{l}
+%%    \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
+%%   %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+%%    \quad \formula{\highlight{min(t) => (min(t'[t/x])\;}\land} \\ 
+%%    \quad \formula{\quad ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
+%%   \end{array}
+%%   ~~~~~ 
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+%%   \end{array} 
+%%   ------------------------------------------{CArr}
+%%   \begin{array}{l} 
+%%   \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+%%   \formula{\forall x @.@ \phi_1 \lor \phi_2}
+%%   \end{array}
+%%   ~~~~~
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+%%   \end{array}
+%%   ------------------------------------------{CConj}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+%%   ~~~~~
+%%   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+%%   -------------------------------------------{CCf}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} => \lcf{t}}
+%%  \endprooftree  \\ \\ 
+%% \ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%   \begin{array}{c}
+%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+%%    \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+%%   \end{array}
+%%   ------------------------------------------{NCBase}
+%%   \begin{array}{l}
+%%    \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
+%%    \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
+%%    \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
+%%   \end{array}
+%%   ~~~~~ 
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
+%%   \end{array} 
+%%   ------------------------------------------{NCArr}
+%%   \begin{array}{l} 
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
+%%   \formula{\exists x @.@ \phi_1 \land \phi_2}
+%%   \end{array}
+%%   ~~~~~
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
+%%   \end{array}
+%%   ------------------------------------------{NCConj}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
+%%   ~~~~~
+%%   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+%%   -------------------------------------------{NCCf}
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
+%%  \endprooftree \\ \\ 
+%% \ruleform{\Th_\lcfZ^{min}} \\ \\ 
+%% \begin{array}{lll} 
+%%  \textsc{AxCfBU}  & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+%%  \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
+%%  %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
+%%  %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+%%  \textsc{AxCfC1} & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
+%%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+%%  \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
+%%                  & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
+%% \end{array}
+%% \end{array}\]
+%% \caption{Translation of contracts with minimization}\label{fig:min-typing}
+%% \end{figure}
+
+Can we guarantee formally in some cases the existence of a finite model of the theory $\Th_{infty}^{min}$?
+The answer is yes for many practically important cases. We may define formally a variation on evaluation, 
+$P |- e \SDownarrow v$ which is stricter than $P |- e \Downarrow$ in evaluating {\em all} subterms of a term.
+For instance it includes a rule:
+\[\begin{array}{c}\prooftree
+P |- \highlight{\ol{e} \SDownarrow \ol{v}}
+-------------------------------------{EValC}
+P |- K[\taus](\ol{e}) \SDownarrow K[\taus](\ol{e})
+\endprooftree\end{array}\]
+Notice that if $P |- e \SDownarrow v$ then $P |- e \Downarrow v$ (A precise formulation of $P |- e \SDownarrow v$ 
+can be found in the Appendix). 
+
+Our finite model theorem is the following:
+\begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ then there exists 
+a finite set $S^{min}$ and an interpretation ${\cal I}^{min}$ such that 
+$\langle S^{min},{\cal I}^{min}\rangle \models \ThMin$. Moreover 
+$\langle S^{min},{\cal I}^{min}\rangle \models \ptrans{}{P}^{min}$. 
+\end{theorem}
+
+In fact, if we have a concrete trace of failure of a contract, we can get the following:
+\begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ and 
+$P |- e'[e/x] \SDownarrow @BAD@$ or $P |- e'[e/x] \SDownarrow False$, then 
+there exists a finite set $S^{min}$ and an interpretation ${\calI}^{min}$ such that 
+\[ \langle S^{min},{\calI}^{min}\rangle \models \ThMin \land \Th_{\lcfZ}^{min} \land \ptrans{}{P}^{min} \]
+and moreover $\langle S^{min},{\calI}^{min}\rangle \models \ctransmin{}{}{e \notin \{ x \mid e' \}}$.
+\end{theorem}
+
+In practice this means that we get a guarantee for a finite model for every failed trace that does 
+not involve infinite values. We believe that this is possible to generalize to arbitrary traces 
+though this might require further changes in our $min$-enabled translation.
+
+%% However, we are interested in finite models of the theory $\Th_\infty^{min}$ and in what 
+%% follows we show how to construct a finite model of $\ThMin$, starting from an execution 
+%% trace $P |- e \Downarrow v$ that satisfies certain conditions. 
 
 %% Consider the graph $(G,E)$ induced by an execution trace 
 %% $P |- e \Downarrow v$ with $G$ the set 
@@ -215,240 +505,78 @@ trace $P |- e \Downarrow v$ that satisfies certain conditions.
 %% %%  such that for every rule of the form 
 %% %% $\frac{e_1 \Downarrow
 
-Let us revisit the 
-evaluation relation of Figure~\ref{fig:opsem} and let us refine it with the highlighted
-parts in Figure~\ref{fig:opsem-strict}. The omitted rules are the same as in 
-Figure~\ref{fig:opsem}, with the only difference is that they use $\SDownarrow$ instead
-of $\Downarrow$.
+%% Let us revisit the 
+%% evaluation relation of Figure~\ref{fig:opsem} and let us refine it with the highlighted
+%% parts in Figure~\ref{fig:opsem-strict}. The omitted rules are the same as in 
+%% Figure~\ref{fig:opsem}, with the only difference that they use $\SDownarrow$ instead
+%% of $\Downarrow$.
 
-\begin{figure}\small
-\[\begin{array}{c}
-\ruleform{P |- u \SDownarrow v} \\ \\
-\prooftree
-\begin{array}{c} \ \\ 
-\end{array}
-P |- \highlight{\ol{e} \SDownarrow \ol{v}} 
--------------------------------------{EValF}
-P |- f^\ar[\taus]\;\oln{e}{m < \ar} \SDownarrow f^\ar[\taus]\;\oln{e}{m < \ar}
-~~~~~
-P |- \highlight{\ol{e} \SDownarrow \ol{v}}
--------------------------------------{EValC}
-P |- K[\taus](\ol{e}) \SDownarrow K[\taus](\ol{e})
-~~~~
-\phantom{G}
--------------------------------------{EValB}
-P |- @BAD@ \SDownarrow @BAD@
-~~~~~
-\begin{array}{c}
-(f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
-P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \SDownarrow v \quad
-\highlight{P |- \ol{e} \SDownarrow \ol{v}}
-\end{array}
--------------------------------------{EFun}
-P |- f[\ol{\tau}]\;\oln{e}{m} \SDownarrow v
-~~~~~
-\begin{array}{c}  
-P |- e_1 \SDownarrow v_1 \\ 
-\highlight{P |- e_2 \SDownarrow v_2} \\
-P |- v_1\;e_2 \SDownarrow w
-\end{array}
-------------------------------------------------{EApp}
-P |- e_1\;e_2 \SDownarrow w
-~~~~
-\begin{array}{c}  \ \\ 
-P |- e_1 \SDownarrow @BAD@ \\
-\highlight{P |- e_2 \SDownarrow v_2}
-\end{array}
-------------------------------------------------{EBadApp}
-P |- e_1\;e_2 \SDownarrow @BAD@
-\endprooftree \\ \\ 
-\text{ .. plus rules for @case@ .. } 
-\end{array}\]
-\caption{Strict operational semantics}\label{fig:opsem-strct}
-\end{figure}
+%% \begin{figure}\small
+%% \[\begin{array}{c}
+%% \ruleform{P |- u \SDownarrow v} \\ \\
+%% \prooftree
+%% \begin{array}{c} \ \\ 
+%% \end{array}
+%% P |- \highlight{\ol{e} \SDownarrow \ol{v}} 
+%% -------------------------------------{EValF}
+%% P |- f^\ar[\taus]\;\oln{e}{m < \ar} \SDownarrow f^\ar[\taus]\;\oln{e}{m < \ar}
+%% ~~~~~
+%% P |- \highlight{\ol{e} \SDownarrow \ol{v}}
+%% -------------------------------------{EValC}
+%% P |- K[\taus](\ol{e}) \SDownarrow K[\taus](\ol{e})
+%% ~~~~
+%% \phantom{G}
+%% -------------------------------------{EValB}
+%% P |- @BAD@ \SDownarrow @BAD@
+%% ~~~~~
+%% \begin{array}{c}
+%% (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P \\
+%% P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \SDownarrow v \quad
+%% \highlight{P |- \ol{e} \SDownarrow \ol{v}}
+%% \end{array}
+%% -------------------------------------{EFun}
+%% P |- f[\ol{\tau}]\;\oln{e}{m} \SDownarrow v
+%% ~~~~~
+%% \begin{array}{c}  
+%% P |- e_1 \SDownarrow v_1 \\ 
+%% \highlight{P |- e_2 \SDownarrow v_2} \\
+%% P |- v_1\;e_2 \SDownarrow w
+%% \end{array}
+%% ------------------------------------------------{EApp}
+%% P |- e_1\;e_2 \SDownarrow w
+%% ~~~~
+%% \begin{array}{c}  \ \\ 
+%% P |- e_1 \SDownarrow @BAD@ \\
+%% \highlight{P |- e_2 \SDownarrow v_2}
+%% \end{array}
+%% ------------------------------------------------{EBadApp}
+%% P |- e_1\;e_2 \SDownarrow @BAD@
+%% \endprooftree \\ \\ 
+%% \text{ .. plus rules for @case@ .. } 
+%% \end{array}\]
+%% \caption{Strict operational semantics}\label{fig:opsem-strct}
+%% \end{figure}
 
-Observe that $\SDownarrow$ is a stricter version of $\Downarrow$, that 
-can potentially diverge more often than $\Downarrow$ but cannot crash more often, 
-as the results of evaluating expressions under constructors or arguments of 
-applications are not used. In fact the following lemma is a straightforward induction.
+%% Observe that $\SDownarrow$ is a stricter version of $\Downarrow$, that 
+%% can potentially diverge more often than $\Downarrow$ but cannot crash more often, 
+%% as the results of evaluating expressions under constructors or arguments of 
+%% applications are not used. In fact the following lemma is a straightforward induction.
 
-\begin{lemma}
-If $P |- e \SDownarrow v$ then $P |- e \Downarrow v$.
-\end{lemma} 
+%% \begin{lemma}
+%% If $P |- e \SDownarrow v$ then $P |- e \Downarrow v$.
+%% \end{lemma} 
 
-Our finite model theorem is then the following:
+%% Our finite model theorem is then the following:
 
-\begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ then there exists 
-a finite set $S^{min}$ and an interpretation ${\cal I}^{min}$ such that 
-$\langle S^{min},{\cal I}^{min}\rangle \models \ThMin$. Moreover 
-$\langle S^{min},{\cal I}^{min}\rangle \models \ptrans{}{P}^{min}$. 
-\end{theorem}
-\begin{proof} The reader who is interested in the precise 
-construction of the model from the trace can consult the 
-Appendix. 
-\end{proof}
-
-\paragraph{Minimization in contracts}
-\newcommand{\ctransmin}[3]{\ctrans{#1}{#2}{#3}^{min}} 
-\newcommand{\calI}{{\cal J}}
-
-We have showed that, given a strict trace, our new theory admits a finite model. But what is its proving 
-power? In order to prove a contract we may have to appeal to some axiom from the theory. But, alas, most
-axioms in $\ThMin$ are guarded by $min(\cdot)$ predicates, effectively casting them unusable if we are 
-trying to prove contracts that arise from the translation in Figure~\ref{fig:contracts-minless}.
-
-The solution to this problem is to modify the translation of contracts as well, in order to assume 
-or provide $min(\cdot)$ predicates that can allow axioms from $\ThMin$ to trigger. The modified 
-contract translation as well as an axiomatization of $\Th_\lcfZ^{min}$ is in Figure~\ref{fig:min-typing}.
-
-An important differentiation compared to Figure~\ref{fig:contracts-minless} is that we have introduced
-a positive variant of the contract translation $\ctransmin{}{\Gamma}{e \in \Ct}$ as well as a 
-negative variatn $\ctransmin{}{\Gamma}{e \notin \Ct}$. The reason for this is the subtle interaction of
-the $min(\cdot)$ predicates. 
-
-Our goal will be to find a contradiction to $\ctransmin{}{\Gamma}{e \notin \Ct}$, so we start by explaining
-the negative judgement. Rule \rulename{NCBase} asserts that we have in hand a value $t$ and a predicate 
-$t'[t/x]$ which are both in the $min(\cdot)$ predicate. Intuitively this means that we have in hand a trace 
-of the execution of the predicate. Moreover the value does not diverge, nor does the predicate diverge, nor
-does it return $\True$. This constitutes a contradiction. Rule \rulename{NCArr} asserts that there exists an
-argument that does satisfy its contract, but the application does not satisfy the contract. Rule \rulename{NCCf}
-asserts that we have an execution trace of $t$ (with $min(t)$) and $t$ is not crash-free. The positive case 
-is analogous, but observe that in the base cases \rulename{CBase} and \rulename{CCf} we also have conjuncts that
-assert that the terms in hand are in the $min(\cdot)$ predicate. The intuition is that, in order to be able to 
-prove anything definite about a term, it has to be in the $min(\cdot)$ set.
-
-The following lemma connects the positive and negative translations to the original translation $\ctrans{}{\Gamma}{e \in \Ct}$. 
-
-\dv{Here!}
-
-\begin{lemma}\label{lem:contract-min} Assume a model $\langle M,\calI\rangle$ such that $\calI(min)(d)$ holds for every $d \in M$. 
-Then the following are true, assuming that that $dom(\Gamma) \subseteq dom(\calI)$:
-\begin{itemize} 
-  \item If $\langle M,\calI\rangle \models \neg \ctransmin{}{\Gamma}{e \notin \Ct}$ then $\langle M,\calI\rangle\models \ctrans{}{\Gamma}{e \in \Ct}$
-  \item If $\langle M,\calI\rangle \models \ctrans{}{\Gamma}{e \in \Ct}$ then $\langle M,\calI\rangle \models \ctransmin{}{\Gamma}{e \in \Ct}$.
-\end{itemize}
-\end{lemma}
-\begin{proof} We prove the two cases simultaneously by induction on the structure of the contract $\Ct$:
-\begin{itemize*}
-  \item For the first part, the cases for rules \rulename{NCBase}, \rulename{NNCf}, \rulename{CConj} are straightforward. The only 
-        interesting case is the \rulename{NCArr}, where we have that 
-        \[\begin{array}{l}
-             \neg \ctransmin{}{\Gamma}{e \in (x : \Ct_1) -> \Ct_2}  = \\ 
-             \quad\quad \forall x @.@ \neg \ctransmin{}{\Gamma,x}{x \in \Ct_1} \lor \neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}
-        \end{array}\]
-        Pick an $d$ and assume $\ctrans{}{\Gamma,x}{x \in \Ct_1}$ holds in the model extened with $x |-> d$. 
-        By induction hypothesis (second case) it must be the case that $\ctransmin{}{\Gamma,x}{x \in \Ct_1}$ in this model, and hence $\neg \ctransmin{}{\Gamma,x}{e\;x \notin \Ct_2}$.
-        By induction hypothesis then (first case) we get $\ctrans{}{\Gamma,x}{e\;x \in \Ct_2}$ as required.
-  \item The second part is symmetric by appealing in the \rulename{CArr} case to the induction hypotheses for both sides.
-\end{itemize*} 
-\end{proof}
-
-The following is an easy observation. 
-\begin{lemma}\label{lem:min-model} If $\langle M,\calI\rangle$ is a model of $\Th \land \Th_\lcfZ \land \dtrans{}{P}$ then the same model, extended with
-$I_m(min)(d) = true$ for every $d \in M$, is a model of $\ThMin \land \Th_\lcfZ^{min} \land \dtrans{}{P}^{min}$. 
-\end{lemma}
-However the next theorem is the most important result about minimization. 
-\begin{theorem}[Soundness of min translation]\label{thm:min-soundness} If $\ThMin\land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min} |- \neg \ctransmin{}{}{e \notin \Ct}$ then 
-                   $\Th \land \Th_{\lcfZ} \land \dtrans{}{P} |- \ctrans{}{}{e \in \Ct}$ and hence $\dbrace{\Ct}(\dbrace{e})$.
-\end{theorem}
-\begin{proof}
-Pick a model $\langle M, \calI\rangle$ of $\Th \land \Th_{\lcfZ} \land \dtrans{}{P}$ and extend its interpretation 
-so that $\calI(min)(d) = true$. By Lemma~\ref{lem:min-model} this means that the the extended model is a model of 
-$\ThMin\land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min}$ and hence this is also a model of $\neg \ctransmin{}{}{e \notin \Ct}$. 
-By Lemma~\ref{lem:contract-min} (first case) this is also a model of $\ctrans{}{}{e \in \Ct}$.
-\end{proof} 
-Theorem~\ref{thm:min-soundness} shows that we may simply generate $\ThMin \land \Th_{\lcfZ}^{min} \land \dtrans{}{P}^{min} \land \neg \ctransmin{}{}{e \notin \Ct}$
-and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then its negation is valid and from the theorem we learn that $\dbrace{\Ct}(\dbrace{e})$.
-
-
-
-
-
-\begin{figure}\small
-\[\begin{array}{c} 
-\ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
-\prooftree
-  \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-  \end{array}
-  ------------------------------------------{CBase}
-  \begin{array}{l}
-   \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
-  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-   \quad \formula{\highlight{min(t) \land min(t'[t/x])\;}\land} \\ 
-   \quad \formula{\;\;((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
-  \end{array}
-  ~~~~~ 
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
-  \end{array} 
-  ------------------------------------------{CArr}
-  \begin{array}{l} 
-  \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
-  \formula{\forall x @.@ \phi_1 \lor \phi_2}
-  \end{array}
-  ~~~~~
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
-  \end{array}
-  ------------------------------------------{CConj}
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
-  ~~~~~
-  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-  -------------------------------------------{CCf}
-  \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} \land \lcf{t}}
- \endprooftree  \\ \\ 
-\ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
-\prooftree
-  \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-  \end{array}
-  ------------------------------------------{NCBase}
-  \begin{array}{l}
-   \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
-   \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
-   \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
-  \end{array}
-  ~~~~~ 
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
-  \end{array} 
-  ------------------------------------------{NCArr}
-  \begin{array}{l} 
-  \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
-  \formula{\exists x @.@ \phi_1 \land \phi_2}
-  \end{array}
-  ~~~~~
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
-  \end{array}
-  ------------------------------------------{NCConj}
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
-  ~~~~~
-  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-  -------------------------------------------{NCCf}
-  \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
- \endprooftree \\ \\ 
-\ruleform{\Th_\lcfZ^{min}} \\ \\ 
-\begin{array}{lll} 
- \textsc{AxCfBU}  & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
- \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
- %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
- %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
- \textsc{AxCfC1} & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
-                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
-                 & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
-\end{array}
-\end{array}\]
-\caption{Translation of contracts with minimization}\label{fig:min-typing}
-\end{figure}
+%% \begin{theorem}\label{thm:finite-model} If $P |- e \SDownarrow v$ then there exists 
+%% a finite set $S^{min}$ and an interpretation ${\cal I}^{min}$ such that 
+%% $\langle S^{min},{\cal I}^{min}\rangle \models \ThMin$. Moreover 
+%% $\langle S^{min},{\cal I}^{min}\rangle \models \ptrans{}{P}^{min}$. 
+%% \end{theorem}
+%% \begin{proof} The reader who is interested in the precise 
+%% construction of the model from the trace can consult the 
+%% Appendix. 
+%% \end{proof}
 
 
 %% \begin{figure} 
@@ -458,11 +586,6 @@ and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then i
 %% \caption{Crash-freedom with minimization}\label{fig:min-theory}
 %% \end{figure}
 
-
-
-\subsubsection{min() as not unreachable}
-
-TODO
 
 
 \subsection{Induction}\label{sect:induction}
