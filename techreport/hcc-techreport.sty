@@ -186,3 +186,18 @@
 \newcommand{\tyconsym}[1]{\mathrel{\tycon{\mathord{#1}}}}
 \newcommand{\tycls}[1]{\ty{#1}}
 \newcommand{\kind}[1]{\ty{#1}}
+
+
+% comments
+\newif \ifcomments \commentstrue
+\ifcomments
+\newcommand{\dv}[1]  {{\textcolor{green}{{DV: #1}}}}
+\newcommand{\spj}[1] {{\textcolor{red}{{SPJ: #1}}} }
+\newcommand{\kc}[1]{{\textcolor{magenta}{{KC: #1}}}}
+\newcommand{\dr}[1]{{\textcolor{magenta}{{DR: #1}}}}
+\else
+\newcommand{\dv}[1]{}
+\newcommand{\spj}[1]{}
+\newcommand{\kc}[1]{}
+\newcommand{\dr}[1]{}
+\fi
