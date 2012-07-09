@@ -10,25 +10,15 @@ all :: (a -> Bool) -> [a] -> Bool
 all p []     = True
 all p (x:xs) = p x && all p xs
 
-True  || _ = True
-False || b = b
-
-any :: (a -> Bool) -> [a] -> Bool
-any p []     = False
-any p (x:xs) = p x || any p xs
-
-nonEmpty []    = False
-nonEmpty (_:_) = True
-
 filter :: (a -> Bool) -> [a] -> [a]
 filter p [] = []
 filter p (x:xs)
     | p x       = x : filter p xs
     | otherwise = filter p xs
 
-unsat_any_cf = any ::: (CF --> CF) --> CF --> CF
+unsat_all_cf = all ::: (CF --> CF) --> CF --> CF
 
-unsat_filter_all =
+big_unsat_filter_all =
     filter ::: (CF --> CF) :-> \p ->
                CF :-> \xs ->
                (CF :&: Pred (all p))
@@ -69,5 +59,16 @@ unsat_le = (<=) ::: CF --> CF --> CF
 
 unsat_length :: Statement
 unsat_length = length ::: CF --> CF
+
+True  || _ = True
+False || b = b
+
+any :: (a -> Bool) -> [a] -> Bool
+any p []     = False
+any p (x:xs) = p x || any p xs
+
+nonEmpty []    = False
+nonEmpty (_:_) = True
+
 
 -}

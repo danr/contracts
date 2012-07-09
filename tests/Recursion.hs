@@ -84,9 +84,9 @@ exp :: Nat -> Nat -> Nat
 exp _ Z     = S Z
 exp x (S n) = x * exp x n
 
-qexp :: Nat -> Nat -> Nat -> Nat
-qexp x Z     acc = acc
-qexp x (S n) acc = qexp x n (x * acc)
+exp_accum :: Nat -> Nat -> Nat -> Nat
+exp_accum x Z     acc = acc
+exp_accum x (S n) acc = exp_accum x n (x * acc)
 
 (+),(*) :: Nat -> Nat -> Nat
 Z     + y = y
@@ -167,6 +167,8 @@ unsat_append_cf    = (++) ::: CF --> CF --> CF
 unsat_rev_cf       = rev ::: CF --> CF
   `Using` unsat_append_cf
 
+sat_rev_cf_broken  = rev ::: CF --> CF
+
 unsat_double_cf    = double ::: CF --> CF
 
 unsat_even_cf      = even ::: CF --> CF
@@ -178,20 +180,32 @@ unsat_plus_cf      = (+) ::: CF --> CF --> CF
 unsat_mul_cf       = (*) ::: CF --> CF --> CF
   `Using` unsat_plus_cf
 
+sat_mul_cf_broken  = (*) ::: CF --> CF --> CF
+
 unsat_mult_cf      = mult ::: CF --> CF --> CF --> CF
   `Using` unsat_plus_cf
+
+sat_mult_cf_broken = mult ::: CF --> CF --> CF --> CF
 
 unsat_fac_cf       = fac ::: CF --> CF
   `Using` unsat_mul_cf
 
+sat_fac_cf_broken  = fac ::: CF --> CF
+
 unsat_qfac_cf      = qfac ::: CF --> CF --> CF
   `Using` unsat_mul_cf
+
+sat_qfac_cf_broken = qfac ::: CF --> CF --> CF
 
 unsat_exp_cf       = exp ::: CF --> CF --> CF
   `Using` unsat_mul_cf
 
-unsat_qexp_cf      = qexp ::: CF --> CF --> CF --> CF
+sat_exp_cf_broken  = exp ::: CF --> CF --> CF
+
+big_unsat_exp_accum_cf      = exp_accum ::: CF --> CF --> CF --> CF
   `Using` unsat_mul_cf
+
+big_sat_exp_accum_cf_broken = exp_accum ::: CF --> CF --> CF --> CF
 
 unsat_not_cf       = not ::: CF --> CF
 
