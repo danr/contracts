@@ -62,6 +62,18 @@ function run_vampire {
     res_parser $3 $4 vampire
 }
 
+# Arguments
+#   $1 : Timeout in seconds
+#   $2 : Filename
+#   $3 : good grep
+#   $4 : bad grep
+function run_z3 {
+#    echo "z3 $3"
+    sed 's/\$min/min/g' $2 > .z3.tmp
+    (timeout $1 z3 -tptp -nw .z3.tmp | grep status) > .tmp
+    res_parser $3 $4 z3
+}
+
 
 for FILE in `find -iname '*.tptp'`
 do
@@ -82,12 +94,11 @@ do
         bad=" unsat"
     fi
     # Remove a tool by uncommenting a line
-    run_koentool paradox 2 $FILE $good $bad ||
+    run_koentool paradox 2  $FILE $good $bad ||
     run_koentool equinox 10 $FILE $good $bad ||
-    run_vampire 10 $FILE $good $bad ||
+    run_z3               10 $FILE $good $bad ||
+    run_vampire          10 $FILE $good $bad ||
     echo "All tools timed out"
     echo
 done
 
-# Cannot do z3 because we print min as $min
-#          (timeout 1 z3 -tptp -nw $FILE | grep SZS) \
