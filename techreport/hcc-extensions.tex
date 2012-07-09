@@ -361,91 +361,91 @@ model in the case where there exists a counterexample in the $min$-enabled trans
 
 \paragraph{Finite model guarantees} 
 
-%% \begin{figure}\small
-%% \[\begin{array}{c} 
-%% \ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
-%% \prooftree
-%%   \begin{array}{c}
-%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-%%    \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-%%   \end{array}
-%%   ------------------------------------------{CBase}
-%%   \begin{array}{l}
-%%    \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
-%%   %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-%%    \quad \formula{\highlight{min(t) => (min(t'[t/x])\;}\land} \\ 
-%%    \quad \formula{\quad ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
-%%   \end{array}
-%%   ~~~~~ 
-%%   \begin{array}{c}
-%%   \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
-%%   \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
-%%   \end{array} 
-%%   ------------------------------------------{CArr}
-%%   \begin{array}{l} 
-%%   \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
-%%   \formula{\forall x @.@ \phi_1 \lor \phi_2}
-%%   \end{array}
-%%   ~~~~~
-%%   \begin{array}{c}
-%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
-%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
-%%   \end{array}
-%%   ------------------------------------------{CConj}
-%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
-%%   ~~~~~
-%%   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-%%   -------------------------------------------{CCf}
-%%   \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} => \lcf{t}}
-%%  \endprooftree  \\ \\ 
-%% \ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
-%% \prooftree
-%%   \begin{array}{c}
-%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-%%    \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-%%   \end{array}
-%%   ------------------------------------------{NCBase}
-%%   \begin{array}{l}
-%%    \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
-%%    \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
-%%    \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
-%%   \end{array}
-%%   ~~~~~ 
-%%   \begin{array}{c}
-%%   \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-%%   \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
-%%   \end{array} 
-%%   ------------------------------------------{NCArr}
-%%   \begin{array}{l} 
-%%   \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
-%%   \formula{\exists x @.@ \phi_1 \land \phi_2}
-%%   \end{array}
-%%   ~~~~~
-%%   \begin{array}{c}
-%%   \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
-%%   \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
-%%   \end{array}
-%%   ------------------------------------------{NCConj}
-%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
-%%   ~~~~~
-%%   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-%%   -------------------------------------------{NCCf}
-%%   \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
-%%  \endprooftree \\ \\ 
-%% \ruleform{\Th_\lcfZ^{min}} \\ \\ 
-%% \begin{array}{lll} 
-%%  \textsc{AxCfBU}  & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
-%%  \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
-%%  %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
-%%  %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
-%%  \textsc{AxCfC1} & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
-%%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
-%%  \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
-%%                  & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
-%% \end{array}
-%% \end{array}\]
-%% \caption{Translation of contracts with minimization}\label{fig:min-typing}
-%% \end{figure}
+\begin{figure}\small
+\[\begin{array}{c} 
+\ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\prooftree
+  \begin{array}{c}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+  \end{array}
+  ------------------------------------------{CBase}
+  \begin{array}{l}
+   \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
+  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+   \quad \formula{\highlight{min(t) => (min(t'[t/x])\;}\land} \\ 
+   \quad \formula{\quad ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
+  \end{array}
+  ~~~~~ 
+  \begin{array}{c}
+  \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+  \end{array} 
+  ------------------------------------------{CArr}
+  \begin{array}{l} 
+  \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+  \formula{\forall x @.@ \phi_1 \lor \phi_2}
+  \end{array}
+  ~~~~~
+  \begin{array}{c}
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+  \end{array}
+  ------------------------------------------{CConj}
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+  ~~~~~
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+  -------------------------------------------{CCf}
+  \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} => \lcf{t}}
+ \endprooftree  \\ \\ 
+\ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
+\prooftree
+  \begin{array}{c}
+   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+  \end{array}
+  ------------------------------------------{NCBase}
+  \begin{array}{l}
+   \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
+   \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
+   \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
+  \end{array}
+  ~~~~~ 
+  \begin{array}{c}
+  \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
+  \end{array} 
+  ------------------------------------------{NCArr}
+  \begin{array}{l} 
+  \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
+  \formula{\exists x @.@ \phi_1 \land \phi_2}
+  \end{array}
+  ~~~~~
+  \begin{array}{c}
+  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
+  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
+  \end{array}
+  ------------------------------------------{NCConj}
+  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
+  ~~~~~
+  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+  -------------------------------------------{NCCf}
+  \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
+ \endprooftree \\ \\ 
+\ruleform{\Th_\lcfZ^{min}} \\ \\ 
+\begin{array}{lll} 
+ \textsc{AxCfBU}  & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
+ %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
+ %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ \textsc{AxCfC1} & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
+                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
+                 & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
+\end{array}
+\end{array}\]
+\caption{Translation of contracts with minimization}\label{fig:min-typing}
+\end{figure}
 
 Can we guarantee formally in some cases the existence of a finite model of the theory $\Th_{infty}^{min}$?
 The answer is yes for many practically important cases. We may define formally a variation on evaluation, 
