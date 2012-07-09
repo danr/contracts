@@ -104,7 +104,7 @@ processFile params@Params{..} file = do
             , unr_and_bad       = True
             , ext_eq            = False
             -- ^ False for now, no good story about min and ext-eq
-            , disjoint_booleans = not squishy_booleans
+            , disjoint_booleans = True -- not squishy_booleans
             , or_discr          = or_discr
             }
 

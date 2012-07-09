@@ -15,11 +15,15 @@ not False = True
 loop :: Nat
 loop = loop
 
-loop_cf = loop ::: CF
+-- Loop is crash free
 
--- Both of these are satisfaible(!)
-loop_zero      = loop ::: Pred isZero
-loop_isnt_zero = loop ::: Pred (\x -> not (isZero x))
+unsat_loop_cf = loop ::: CF
+
+-- Loop satisfies everything!
+
+unsat_loop_zero      = loop ::: Pred isZero
+
+unsat_loop_isnt_zero = loop ::: Pred (\x -> not (isZero x))
 
 -- A contract C for a function that is recursive do not
 -- have the property
@@ -49,10 +53,59 @@ recursive_true (S x) = recursive_true x
 -- but we need CF --> CF && {x | True} to recursive_true (untested)
 sat_id_recursive_true = id ::: CF --> Pred recursive_true
 
-recursive_true_and_cf = recursive_true ::: CF --> CF :&: Pred id
-recursive_true_cf = recursive_true ::: CF --> CF
+unsat_recursive_true_and_cf = recursive_true ::: CF --> CF :&: Pred id
+unsat_recursive_true_cf = recursive_true ::: CF --> CF
 
 id_four = id (S (S (S (S Z))))
 
 -- A small unit test, four is recursive_true (and crash-free!)
 unsat_id_four_rec_true = id_four ::: CF :&: Pred recursive_true
+
+
+{-
+   With dimitrios new style
+./Loop.loop_cf_base.tptp, should be SAT
+OK from paradox
+
+./Loop.loop_cf_step.tptp, should be SAT
+OK from paradox
+
+./Loop.loop_zero_base.tptp, should be SAT
+OK from paradox
+
+./Loop.loop_zero_step.tptp, should be SAT
+paradox timed out
+All tools timed out
+
+./Loop.loop_isnt_zero_base.tptp, should be SAT
+OK from paradox
+
+./Loop.loop_isnt_zero_step.tptp, should be SAT
+paradox timed out
+All tools timed out
+
+./Loop.recursive_true_and_cf_base.tptp, should be SAT
+paradox timed out
+All tools timed out
+
+./Loop.recursive_true_and_cf_step.tptp, should be SAT
+paradox timed out
+All tools timed out
+
+./Loop.recursive_true_cf_base.tptp, should be SAT
+paradox timed out
+All tools timed out
+
+./Loop.recursive_true_cf_step.tptp, should be SAT
+paradox timed out
+All tools timed out
+
+./Loop.sat_id_loop_pred.tptp, should be SAT
+OK from paradox
+
+./Loop.sat_id_recursive_true.tptp, should be SAT
+OK from paradox
+
+-}
+
+
