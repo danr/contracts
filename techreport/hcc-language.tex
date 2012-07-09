@@ -1,45 +1,45 @@
 To formalise the ideas behind our implementation, we define a
 tiny source language $\cal L$:
 polymorphic, higher-order, call-by-name $\lambda$-calculus with
-algebraic datatypes, pattern matching, and recursion.  
-Our actual implementation treats all of Haskell, by using GHC as a front 
+algebraic datatypes, pattern matching, and recursion.
+Our actual implementation treats all of Haskell, by using GHC as a front
 end to translate Haskell into language $\cal L$.
 
 \subsection{Syntax of $\cal L$} \label{s:syntax}
 
 \begin{figure}
-\[\begin{array}{l} 
+\[\begin{array}{l}
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Programs, definitions, and expressions}} \\
 P   & ::= & d_1 \ldots d_n \\
 d   & ::= & f\; \ol{a} \; \ol{(x\!:\!\tau)} = u \\
 u   & ::= & e \; \mid \; @case@\;e\;@of@\;\ol{K\;\ol{y} -> e}
 \end{array}
-\\ 
+\\
 \begin{array}{lrll}
-e  & ::=  & x            & \text{Variables} \\ 
-   & \mid & f[\ol{\tau}] & \text{Function variables} \\ 
+e  & ::=  & x            & \text{Variables} \\
+   & \mid & f[\ol{\tau}] & \text{Function variables} \\
    & \mid & K[\ol{\tau}](\ol{e}) & \text{Data constructors (fully applied)} \\
    & \mid & e\;e         & \text{Applications} \\
-   & \mid & @BAD@        & \text{Runtime error} \\ 
-\end{array}\\ \\ 
+   & \mid & @BAD@        & \text{Runtime error} \\
+\end{array}\\ \\
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Syntax of closed values}} \\
- v,w & ::= & K^\ar[\ol{\tau}](\oln{e}{\ar}) \;\mid\; f^\ar[\ol{\tau}]\;\oln{e}{m < \ar} \;\mid\; @BAD@ \\ \\ 
+ v,w & ::= & K^\ar[\ol{\tau}](\oln{e}{\ar}) \;\mid\; f^\ar[\ol{\tau}]\;\oln{e}{m < \ar} \;\mid\; @BAD@ \\ \\
 \end{array}
-\\ 
+\\
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Contracts}} \\
- \Ct & ::=  & \{ x \mid e \}        & \text{Base contracts}  \\ 
-     & \mid &  (x : \Ct_1) -> \Ct_2      & \text{Arrow contracts} \\ 
-     & \mid & \Ct_1 \& \Ct_2             & \text{Conjunctions}   \\ 
+ \Ct & ::=  & \{ x \mid e \}        & \text{Base contracts}  \\
+     & \mid &  (x : \Ct_1) -> \Ct_2      & \text{Arrow contracts} \\
+     & \mid & \Ct_1 \& \Ct_2             & \text{Conjunctions}   \\
      & \mid & \CF                        & \text{Crash-freedom}   \\
 \end{array}
 \\ \\
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Types}} \\
-\tau,\sigma & ::=  & T\;\taus & \text{Datatypes} \\ 
-            & \mid & a \mid \tau -> \tau 
+\tau,\sigma & ::=  & T\;\taus & \text{Datatypes} \\
+            & \mid & a \mid \tau -> \tau
 \end{array}
 \\ \\
 \begin{array}{lrll}
@@ -55,12 +55,12 @@ e  & ::=  & x            & \text{Variables} \\
 (\cdot)^{-}            & = & \cdot \\
 (\Delta,a)^{-}         & = & \Delta^{-} \\
 (\Delta,(x{:}\tau)^{-} & = & \Delta^{-},x
-%% \tyar{D}{f} & = & n & \\ 
+%% \tyar{D}{f} & = & n & \\
 %%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\oln{a}{n} @.@ \lambda\ol{x{:}\tau} @.@ u) \in D} \\
-%% \tmar{D}{f} & = & n & \\ 
+%% \tmar{D}{f} & = & n & \\
 %%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D}
 \end{array}
-\end{array}\] 
+\end{array}\]
 \caption{Syntax of $\cal L$ and its contracts}\label{fig:syntax}
 \end{figure}
 
@@ -68,7 +68,7 @@ Figure~\ref{fig:syntax} presents the syntax of $\cal L$.  A program
 $P$ consists of a set of recursive function definitions $d_1 \ldots
 d_n$. Each definition has a left hand side that binds its type-variable and
 term-variable parameters;
-if $f$ has $n$ term-variable parameters we say that 
+if $f$ has $n$ term-variable parameters we say that
 it has arity $n$, and sometimes write it $f^n$.
 The right hand side $u$ of a definition is either a @case@ expression or a
 @case@-free expression $e$.  A @case@-free expression consists of
@@ -92,8 +92,8 @@ from the GHC-as-a-library API. However this simpler language is
 instead extremely convenient for the translation of programs to
 first-order logic.
 
-Figure~\ref{fig:syntax} embodies one other inessential choice in order to 
-facilitate the formalisation and implementation: we assume that 
+Figure~\ref{fig:syntax} embodies one other inessential choice in order to
+facilitate the formalisation and implementation: we assume that
 functions have arity at least one (disallowing CAF's).  \spj{Disallowing CAFs is quite significant.
 We need to say more about why.} \dv{It is not essential -- it was in some previous version of a proof. I will fix this.}
 
@@ -105,7 +105,7 @@ data constructors and types of functions in the program $P$. The
 well-formedness of expressions is checked with a typing relation
 $\Sigma;\Delta |- u : \tau$, where $\Delta$ is a typing environment,
 also in Figure~\ref{fig:syntax}.  We do not give the details of the
-typing relation since it is standard. 
+typing relation since it is standard.
 Our technical development and analysis in the following sections
 assume that programs have been checked for type errors.
 
@@ -121,7 +121,7 @@ head (x:xs) = x
 \end{code}
 will be represented in our language as:
 \[\begin{array}{l}
-   @head@\; a\; (x{:}[a]) = @case@\;x\;@of@ \{ [] -> @BAD@ ; (x:xs) -> x \} 
+   @head@\; a\; (x{:}[a]) = @case@\;x\;@of@ \{ [] -> @BAD@ ; (x:xs) -> x \}
 \end{array}\]
 We also assume that the standard Haskell function @error@ simply invokes @BAD@, thus:
 \begin{code}
@@ -131,26 +131,26 @@ We also assume that the standard Haskell function @error@ simply invokes @BAD@, 
 In our context, @BAD@ is our way to saying what it means for a program to ``go wrong'',
 and verification amounts to proving that a program cannot invoke @BAD@.
 
-The syntax of closed values is also given in Figure~\ref{fig:syntax}. Since we do not 
+The syntax of closed values is also given in Figure~\ref{fig:syntax}. Since we do not
 have arbitrary $\lambda$-abstractions, values can only be partial function applications
-$f^\ar[\ol{\tau}]\;\oln{e}{m < \ar}$, data constructor applications $K[\tau](\ol{e})$, 
-and the error term @BAD@. 
+$f^\ar[\ol{\tau}]\;\oln{e}{m < \ar}$, data constructor applications $K[\tau](\ol{e})$,
+and the error term @BAD@.
 
 \subsection{Operational semantics of $\cal L$}
 
 \spj{Why do we give an operational as well as denotational semantics?}
-The big-step operational semantics of our language is given in 
+The big-step operational semantics of our language is given in
 Figure~\ref{fig:opsem}, which contains no surprises. One interesting
-detail of big-step semantics is that they do not distinguish between non-termination 
-and ``getting stuck'', meaning that if $P \not|- e \Downarrow v$ then $e$ could either diverge or its 
-evaluation could get stuck. We return to this convenient for our purposes form of operational 
+detail of big-step semantics is that they do not distinguish between non-termination
+and ``getting stuck'', meaning that if $P \not|- e \Downarrow v$ then $e$ could either diverge or its
+evaluation could get stuck. We return to this convenient for our purposes form of operational
 semantics later. \spj{Where later? Also this sentence is hard to parse; indeed I'm not quite
 sure what it means.}
 \begin{figure}
-\[\begin{array}{c} 
-\ruleform{P |- u \Downarrow v} \\ 
+\[\begin{array}{c}
+\ruleform{P |- u \Downarrow v} \\
 \prooftree
-\begin{array}{c} \ \\ 
+\begin{array}{c} \ \\
 \end{array}
 -------------------------------------{EVal}
 P |- v \Downarrow v
@@ -162,26 +162,26 @@ P |- u[\ol{\tau}/\ol{a}][\ol{e}/\ol{x}] \Downarrow v
 -------------------------------------{EFun}
 P |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow v
 ~~~~~
-\begin{array}{c}  
+\begin{array}{c}
 P |- e_1 \Downarrow v_1 \\
 P |- v_1\;e_2 \Downarrow w
 \end{array}
 ------------------------------------------------{EApp}
 P |- e_1\;e_2 \Downarrow w
 ~~~~~
-\begin{array}{c}  
-P |- e_1 \Downarrow @BAD@ 
+\begin{array}{c}
+P |- e_1 \Downarrow @BAD@
 \end{array}
 ------------------------------------------------{EBadApp}
 P |- e_1\;e_2 \Downarrow @BAD@
 ~~~~~
-%% \endprooftree \\ \\ 
+%% \endprooftree \\ \\
 %% \ruleform{P |- u \Downarrow v} \\ \\
 %% \prooftree
 %% P |- e \Downarrow v
 %% -------------------------------------{EUTm}
 %% P |- e \Downarrow v
-%% ~~~~ 
+%% ~~~~
 \begin{array}{c}
 P |- e \Downarrow K_i[\ol{\sigma}_i](\ol{e}_i) \quad
 P |- e'_i[\ol{e}_i/\ol{y}_i] \Downarrow w
@@ -210,21 +210,21 @@ P |- @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'} \Downarrow @BAD@
 %% If $P |- e \Downarrow w$ then $P |- value(w)$ and $\Sigma;\cdot |- w : \tau$.
 %% \end{lemma}
 The operational semantics of Figure~\ref{fig:opsem} has the possibility of non-determinism because
-of the overlapping of several rules for applications. But that is not a problem, as we can prove that evaluation 
+of the overlapping of several rules for applications. But that is not a problem, as we can prove that evaluation
 is deterministic using the following two lemmas.
 \begin{lemma}[Value determinacy]
-If $\Sigma;\cdot |- v : \tau$ and 
+If $\Sigma;\cdot |- v : \tau$ and
 $\Sigma |- P$ and $P |- v \Downarrow w$ then $ v = w $.
 \end{lemma}
 \begin{lemma}[Determinacy of evaluation]
-If $\Sigma;\cdot |- e : \tau$ and 
+If $\Sigma;\cdot |- e : \tau$ and
 $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v_1$ and $\Sigma;\cdot |- e \Downarrow v_2$ then
 $v_1 = v_2$.
 \end{lemma}
 Finally, big-step soundness asserts that an expression that evaluates results in a
 well-typed value.
 \begin{lemma}[Big-step soundness]
-If $\Sigma;\cdot |- e : \tau$ and 
+If $\Sigma;\cdot |- e : \tau$ and
 $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \tau$.
 \end{lemma}
 
@@ -236,83 +236,83 @@ $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \ta
 
 %% \subsection{Denotational semantics}\label{ssect:denot}
 
-%% Having presented the language $\cal L$ and its operational semantics, we now return to 
-%% our roadmap which is to axiomatize and use the denotational semantics of programs to 
-%% perform static contract checking. In what follows we will assume a program $P$, 
-%% well-formed in a signature $\Sigma$, so that $\Sigma |- P$. Most of what follows is 
-%% an adaptation of folklore techniques to our setting and there are no 
-%% surprises -- we refer the reader to~\cite{winskel} or~\cite{benton+:coq-domains} 
+%% Having presented the language $\cal L$ and its operational semantics, we now return to
+%% our roadmap which is to axiomatize and use the denotational semantics of programs to
+%% perform static contract checking. In what follows we will assume a program $P$,
+%% well-formed in a signature $\Sigma$, so that $\Sigma |- P$. Most of what follows is
+%% an adaptation of folklore techniques to our setting and there are no
+%% surprises -- we refer the reader to~\cite{winskel} or~\cite{benton+:coq-domains}
 %% for a short and modern exposition of the standard methodology.
 
-%% Given a signature $\Sigma$ we define a strict bi-functor $F$ on complete partial 
+%% Given a signature $\Sigma$ we define a strict bi-functor $F$ on complete partial
 %% orders (cpos), below:
-%% %% For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below, 
-%% %% assuming that $K_1\ldots K_k$ are all the constructors in $\Sigma$: 
+%% %% For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below,
+%% %% assuming that $K_1\ldots K_k$ are all the constructors in $\Sigma$:
 %% \[\begin{array}{lclll}
 %%   F(D^{-},D^{+}) & = & ( \quad{\prod_{\ar_1}{D^{+}}} & K_1^{\ar_1} \in \Sigma \\
 %%                & + & \;\quad\ldots                    & \ldots \\
-%%                & + & \;\quad{\prod_{\ar_k}{D^{+}}} & K_k^{\ar_k} \in \Sigma \\ 
+%%                & + & \;\quad{\prod_{\ar_k}{D^{+}}} & K_k^{\ar_k} \in \Sigma \\
 %%                & + & \;\quad(D^{-} =>_c D^{+}) \\
 %%                & + & \;\quad\unitcpo_{bad} \quad )_{\bot}
 %% \end{array}\]
-%% \spj{Why bi-functor? Why not just functor?}%% \dv{I am using Pitts' and Nick Benton's formulation and this 
-%% %% thing needs to be a bifunctor. It is not a functor if you have contra-varianance.} 
-%% The bi-functor $F$ is the lifting of a big sum: that sum consists of 
+%% \spj{Why bi-functor? Why not just functor?}%% \dv{I am using Pitts' and Nick Benton's formulation and this
+%% %% thing needs to be a bifunctor. It is not a functor if you have contra-varianance.}
+%% The bi-functor $F$ is the lifting of a big sum: that sum consists of
 %% (i) products, one for each possible constructor (even across different data types), (ii) the continuous
-%% function space from $D^{-}$ to $D^{+}$, and (iii) a unit cpo to denote @BAD@ values. 
-%% The notation $\prod_{n}{D}$ abbreviates $n$-ary products of cpos (the unit cpo $\unitcpo$ if $n = 0$). 
-%% The product and sum constructions are standard, but note that we use their non-strict versions. 
-%% The notation $C =>_c D$ denotes the cpo 
-%% induced by the space of continuous functions from the cpo $C$ to the cpo $D$. We use 
-%% the notation $\unitcpo_{bad}$ to 
-%% denote a single-element cpo -- the $bad$ subscript is just there for readability. 
-%% The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous 
+%% function space from $D^{-}$ to $D^{+}$, and (iii) a unit cpo to denote @BAD@ values.
+%% The notation $\prod_{n}{D}$ abbreviates $n$-ary products of cpos (the unit cpo $\unitcpo$ if $n = 0$).
+%% The product and sum constructions are standard, but note that we use their non-strict versions.
+%% The notation $C =>_c D$ denotes the cpo
+%% induced by the space of continuous functions from the cpo $C$ to the cpo $D$. We use
+%% the notation $\unitcpo_{bad}$ to
+%% denote a single-element cpo -- the $bad$ subscript is just there for readability.
+%% The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous
 %% functions.
 %% \[\begin{array}{l}
-%%    \ret   : D =>_c D_\bot \\ 
+%%    \ret   : D =>_c D_\bot \\
 %%    \bind_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
 %% \end{array}\]
-%% with the obvious definitions. 
+%% with the obvious definitions.
 
-%% Observe that we have dropped all type information from the source language. The elements of the products 
-%% corresponding to data constructors are simply $D^{+}$ (instead of more a precise description from type 
-%% information) and the return types of data constructors are similarly ignored. This is not to say that 
-%% a more type-rich denotational semantics is not possible (or desirable even) but this simple denotational 
-%% semantics turns out to be sufficient for formalization and verification. 
+%% Observe that we have dropped all type information from the source language. The elements of the products
+%% corresponding to data constructors are simply $D^{+}$ (instead of more a precise description from type
+%% information) and the return types of data constructors are similarly ignored. This is not to say that
+%% a more type-rich denotational semantics is not possible (or desirable even) but this simple denotational
+%% semantics turns out to be sufficient for formalization and verification.
 
-%% %% for $\lambda$-abstractions and @BAD@. Observe that we have 
+%% %% for $\lambda$-abstractions and @BAD@. Observe that we have
 %% %% Moreover, the following continuous operations are defined:
-%% %% \[\begin{array}{l} 
-%% %%    \curry_{f : D\times E =>_c F} : D =>_c (E =>_C F) \\ 
-%% %%    \eval : (E =>_c D)\times E =>_c D 
-%% %% \end{array}\] 
+%% %% \[\begin{array}{l}
+%% %%    \curry_{f : D\times E =>_c F} : D =>_c (E =>_C F) \\
+%% %%    \eval : (E =>_c D)\times E =>_c D
+%% %% \end{array}\]
 %% %% for any cpos $D, E, F$.
 
-%% \spj{What is ``the equation induced by F''?  Maybe $$D_{\infty} = F( D_{\infty}, D_{\infty})$$? 
+%% \spj{What is ``the equation induced by F''?  Maybe $$D_{\infty} = F( D_{\infty}, D_{\infty})$$?
 %% Let's write it down.}
 %% Using the standard {\em embedding-projection} pairs methodology we can show the following.
-%% \begin{lemma}\label{lem:rec-solution} 
+%% \begin{lemma}\label{lem:rec-solution}
 %% There exists a solution to the domain-recursive equation induced by $F$, call it $D_{\infty}$.
 %% Moreover, let a value-domain: $V_{\infty}$ be defined as:
 %%     \[V_{\infty} = \begin{array}[t]{ll}
 %%              \quad\;{\prod_{\ar_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
 %%              \; + \;\ldots                    & \ldots \\
-%%              \; + \;{\prod_{\ar_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\ 
+%%              \; + \;{\prod_{\ar_k}{D_{\infty}}} & K_k^{\ar_k} \in \Sigma \\
 %%              \; + \;(D_{\infty} =>_c D_{\infty}) \\
 %%              \; + \;\unitcpo_{bad} \quad
 %%     \end{array}\]
-%% The following continuous functions also exist, each being the inverse of the 
+%% The following continuous functions also exist, each being the inverse of the
 %% other (i.e. composing to the identity function on the corresponding cpo):
 %% \[\begin{array}{l}
-%%   \roll : (V_{\infty})_\bot =>_c D_{\infty} \\ 
+%%   \roll : (V_{\infty})_\bot =>_c D_{\infty} \\
 %%   \unroll : D_{\infty} =>_c (V_{\infty})_\bot
-%% \end{array}\] 
+%% \end{array}\]
 %% \end{lemma}
 
 
 %% \paragraph{Definability of application}
 %% We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as a continuous
-%% function: 
+%% function:
 %% {\setlength{\arraycolsep}{2pt}
 %% \[\begin{array}{rcll}
 %%    \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll(\bind_g (\unroll (\pi_1(d))))} \\
@@ -320,28 +320,28 @@ $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \ta
 %%                     &   &  , & \ldots \\
 %%                     &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
 %%                     &   &  , & \dlambda d' @.@ \unroll(d'(\pi_2(d))) \\
-%%                     &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ] 
+%%                     &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ]
 %% \end{array}\]}%
 %% Informally, what does the $\dapp$ combinator express? If the first
 %% argument is $\bot$ it will return $\bot$, if the first argument is an
 %% injection $\inj{bad}$ it will return the same, if it corresponds to a
 %% data constructor it will return $\bot$. Finally, if the first element
 %% is indeed a function, it will apply it.
-%% \spj{Why not use $\dapp(fun, arg) = ...$ rather than all this stuff with angle brackets and pis. 
+%% \spj{Why not use $\dapp(fun, arg) = ...$ rather than all this stuff with angle brackets and pis.
 %% That just adds clutter.}
-%% As a notational convention, we have used notation $\langle , \rangle$ to introduce pairs and $[\ldots]$ to 
-%% eliminate ($n$-ary) sums. 
+%% As a notational convention, we have used notation $\langle , \rangle$ to introduce pairs and $[\ldots]$ to
+%% eliminate ($n$-ary) sums.
 %% \spj{I don't understand the $[\ldots]$ notation.}
-%% The projections $\pi_1$ and $\pi_2$ are the obvious continuous projections from the 
-%% binary product space of $D_{\infty}$. We use notation $\inj{K}$ to denote the continuous map that injects some $n$-ary product of $D_{\infty}$ 
+%% The projections $\pi_1$ and $\pi_2$ are the obvious continuous projections from the
+%% binary product space of $D_{\infty}$. We use notation $\inj{K}$ to denote the continuous map that injects some $n$-ary product of $D_{\infty}$
 %% corresponding to the arity of constructor $K$ into the sum $V_{\infty}$.
-%% We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
-%% $\inj{bad}$ for the unit injection into $V_{\infty}$. We use ordinary application notation 
+%% We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally,
+%% $\inj{bad}$ for the unit injection into $V_{\infty}$. We use ordinary application notation
 %% $d(d')$ \spj{instead of $app(d,d')$?} \dv{No, instead of the @apply@ combinator of the cpo $D_\infty =>_c D_\infty$, which is different
 %% than $\dapp$ which has a completely different signature than @apply@ (its arguments are both elements of $D_\infty$)} when $d : D_\infty =>_c D_\infty$ and
 %% $d'$ is an element of $D_\infty$. \spj{Why inconsistent notation? Why not say $d':D_{\infty}$?}
-%% Indeed application, partial application, and currying are all definable in cpos of continuous functions, 
-%% so we will be using $\lambda$-calculus notation for our domain theory, as above. 
+%% Indeed application, partial application, and currying are all definable in cpos of continuous functions,
+%% so we will be using $\lambda$-calculus notation for our domain theory, as above.
 
 
 %% \paragraph{Denotational semantics of expressions and programs}
@@ -351,13 +351,13 @@ $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \ta
 
 \begin{figure}
 \[\begin{array}{lcl}
-e \in \{ x\;\mid\;e_p\} & <=> &  e \not\Downarrow \text{ or } e_p[e/x] \not\Downarrow \text{ or} \\ 
+e \in \{ x\;\mid\;e_p\} & <=> &  e \not\Downarrow \text{ or } e_p[e/x] \not\Downarrow \text{ or} \\
                         &     &  e_p[e/x] \Downarrow True \\
-e \in (x{:}\Ct_1) -> \Ct_2 & <=> & 
+e \in (x{:}\Ct_1) -> \Ct_2 & <=> &
                         \forall e' \in \Ct_1.\; (e\;e') \in \Ct_2[e'/x] \\
 e \in \Ct_1 \& \Ct_2 & <=> & e \in \Ct_1 \text{ and } e \in \Ct_2 \\
 e \in \CF            & <=> & \forall {\cal C}. BAD \not\in {\cal C} \Rightarrow e \not\Downarrow BAD
-\end{array} 
+\end{array}
 \]
 \caption{Operational semantics of contracts} \label{f:contract-spec-op}
 \end{figure}
@@ -365,8 +365,8 @@ e \in \CF            & <=> & \forall {\cal C}. BAD \not\in {\cal C} \Rightarrow 
 We now turn our attention to contracts. The syntax of contracts
 is given in Figure~\ref{fig:syntax} and includes base contracts
 $\{ x \mid e \}$, arrow contracts $(x : \Ct_1) -> \Ct_2$, conjunctions
-$\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts} 
-includes other constructs as well, but these constructs are enough to verify 
+$\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts}
+includes other constructs as well, but these constructs are enough to verify
 many programs and already demonstrate the interesting theoretical and practical problems.
 
 We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
@@ -374,7 +374,7 @@ for functions $f$.
 Figure~\ref{f:contract-spec-op} says what it means to say $e \in C$,
 based closely on earlier work \cite{xu+:contracts}.  The specification is
 simple, declarative, and intended to be comprehensible to programmers.
-For example, an expression $e$ satisfies the function contract $\Ct_1 \& \Ct_2$ if and 
+For example, an expression $e$ satisfies the function contract $\Ct_1 \& \Ct_2$ if and
 only if $(e e')$ satisfies $\Ct_2$ whenever $e'$ satisfies $Ct_1$.
 
 Crucially, base contracts $\{x|e\}$ allow arbitrary $\cal L$
@@ -392,7 +392,7 @@ crash.
 Our goal is to answer the question ``does expression $e$ satisfy
 contract $C$?''.  Our plan is to translate both the expression and the
 contract into first-order logic (FOL), and get a standard FOL prover
-to do the heavy lifting.  
+to do the heavy lifting.
 
 In this section we formalise our new translation, and describe how we use it to
 verify contracts.
@@ -400,24 +400,24 @@ verify contracts.
 \subsection{The FOL language}
 
 \begin{figure}
-\[\begin{array}{c} 
+\[\begin{array}{c}
 \begin{array}{lrll}
 \multicolumn{3}{l}{\text{Terms}} \\
-  s,t & ::=  & x                          & \text{Variables} \\ 
+  s,t & ::=  & x                          & \text{Variables} \\
       & \mid & f(\ol{t})                  & \text{Function applications} \\
-      & \mid & K(\ol{t})                  & \text{Constructor applications} \\ 
-      & \mid & \sel{K}{i}(t)              & \text{Constructor selectors} \\ 
+      & \mid & K(\ol{t})                  & \text{Constructor applications} \\
+      & \mid & \sel{K}{i}(t)              & \text{Constructor selectors} \\
       & \mid & f_{ptr} \mid app(t,s)       & \text{Pointers and application} \\
       & \mid & \unr \mid \bad             & \text{Unreachable, bad} \\ \\
-\multicolumn{3}{l}{\text{Formulae}} \\ 
+\multicolumn{3}{l}{\text{Formulae}} \\
  \phi & ::=  & \lcf{t}    & \text{Crash-freedom} \\
 %%      & \mid & \lncf{t}   & \text{Can provably cause crash} \\
-      & \mid & t_1 = t_2  & \text{Equality} \\ 
+      & \mid & t_1 = t_2  & \text{Equality} \\
       & \mid & \phi \land \phi \mid \phi \lor \phi \mid \neg \phi \\
-      & \mid & \forall x @.@ \phi \mid \exists x @.@ \phi \\ \\ 
+      & \mid & \forall x @.@ \phi \mid \exists x @.@ \phi \\ \\
 \end{array}
 \\
-\multicolumn{1}{l}{\text{Abbreviations}} \\ 
+\multicolumn{1}{l}{\text{Abbreviations}} \\
 \begin{array}{rcl}
 app(t,\oln{s}{n} & = & (\ldots(app(t,s_1),\ldots s_n)\ldots) \\
 \phi_1 \Rightarrow \phi_2 & = & \neg \phi_1 \lor \phi_2
@@ -447,8 +447,8 @@ semantics we discuss in Section~\ref{sect:contracts}.
 
 % ---------------------------------------------------
 \begin{figure}\small
-\setlength{\arraycolsep}{2pt} 
-\[\begin{array}{c} 
+\setlength{\arraycolsep}{2pt}
+\[\begin{array}{c}
 \ruleform{\etrans{\Sigma}{\Gamma}{e} = \formula{t} } \\ \\
 \begin{array}{rcl}
 \etrans{\Sigma}{\Gamma}{x} & = & \formula{x} \\
@@ -466,20 +466,20 @@ semantics we discuss in Section~\ref{sect:contracts}.
 \multicolumn{3}{l}{\utrans{\Sigma}
     {@case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}{s}} \\
 \multicolumn{3}{l}{
-\quad 
+\quad
   \begin{array}[t]{rl}
-    = & \formula{(t = \bad => s = bad)} \\ 
+    = & \formula{(t = \bad => s = bad)} \\
     \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = \etrans{\Sigma}{\Gamma}{e'_1})\;\land \ldots}  \\
     \land & \formula{(t{\neq}\bad\;\land\;
                  t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr} \\
-    \mbox{where} & t  =  \etrans{\Sigma}{\Gamma}{e} 
+    \mbox{where} & t  =  \etrans{\Sigma}{\Gamma}{e}
  \end{array}
 }
 \end{array}
 \\ \\
 \ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
-  \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u} 
+  \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u}
     & =     & \formula{\forall \ol{x} @.@ \utrans{\sigma}{u}{f(\ol{x})}} \\
     & \land & \formula{\forall \ol{x} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
 \end{array}
@@ -487,23 +487,23 @@ semantics we discuss in Section~\ref{sect:contracts}.
 \ruleform{\ptrans{\Sigma}{P} = \formula{\phi} } \quad
 \ptrans{\Sigma}{\ol{d}} = \bigwedge \ol{\dtrans{\Sigma}{d}}
 \\ \\
-\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
-\ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} 
-  & = & \formula{t{=}\unr} \\ 
+\ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}}
+  & = & \formula{t{=}\unr} \\
   & \lor & \formula{t'[t/x]{=}\unr} \\
   & \lor & \formula{t'[t/x]{=}\True} \\
-  & \mbox{where} & 
+  & \mbox{where} &
     \begin{array}[t]{rcl}
       t  & = & \etrans{\Sigma}{\Gamma}{e} \\
-      t' & = & \etrans{\Sigma}{\Gamma}{e} 
+      t' & = & \etrans{\Sigma}{\Gamma}{e'}
     \end{array}
 \\
-\ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} 
-  & = & \formula{\forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} 
+\ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2}
+  & = & \formula{\forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1}
                           \Rightarrow \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
 \\
-\ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} 
+\ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2}
    & = & \formula{ \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} /\ \ctrans{\Sigma}{\Gamma}{e \in \Ct_2}}
 \\
 \ctrans{\Sigma}{\Gamma}{e \in \CF} & = & \formula{\lcf{\etrans{\Sigma}{\Gamma}{e}}}
@@ -514,21 +514,21 @@ semantics we discuss in Section~\ref{sect:contracts}.
 \end{figure}
 % ---------------------------------------------------
 \begin{figure}\small
-\setlength{\arraycolsep}{1pt} 
-\[\begin{array}{c} 
-\begin{array}{ll} 
+\setlength{\arraycolsep}{1pt}
+\[\begin{array}{c}
+\begin{array}{ll}
 \multicolumn{2}{l}{\text{Axioms for $bad$ and $unr$}} \\
  \textsc{AxAppBad}  & \formula{\forall x @.@ app(\bad,x){=}\bad}  \\
  \textsc{AxAppUnr}  & \formula{\forall x @.@ app(\unr,x){=}\unr}    \\
- \textsc{AxDisjBU} & \formula{\bad \neq \unr}  \\ 
+ \textsc{AxDisjBU} & \formula{\bad \neq \unr}  \\
 \\
 \multicolumn{2}{l}{\mbox{Axioms for data constructors}} \\
- \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
-                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
- \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \; \land \; K(\ol{x}) \neq \bad)} \\ 
+ \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
+                  & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
+ \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \; \land \; K(\ol{x}) \neq \bad)} \\
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\
                   & \text{for every } K^\ar \in \Sigma \text{ and } i \in 1..n \\
 \\
 \multicolumn{2}{l}{\mbox{Axioms for crash-freedom}} \\
@@ -548,36 +548,36 @@ $$
 e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_F \etrans{}{}{e_2}
 $$
 where $=_S$ means semantic equality, $=_F$ means equality in first-order logic,
-and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can 
+and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL using
 a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states this?}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
 The function $\ptrans{}{P}$ translates a program to a conjunction of formulae,
-one for each definition $d$, while $\dtrans{}{d}$ in turn translates 
+one for each definition $d$, while $\dtrans{}{d}$ in turn translates
 a definition $d$.
 The first formula in $\dtrans{}{}$'s right-hand side invokes the translation
 $\utrans{}{u}{f(\ol{x})}$ for the right hand side $u$, passing in the term $f(\ol{x})$,
 and quantifying over the $\ol{x}$.  We will deal with the second formula shortly.
 
 
-Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}), 
+Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}),
 the formula $\utrans{}{e}{f(\ol{x})}$
-simply asserts the equality $f(\ol{x}) = \etrans{}{}{e}$. 
+simply asserts the equality $f(\ol{x}) = \etrans{}{}{e}$.
 That is, we use a new constant $f$ in the logic for each function definition in the
 program, and assert that any application of $f$ is equal to (the logical translation of)
 $f$'s right hand side. Notice that we erase type arguments in the translation
 since they do not affect the semantics.
 
 Lastly $\etrans{}{}{e}$ deals with expressions.  We will deal with
-functions and application next 
+functions and application next
 (Section~\ref{s:hof}), but the other equations for $\etrans{}{}{e}$
 are straightforward.  Notice that $\etrans{}{}{@BAD@} = bad$, and recall
 that @BAD@ is the $\cal L$-term used for an inexhaustive @case@ or a call
-to @error@.  It follows from our guiding principle 
+to @error@.  It follows from our guiding principle
 that for any $e$, if
-$$ \etrans{}{}{e} =_F bad $$ 
+$$ \etrans{}{}{e} =_F bad $$
 in the logic, then the source program $e$
 must be semantically equivalent to @BAD@, meaning that it definitely
 crashes by calling @error@, or having an inexhaustive @case@.
@@ -586,25 +586,25 @@ crashes by calling @error@, or having an inexhaustive @case@.
 
 \subsection{Translating higher-order functions} \label{s:hof}
 
-If $\cal L$ was 
+If $\cal L$ was
 a first-order language the translation of function calls would be easy:
 $$
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]\;\ol{e}} = \formula{f(\ol{\etrans{}{}{e}})} \\
 $$
 At first it might be surprising that we can also translate a \emph{higher-order} language
-$\cal L$ into first order logic, but in fact it is easy to do so, as 
+$\cal L$ into first order logic, but in fact it is easy to do so, as
 Figure~\ref{fig:etrans} shows.  We introduce into the logic
 (a) a single new constant $app$, standing
-for application, and (b) a nullary constant $f_{ptr}$ for each function $f$ 
+for application, and (b) a nullary constant $f_{ptr}$ for each function $f$
 (see Figure~\ref{fig:fol-image}).
-Then, the equations for $\etrans{}{}{e}$ translate application in $\cal L$ to 
+Then, the equations for $\etrans{}{}{e}$ translate application in $\cal L$ to
 a use of $app$ in FOL, and any mention of function $f$ in $\cal L$ to a use
 of $f_{ptr}$ in the logic.  For example:
 $$
 \etrans{}{}{@map f xs@} = app( app( @map@_{ptr}, @f@_{ptr}), @xs@)
 $$
 assuming that @map@ and @f@ are top-level functions in the $\cal L$-program, and
-@xs@ is a local variable.  Once enough $app$ applications stack up, so that 
+@xs@ is a local variable.  Once enough $app$ applications stack up, so that
 $@map@_{ptr}$ is applied to two arguments, can invoke @map@ directly in the logic,
 an idea we expression with the following axiom:
 $$
@@ -615,7 +615,7 @@ clause of the rules for $\dtrans{}{d}$ in Figure~\ref{fig:etrans}.
 (The notation $app(f,\ol{x})$ is defined in Figure~\ref{fig:fol-image}.)
 You can think of $@map@_{ptr}$ as a ``pointer to'', or ``name of'' of, @map@.
 The $app$ axiom for @map@ translates a saturated use of @map@'s pointer into
-a call of @map@ itself.   
+a call of @map@ itself.
 
 \subsection{Data types and {\tt case} expressions} \label{s:case-fol}
 
@@ -628,10 +628,10 @@ its scrutinee.
 \item If the scrutinee is an application of one of the constructors $K_i$ mentioned
 in one of the @case@ alternatives, then the result $s$ is equal to the corresponding
 right-hand side, $e'_i$, after quantifying the variables $\ol{y}$ bound by the @case@ alternative.
-\item Otherwise the result is $unr$.  
-The bit before the implication $\Rightarrow$ is just the 
-negation of the previous preconditions; the formula 
-  $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$ 
+\item Otherwise the result is $unr$.
+The bit before the implication $\Rightarrow$ is just the
+negation of the previous preconditions; the formula
+  $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$
 is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$.
 \end{itemize}
 Why do we need the last clause? Consider the function @not@:
@@ -641,13 +641,13 @@ Why do we need the last clause? Consider the function @not@:
   not False = True
 \end{code}
 Suppose we want to prove that $@not@ \in @CF@ \rightarrow @CF@$.
-If we lack the last clause above, the FOL prover would have 
+If we lack the last clause above, the FOL prover would have
 no way to dismiss the possibility that $@not@(@3@) =_F bad$, and thus
 would fail to prove the theorem.  However, the type system guarantees
 that @not 3@ will never show up, and the final clause is the way we express that
 fact to the FOL prover.
 
-Of course, we also need to axiomatise the behaviour of data constructors and 
+Of course, we also need to axiomatise the behaviour of data constructors and
 selectors, which is done in Figure~\ref{fig:data-cons}:
 \begin{itemize}
 \item \textsc{AxDisjCBU} explains that a term headed by a data constructor cannot
@@ -655,7 +655,7 @@ also be $bad$ or $unr$.
 \item \textsc{AxInj} explains how selectors $\sel{K}{i}$ work.
 \item \textsc{AxDisjC} tells the prover that all data constructors are pairwise disjoint.
 There are a quadratic number of such axioms, which presents a scaling problem.
-For this reason FOL provers sometimes offer a built-in notion of data constructors, 
+For this reason FOL provers sometimes offer a built-in notion of data constructors,
 so this is not a problem in practice, but we ignore this pragmatic issue here.
 \end{itemize}
 
@@ -674,11 +674,11 @@ $\ctrans{}{\Gamma}{e \in \Ct}$; there are four equations corresponding
 to the syntax of contracts in Figure~\ref{fig:syntax}.
 The last three cases are delightfully simple and direct.  Conjunction of contracts
 turns into conjunction in the logic; a dependent function contract turns
-into universal quantification and implication; and the claim that $e$ is 
+into universal quantification and implication; and the claim that $e$ is
 crash-free turns into a use of the special term $\lcf{t}$ in the logic.
 We discuss crash-freedom in Section~\ref{s:cf-fol}.
 
-The first equation, for predicate contracts $e \in \{(x{:}\tau) \mid e' \}$, 
+The first equation, for predicate contracts $e \in \{(x{:}\tau) \mid e' \}$,
 is sightly more complicated.
 The first clause $t=unr$ says that the contract holds if $e$ diverges \spj{Is this right?}.
 The second and third say that the contract holds if $e'$ diverges or is semantically
@@ -700,10 +700,10 @@ $unr$ is crash-free, and that $bad$ is not.  That turns out to be all that we ne
 
 \subsection{Summary}
 
-That completes our formally-described --- but only informally-justified --- translation 
+That completes our formally-described --- but only informally-justified --- translation
 from a $\cal L$ program and a set of contract claims, into first-order logic.
 To a first approximation, we can now turn the whole formula over to a FOL prover,
-and hope that it proves the assertion.  
+and hope that it proves the assertion.
 
 \spj{What else should we say here.  Something about recursion?  About multiple functions?}
 
