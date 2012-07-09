@@ -79,7 +79,7 @@ contract translations.
  %%                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
  %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
  %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
- \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{min(K(\ys))}} \\ %% \;\land\; min(y_i)}} \\ 
+ \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{min(\sel{K}{i}(K(\ys)))}} \\ %% \;\land\; min(y_i)}} \\ 
                   & \formula{\quad\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
                   & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n 
 \end{array}
@@ -312,20 +312,17 @@ $t'[t/x]$ which are both in the $min(\cdot)$ predicate. Intuitively this means t
 of the execution of the predicate. Moreover the value does not diverge, nor does the predicate diverge, nor
 does it return $\True$. This constitutes a contradiction. Rule \rulename{NCArr} asserts that there exists an
 argument that does satisfy its contract, but the application does not satisfy the contract. Rule \rulename{NCCf}
-asserts that we have an execution trace of $t$ (with $min(t)$) and $t$ is not crash-free.
-
-If we cannot find a contradiction to a statement $\ctransmin{}{\Gamma}{e \notin \Ct}$ our intention is to allow  
-us to {\em use} the positive assumption $\ctrans{}{\Gamma}{e \in \Ct}$ to prove other goals. Hence rule \rulename{CBase} 
-introduces an implication which asserts that if $t$ is in the execution trace then we learn more information about 
-the predicate -- (i)~it belongs in the $min(\cdot)$ predicate and is (ii)~either $\unr$ or $\True$. The reason behind
-(i) is because we need to generate enough $min(\cdot)$ predicates in order to allow function definition axioms that 
-are related to the predicate to trigger and evaluate it. The rest of the cases are symmetric versions of the negative
-case. 
+asserts that we have an execution trace of $t$ (with $min(t)$) and $t$ is not crash-free. The positive case 
+is analogous, but observe that in the base cases \rulename{CBase} and \rulename{CCf} we also have conjuncts that
+assert that the terms in hand are in the $min(\cdot)$ predicate. The intuition is that, in order to be able to 
+prove anything definite about a term, it has to be in the $min(\cdot)$ set.
 
 The following lemma connects the positive and negative translations to the original translation $\ctrans{}{\Gamma}{e \in \Ct}$. 
 
-\begin{lemma}\label{lem:contract-min} Assume a model $\langle M,\calI\rangle$ such that $\calI(min)(d)$ holds for every $d : M$. Then 
-the following are true, assuming that $dom(\Gamma) \subseteq dom(\calI)$:
+\dv{Here!}
+
+\begin{lemma}\label{lem:contract-min} Assume a model $\langle M,\calI\rangle$ such that $\calI(min)(d)$ holds for every $d \in M$. 
+Then the following are true, assuming that that $dom(\Gamma) \subseteq dom(\calI)$:
 \begin{itemize} 
   \item If $\langle M,\calI\rangle \models \neg \ctransmin{}{\Gamma}{e \notin \Ct}$ then $\langle M,\calI\rangle\models \ctrans{}{\Gamma}{e \in \Ct}$
   \item If $\langle M,\calI\rangle \models \ctrans{}{\Gamma}{e \in \Ct}$ then $\langle M,\calI\rangle \models \ctransmin{}{\Gamma}{e \in \Ct}$.
@@ -377,9 +374,9 @@ and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then i
   \end{array}
   ------------------------------------------{CBase}
   \begin{array}{l}
-   \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \highlight{min(t) => } \\
+   \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
   %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-   \quad \formula{\highlight{(min(t'[t/x])\;\land}} \\ 
+   \quad \formula{\highlight{min(t) \land min(t'[t/x])\;}\land} \\ 
    \quad \formula{\;\;((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
   \end{array}
   ~~~~~ 
@@ -402,7 +399,7 @@ and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then i
   ~~~~~
   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
   -------------------------------------------{CCf}
-  \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t) => \lcf{t}}}
+  \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} \land \lcf{t}}
  \endprooftree  \\ \\ 
 \ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
 \prooftree
@@ -436,7 +433,7 @@ and ask a SAT-solver for a model of this formula. If it is unsatisfiable, then i
   ~~~~~
   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
   -------------------------------------------{NCCf}
-  \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t) \land \neg\lcf{t}}}
+  \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
  \endprooftree \\ \\ 
 \ruleform{\Th_\lcfZ^{min}} \\ \\ 
 \begin{array}{lll} 
