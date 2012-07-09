@@ -15,6 +15,7 @@ data Params = Params
     , dollar_min       :: Bool
     , or_discr         :: Bool
     , fpi_no_plain     :: Bool
+    , fpi_no_base      :: Bool
 
     , db_float_out     :: Bool
     , db_lift          :: Bool
@@ -45,7 +46,8 @@ defParams = Params
     , core_optimise    = False &= name "O" &= help "Run the core2core optimising pass"
     , dollar_min       = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr         = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
-    , fpi_no_plain     = False &= name "i" &= help "If you can apply fpi, don't generate without induction"
+    , fpi_no_plain     = False &= name "i" &= help "If fpi is applicable, don't generate without induction"
+    , fpi_no_base      = False &= name "b" &= help "If fpi is applicable, don't generate the base case"
 
     , db_float_out     = False &= groupname "\nDebugging output"
                                &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
