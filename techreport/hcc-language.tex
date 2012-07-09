@@ -97,17 +97,24 @@ facilitate the formalization and implementation: we assume that
 functions have arity at least one (disallowing CAF's).  \spj{Disallowing CAFs is quite significant.
 We need to say more about why.} \dv{It is not essential -- it was in some previous version of a proof. I will fix this.}
 
-$\cal L$ is an explicitly-typed language, and we assume the 
-existence of a typing relation $\Sigma |- P$, which checks 
-that a program conforms to the definitions in the signature $\Sigma$. A signature $\Sigma$ (Figure~\ref{fig:syntax})
-records the declared data types, data constructors and types of functions in the program $P$. The 
-well-formedness of expressions is checked with a typing relation $\Sigma;\Delta |- u : \tau$, where $\Delta$
-is a typing environment, also in Figure~\ref{fig:syntax}.
-We do not give the details of the typing relation since it is standard. An additional property that we require 
-from the typing relation is that it {\em asserts the exhaustiveness of pattern matches}. In an {\em actual}
-source language programmers may ommit pattern matches but here we will assume that all pattern matches 
-are exhaustive. Originally-incomplete cases have been completed to return the crashing term @BAD@. For 
-instance, the program:
+$\cal L$ is an explicitly-typed language, and we assume the existence
+of a typing relation $\Sigma |- P$, which checks that a program
+conforms to the definitions in the signature $\Sigma$. A signature
+$\Sigma$ (Figure~\ref{fig:syntax}) records the declared data types,
+data constructors and types of functions in the program $P$. The
+well-formedness of expressions is checked with a typing relation
+$\Sigma;\Delta |- u : \tau$, where $\Delta$ is a typing environment,
+also in Figure~\ref{fig:syntax}.  We do not give the details of the
+typing relation since it is standard. 
+Our technical development and analysis in the following sections
+assume that programs have been checked for type errors.
+
+One property that we require from the typing relation is
+that it {\em asserts the exhaustiveness of pattern matches}. In an
+{\em actual} source language programmers may ommit pattern matches but
+here we will assume that all pattern matches are
+exhaustive. Originally-incomplete cases have been completed to return
+the crashing term @BAD@. For instance, the program:
 \begin{code}
 head :: [a] -> [a]
 head (x:xs) = x
@@ -116,8 +123,13 @@ will be represented in our language as:
 \[\begin{array}{l}
    @head@\; a\; (x{:}[a]) = @case@\;x\;@of@ \{ [] -> @BAD@ ; (x:xs) -> x \} 
 \end{array}\]
-Finally, our technical development and analysis in the following sections assume that programs have been 
-checked for type errors. 
+We also assume that the standard Haskell function @error@ simply invokes @BAD@, thus:
+\begin{code}
+  error :: String -> a
+  error s = BAD
+\end{code}
+In our context, @BAD@ is our way to saying what it means for a program to ``go wrong'',
+and verification amounts to proving that a program cannot invoke @BAD@.
 
 The syntax of closed values is also given in Figure~\ref{fig:syntax}. Since we do not 
 have arbitrary $\lambda$-abstractions, values can only be partial function applications
@@ -360,7 +372,7 @@ many programs and already demonstrate the interesting theoretical and practical 
 We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
 for functions $f$.
 Figure~\ref{f:contract-spec-op} says what it means to say $e \in C$,
-based closely on earlier work \cite{xu}.  The specification is
+based closely on earlier work \cite{xu+:contracts}.  The specification is
 simple, declarative, and intended to be comprehensible to programmers.
 For example, an expression $e$ satisfies the function contract $\Ct_1 \& \Ct_2$ if and 
 only if $(e e')$ satisfies $\Ct_2$ whenever $e'$ satisfies $Ct_1$.
@@ -431,7 +443,7 @@ The formulae of Figure~\ref{fig:fol-image} is just first-order logic
 with equality, plus a predicate $\lcf{t}$ for crash-freedom, whose
 semantics we discuss in Section~\ref{sect:contracts}.
 
-\subsection{Translation of expressions to FOL} \label{s:hof}
+\subsection{Translation of expressions to FOL}
 
 % ---------------------------------------------------
 \begin{figure}\small
@@ -497,71 +509,85 @@ semantics we discuss in Section~\ref{sect:contracts}.
 \ctrans{\Sigma}{\Gamma}{e \in \CF} & = & \formula{\lcf{\etrans{\Sigma}{\Gamma}{e}}}
 \end{array}
 \end{array}\]
-\caption{Translation of programs and contracts to logic}\label{fig:etrans}
+\caption{Translation of programs and contracts to logic}
+   \label{fig:etrans}\label{fig:contracts-minless}
 \end{figure}
 % ---------------------------------------------------
 \begin{figure}\small
 \setlength{\arraycolsep}{1pt} 
 \[\begin{array}{c} 
 \begin{array}{ll} 
-\multicolumn{2}{l}{\text{Axioms for fixed constants}} \\
+\multicolumn{2}{l}{\text{Axioms for $bad$ and $unr$}} \\
  \textsc{AxAppBad}  & \formula{\forall x @.@ app(\bad,x){=}\bad}  \\
  \textsc{AxAppUnr}  & \formula{\forall x @.@ app(\unr,x){=}\unr}    \\
  \textsc{AxDisjBU} & \formula{\bad \neq \unr}  \\ 
- \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
 \\
 \multicolumn{2}{l}{\mbox{Axioms for data constructors}} \\
- \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
-                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
  \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@ K(\ol{x}) \neq J(\ol{y})} \\ 
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
- \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \land K(\ol{x}) \neq \bad)} \\ 
-                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
- %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
- %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
- %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
+ \textsc{AxDisjCBU} & \formula{(\forall \oln{x}{n} @.@ K(\ol{x}) \neq \unr \; \land \; K(\ol{x}) \neq \bad)} \\ 
+                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \sel{K}{i}(K(\ys)) = y_i} \\ 
-                  & \text{for every } K^\ar \in \Sigma \text{ and } i \in 1..n
+                  & \text{for every } K^\ar \in \Sigma \text{ and } i \in 1..n \\
+\\
+\multicolumn{2}{l}{\mbox{Axioms for crash-freedom}} \\
+ \textsc{AxCfC}  & \formula{\forall \oln{x}{n} @.@ \lcf{K(\ol{x})} <=> \bigwedge\lcf{\ol{x}}} \\
+                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxCfBU} & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
 \end{array}
 \end{array}\]
-\caption{Axioms of the FOL constants}\label{fig:prelude}
+\caption{Axioms of the FOL constants}\label{fig:prelude} \label{fig:data-cons}
 \end{figure}
 
 % ---------------------------------------------------
-\spj{Is this next paragraph right?  I want to set the scene.}
 What exactly does it mean to translate an expression to first-order logic?
 We are primarily interested in reasoning about equality, so we might
-hope for this (informally):
+hope for this (informal) guiding principle:
 $$
-e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_{FOL} \etrans{}{}{e_2}
+e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_F \etrans{}{}{e_2}
 $$
-where $=_S$ means semantic equality, $=_{FOL}$ means equality in first-order logic,
+where $=_S$ means semantic equality, $=_F$ means equality in first-order logic,
 and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can 
 reason about the equality of Haskell terms by translating them into FOL using
-a FOL theorem prover. 
+a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states this?}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
 The function $\ptrans{}{P}$ translates a program to a conjunction of formulae,
 one for each definition $d$, while $\dtrans{}{d}$ in turn translates 
 a definition $d$.
-The first forumula in $\dtrans{}{}$'s right-hand side invokes the translation
+The first formula in $\dtrans{}{}$'s right-hand side invokes the translation
 $\utrans{}{u}{f(\ol{x})}$ for the right hand side $u$, passing in the term $f(\ol{x})$,
 and quantifying over the $\ol{x}$.  We will deal with the second formula shortly.
 
-Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}), $\utrans{}{u}{s}$
-simply returns a formula asserting the equality $s = \etrans{}{}{e}$. 
+
+Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}), 
+the formula $\utrans{}{e}{f(\ol{x})}$
+simply asserts the equality $f(\ol{x}) = \etrans{}{}{e}$. 
 That is, we use a new constant $f$ in the logic for each function definition in the
 program, and assert that any application of $f$ is equal to (the logical translation of)
 $f$'s right hand side. Notice that we erase type arguments in the translation
 since they do not affect the semantics.
 
-Lastly $\etrans{}{}{e}$ deals with expressions.  If $\cal L$ was 
-a first-order language the translation would be easy:
+Lastly $\etrans{}{}{e}$ deals with expressions.  We will deal with
+functions and application next 
+(Section~\ref{s:hof}), but the other equations for $\etrans{}{}{e}$
+are straightforward.  Notice that $\etrans{}{}{@BAD@} = bad$, and recall
+that @BAD@ is the $\cal L$-term used for an inexhaustive @case@ or a call
+to @error@.  It follows from our guiding principle 
+that for any $e$, if
+$$ \etrans{}{}{e} =_F bad $$ 
+in the logic, then the source program $e$
+must be semantically equivalent to @BAD@, meaning that it definitely
+crashes by calling @error@, or having an inexhaustive @case@.
+
+\spj{We ought to say a bit more about $unr$ somewhere}
+
+\subsection{Translating higher-order functions} \label{s:hof}
+
+If $\cal L$ was 
+a first-order language the translation of function calls would be easy:
 $$
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]\;\ol{e}} = \formula{f(\ol{\etrans{}{}{e}})} \\
 $$
@@ -571,7 +597,7 @@ Figure~\ref{fig:etrans} shows.  We introduce into the logic
 (a) a single new constant $app$, standing
 for application, and (b) a nullary constant $f_{ptr}$ for each function $f$ 
 (see Figure~\ref{fig:fol-image}).
-Then, the equations for $\etrans{}{}{}$ translate application in $\cal L$ to 
+Then, the equations for $\etrans{}{}{e}$ translate application in $\cal L$ to 
 a use of $app$ in FOL, and any mention of function $f$ in $\cal L$ to a use
 of $f_{ptr}$ in the logic.  For example:
 $$
@@ -585,7 +611,7 @@ $$
 \forall x y.\;app(app(@map@_{ptr}, x), y) = @map@(x,y)
 $$
 These axioms, one for each function $f$, are generated by the second
-clause of the rules for $\dtrans{}{}{}$ in Figure~\ref{fig:etrans}.
+clause of the rules for $\dtrans{}{d}$ in Figure~\ref{fig:etrans}.
 (The notation $app(f,\ol{x})$ is defined in Figure~\ref{fig:fol-image}.)
 You can think of $@map@_{ptr}$ as a ``pointer to'', or ``name of'' of, @map@.
 The $app$ axiom for @map@ translates a saturated use of @map@'s pointer into
@@ -593,62 +619,91 @@ a call of @map@ itself.
 
 \subsection{Data types and {\tt case} expressions} \label{s:case-fol}
 
-The second equation for $\utrans{}{u}{}$ in Figure~\ref{fig:etrans} deals with
+The second equation for $\utrans{}{u}{s}$ in Figure~\ref{fig:etrans} deals with
 @case@ expressions, by generating a conjuntion of formulae, as follows:
 \begin{itemize}
-\item If the scrutinee $t$ is $bad$ (meaning divergence or a use of @error@) then
+\item If the scrutinee $t$ is $bad$ (meaning that evaluating it invokes @BAD@) then
 the result $s$ of the @case@ expression is also $bad$.  That is, @case@ is strict in
 its scrutinee.
 \item If the scrutinee is an application of one of the constructors $K_i$ mentioned
 in one of the @case@ alternatives, then the result $s$ is equal to the corresponding
-right-hand side (after quantifying the variables bound by the @case@).
-\item Otherwise the result is $unr$.  The formula 
+right-hand side, $e'_i$, after quantifying the variables $\ol{y}$ bound by the @case@ alternative.
+\item Otherwise the result is $unr$.  
+The bit before the implication $\Rightarrow$ is just the 
+negation of the previous preconditions; the formula 
   $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$ 
-is just the clumsy FOL way to say ``$t$ is not built with constructor $K_1$.
+is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$.
 \end{itemize}
-The most interesting rule is \rulename{DCase}. If the translation of the scrutinee
-$t$ is equal to $\bad$ then the left-hand-side $s$ must be equal to $\bad$. If it is 
-equal to some constructor application from the case expressions then the right 
-hand-side is equal to the corresponding translation $t_K$ of some pattern branch. Finally
-if the scrutinee is not $\bad$ nor some of the constructors in the branch we assert that
-the left-hand-side $s$ must be equal to $\unr$. The rule precisely corresponds to our 
-intuitions from the denotational semantics: in the denotational semantics, whenever
-we attempt to scrutinize a constructor of a different type in a case expression, the 
-resulting denotation is simply $\bot$. This reinforces our desire to treat type errors
-as $\bot$ values. 
+Whe do we need the last clause? Consider the function @not@:
+\begin{code}
+  not :: Bool -> Bool
+  not True = False
+  not False = True
+\end{code}
+Suppose we want to prove that $@not@ \in @CF@ \rightarrow @CF@$.
+If we lack the last clause above, the FOL prover would have 
+no way to dismiss the possibility that $@not@(@3@) =_F bad$, and thus
+would fail to prove the theorem.  However, the type system guarantees
+that @not 3@ will never show up, and the final clause is the way we express that
+fact to the FOL prover.
+
+Of course, we also need to axiomatise the behaviour of data constructors and 
+selectors, which is done in Figure~\ref{fig:data-cons}:
+\begin{itemize}
+\item \textsc{AxDisjCBU} explains that a term headed by a data constructor cannot
+also be $bad$ or $unr$.
+\item \textsc{AxInj} explains how selectors $\sel{K}{i}$ work.
+\item \textsc{AxDisjC} tells the prover that all data constructors are pairwise disjoint.
+There are a quadratic number of such axioms, which presents a scaling problem.
+For this reason FOL provers sometimes offer a built-in notion of data constructors, 
+so this is not a problem in practice, but we ignore this pragmatic issue here.
+\end{itemize}
 
 \subsection{Translation of contracts to FOL}
 
-Figure~\ref{fig:prelude} gives an axiomatization. For notational convenience the reader
-should think that each of these rules can potentially give a conjunction of formulae.
-The axiom \rulename{AxDisjBU} asserts that $\bad$ cannot be equated to $\unr$. 
-Rule \rulename{AxDisjC} is really givin a conjunction of axioms. It asserts that all 
-constructors are disjoint with each other and \rulename{AxDisjCBU} asserts that they 
-are also disjoint from $\bad$ and $\unr$. 
-Axiom group \rulename{AxPtr} asserts that full applications of function pointers 
-are equal to the actual function applications and \rulename{AxApp} describes the behavior
-of $app(\cdot,\cdot)$ when the first argument is $\bad$ or $\unr$. Finally the selector
-functions describe how we can project a value out of a datatype. 
+Now that we know how to translate \emph{programs} to first order
+logic, we turn our attention to translating \emph{contracts}.  We do
+not translate a contract \emph{per se}; rather we translate the claim
+$e \in C$.  Once we have translated $e \in \Ct$ to a first-order logic
+formula, we can ask the prover to prove it; and, if successful, we can
+claim that indeed $e$ does satisfy $C$.  Of course that needs proof,
+which we address in Section~\ref{xxx}.
 
+Figure~\ref{fig:contracts-minless} presents the tanslation
+$\ctrans{}{\Gamma}{e \in \Ct}$; there are four equations corresponding
+to the syntax of contracts in Figure~\ref{fig:syntax}.
+The last three cases are delightfully simple and direct.  Conjunction of contracts
+turns into conjunction in the logic; a dependent function contract turns
+into universal quantification and implication; and the claim that $e$ is 
+crash-free turns into a use of the special term $\lcf{t}$ in the logic.
+We discuss crash-freedom in Section~\ref{s:cf-fol}.
 
-We now turn to expressing contract semantics in first-order logic. 
-We do not translate a contract; rather we translate the claim $e \in C$.
-Once we have translated $e \in \Ct$ to a first-order logic formula, we can
-ask the prover to prove it; and, if successful, we can claim that indeed
-$e$ does satisfy $C$.  Of course that needs proof, which we address in Section~\ref{xxx}.
+The first equation, for predicate contracts $e \in \{(x{:}\tau) \mid e' \}$, 
+is sightly more complicated.
+The first clause $t=unr$ says that the contract holds if $e$ diverges \spj{Is this right?}.
+The second and third say that the contract holds if $e'$ diverges or is semantically
+equal to @True@.  The choices embodied in this rule were discussed at length
+in earlier work \cite{xu+:contracts} and we do not rehearse it here.
 
-Figure~\ref{fig:contracts-minless} presents the details of the 
-function $\ctrans{}{\Gamma}{e \in \Ct}$.  We also include 
-an axiomatization of crash-freedom with the axiom groups \rulename{AxCfBU} and 
-\rulename{AxCfC}. The first axiom asserts that $\unr$ is crash-free and $\bad$ is not, 
-whereas the second axiom asserts that a constructor value is crash-free if and only iff 
-all of its children nodes are crash-free. 
+\subsection{Crash-freedom}
 
-\subsection{Bad, unreachable, and crash-freedom}
+The claim $e \in @CF@$, pronounced ``$e$ is crash-free'', means that $e$ cannot
+crash \emph{regardless of context}.  So, for example @(BAD, True)@ is not crash-free
+bacause it can crash if evaluated in the contex @fst (BAD, True)@.  Of course,
+the context itself should not be the source of the crash; for example @(True,False)@ is
+crash-free even though @BAD (True,False)@ will crash.
 
-\spj{desribe these}
+We use the FOL term $\lcf{t}$ to assert that $t$ is crash-free. The axioms for $\lcf{}$
+are given in Figure~\ref{fig:prelude}.  \textsc{AxCfC} says that a data constructor application
+is crash-free if and only iff its arguments are crash-free.  \textsc{AxCfBU} says that
+$unr$ is crash-free, and that $bad$ is not.  That turns out to be all that we need.
 
-\subsection{Proving that a function satisfies a contract}
+\subsection{Summary}
 
-\spj{How to actually prove that a function satisfies a contract.  Or maybe
-it's enough to forward-reference the implementation section}
+That completes our formally-described --- but only informally-justified --- translation 
+from a $\cal L$ program and a set of contract claims, into first-order logic.
+To a first approximation, we can now turn the whole formula over to a FOL prover,
+and hope that it proves the assertion.  
+
+\spj{What else should we say here.  Something about recursion?  About multiple functions?}
+

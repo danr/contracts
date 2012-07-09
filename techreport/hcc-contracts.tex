@@ -2,17 +2,18 @@ Our account so far has been largely informal.  How can we be sure
 that if the FOL prover says ``Yes!  This FOL term is provable'', then
 the corresponding $\cal L$ program indeed satisfies the claimed contract?
 
-To prove this claim we take a denotational approach.  We will assume a
-program $P$, well-formed in a signature $\Sigma$, so that $\Sigma |-
-P$. Most of what follows is an adaptation of folklore techniques to
+To prove this claim we take a denotational approach.  
+Most of what follows is an adaptation of folklore techniques to
 our setting and there are no surprises -- we refer the reader
 to~\cite{winskel} or~\cite{benton+:coq-domains} for a short and modern
 exposition of the standard methodology.
 
 \subsection{Preliminaries}
 
-Given a signature $\Sigma$ we define a strict bi-functor $F$ on complete partial 
-orders (cpos), below:
+We will assume a program $P$, well-formed in a signature $\Sigma$, so
+that $\Sigma |- P$ (Section~\ref{s:syntax}).  
+Given a signature $\Sigma$ we define a strict
+bi-functor $F$ on complete partial orders (cpos), below:
 %% For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below, 
 %% assuming that $K_1\ldots K_k$ are all the constructors in $\Sigma$: 
 \[\begin{array}{lclll}
@@ -453,7 +454,7 @@ logical relation, which asserts that every expression is related to its denotati
 \subsection{Semantics of contracts}
 
 The specification of what it means for a function to satisfy a
-contract (Figure~\ref{f:contract_spec}) is cast in terms of
+contract (Figure~\ref{f:contract-spec-op}) is cast in terms of
 \emph{operational} semantics but we re-cast it here in \emph{denotational} terms.
 The two do not match perfectly but, as we dicuss in Section~\ref{sect:discussion}, 
 the mis-match is unimportant.
