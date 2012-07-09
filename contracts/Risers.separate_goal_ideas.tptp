@@ -1,0 +1,346 @@
+
+% GHC.Types.Bool
+fof(x, axiom, ($min(c_False) & $min(c_True)) => c_False != c_True).
+fof(x, axiom, $min(c_False) => c_False != c_bad).
+fof(x, axiom, $min(c_False) => c_False != c_unr).
+fof(x, axiom, $min(c_True) => c_True != c_bad).
+fof(x, axiom, $min(c_True) => c_True != c_unr).
+
+% []
+fof(x, axiom,
+    ! [X,Y] :
+        (($min(c_Cons(X,Y)) & $min(X)) => p_0_Cons(c_Cons(X,Y)) = X)).
+fof(x, axiom,
+    ! [X,Y] :
+        (($min(c_Cons(X,Y)) & $min(Y)) => p_1_Cons(c_Cons(X,Y)) = Y)).
+fof(x, axiom,
+    ! [X,Y] :
+        (($min(c_Nil) & $min(c_Cons(X,Y))) => c_Nil != c_Cons(X,Y))).
+fof(x, axiom, $min(c_Nil) => c_Nil != c_bad).
+fof(x, axiom, $min(c_Nil) => c_Nil != c_unr).
+fof(x, axiom,
+    ! [X,Y] : ($min(c_Cons(X,Y)) => c_Cons(X,Y) != c_bad)).
+fof(x, axiom,
+    ! [X,Y] : ($min(c_Cons(X,Y)) => c_Cons(X,Y) != c_unr)).
+
+% risersBy_concl_cbB = \ (@ a) (<= :: a -> a -> GHC.Types.Bool) (ds_daS :: [a]) ->
+%   case ds_daS of _ {
+%     [] -> GHC.Types.[] @ [a];
+%     : x ds_daT ->
+%       case ds_daT of _ {
+%         [] ->
+%           GHC.Types.:
+%             @ [a] (GHC.Types.: @ a x (GHC.Types.[] @ a)) (GHC.Types.[] @ [a]);
+%         : y xs ->
+%           case risersBy_hyp_cbE @ a <= (GHC.Types.: @ a y xs) of _ {
+%             [] -> lvl_risersBy_step_cbC @ a;
+%             : s ss ->
+%               case <= x y of _ {
+%                 GHC.Types.False ->
+%                   GHC.Types.:
+%                     @ [a]
+%                     (GHC.Types.: @ a x (GHC.Types.[] @ a))
+%                     (GHC.Types.: @ [a] s ss);
+%                 GHC.Types.True -> GHC.Types.: @ [a] (GHC.Types.: @ a x s) ss
+%               }
+%           }
+%       }
+%   }
+% Dependencies: lvl_risersBy_step_cbC risersBy_hyp_cbE
+fof(x, definition,
+    ! [Lessequals,Ds] :
+        ($min(f_risersBy_concl(Lessequals,Ds)) => $min(Ds))).
+fof(x, definition,
+    ! [Lessequals] :
+        ($min(f_risersBy_concl(Lessequals,c_bad)) =>
+         f_risersBy_concl(Lessequals,c_bad) = c_bad)).
+fof(x, definition,
+    ! [Lessequals] :
+        ($min(f_risersBy_concl(Lessequals,c_Nil)) =>
+         f_risersBy_concl(Lessequals,c_Nil) = c_Nil)).
+fof(x, definition,
+    ! [X,Ds,Lessequals] :
+       ($min(f_risersBy_concl(Lessequals,c_Cons(X,Ds))) => $min(Ds))).
+fof(x, definition,
+    ! [X,Lessequals] :
+        ($min(f_risersBy_concl(Lessequals,c_Cons(X,c_bad))) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,c_bad)) = c_bad)).
+fof(x, definition,
+    ! [X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Nil))) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,c_Nil))
+            = c_Cons(c_Cons(X, c_Nil), c_Nil)))).
+fof(x, definition,
+    ! [Y,Xs,X,Lessequals] :
+        ($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) =>
+         $min(f_risersBy_hyp(Lessequals,c_Cons(Y,Xs))))).
+
+
+fof(x, definition,
+    ! [Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_bad) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs))) = c_bad)).
+fof(x, definition,
+    ! [Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_Nil) =>
+         f_risersBy_concl(Lessequals,
+                          c_Cons(X,c_Cons(Y,Xs))) = f_lvl_risersBy_step)).
+fof(x, definition,
+    ! [S,Ss,Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_Cons(S,Ss)) =>
+         $min(app(app(Lessequals,X),Y)))).
+fof(x, definition,
+    ! [S,Ss,Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          app(app(Lessequals,X),Y) = c_bad &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_Cons(S,Ss)) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs))) = c_bad)).
+fof(x, definition,
+    ! [S,Ss,Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          app(app(Lessequals,X),Y) = c_False &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_Cons(S,Ss)) =>
+         f_risersBy_concl(Lessequals,
+                          c_Cons(X,c_Cons(Y,Xs))) = c_Cons(c_Cons(X,c_Nil),c_Cons(S,Ss)))).
+fof(x, definition,
+    ! [S,Ss,Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          app(app(Lessequals,X),Y) = c_True &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_Cons(S,Ss)) =>
+         f_risersBy_concl(Lessequals,
+                          c_Cons(X,c_Cons(Y,Xs))) = c_Cons(c_Cons(X,S),Ss))).
+fof(x, definition,
+    ! [S,Ss,Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          app(app(Lessequals,X),Y) != c_bad &
+          app(app(Lessequals,X),Y) != c_False &
+          app(app(Lessequals,X),Y) != c_True &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) = c_Cons(S,Ss)) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs))) = c_unr)).
+fof(x, definition,
+    ! [Y,Xs,X,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs)))) &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) != c_bad &
+          f_risersBy_hyp(Lessequals,c_Cons(Y,Xs)) != c_Nil &
+          f_risersBy_hyp(Lessequals,
+                         c_Cons(Y,Xs)) != c_Cons(p_0_Cons(f_risersBy_hyp(Lessequals,
+                                                                         c_Cons(Y,Xs))),
+                                                 p_1_Cons(f_risersBy_hyp(Lessequals,
+                                                                         c_Cons(Y,Xs))))) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,c_Cons(Y,Xs))) = c_unr)).
+fof(x, definition,
+    ! [X,Ds,Lessequals] :
+        (($min(f_risersBy_concl(Lessequals,c_Cons(X,Ds))) &
+          Ds != c_bad &
+          Ds != c_Nil &
+          Ds != c_Cons(p_0_Cons(Ds),p_1_Cons(Ds))) =>
+         f_risersBy_concl(Lessequals,c_Cons(X,Ds)) = c_unr)).
+fof(x, definition,
+    ! [Lessequals,Ds] :
+        (($min(f_risersBy_concl(Lessequals,Ds)) &
+          Ds != c_bad &
+          Ds != c_Nil &
+          Ds != c_Cons(p_0_Cons(Ds),p_1_Cons(Ds))) =>
+         f_risersBy_concl(Lessequals,Ds) = c_unr)).
+
+% lvl_risersBy_step_cbC = \ (@ a) ->
+%   Control.Exception.Base.patError
+%     @ [[a]] "Risers.hs:13:11-40|pattern binding"
+% Dependencies:
+fof(x, definition,
+    $min(f_lvl_risersBy_step) => f_lvl_risersBy_step = c_bad).
+
+% full = \ (@ t) (ds_daO :: [t]) ->
+%   case ds_daO of _ {
+%     [] -> GHC.Types.False;
+%     : _ _ -> GHC.Types.True
+%   }
+% Dependencies:
+fof(x, definition, ! [Ds] : ($min(f_full(Ds)) => $min(Ds))).
+fof(x, definition, $min(f_full(c_bad)) => f_full(c_bad) = c_bad).
+fof(x, definition, $min(f_full(c_Nil)) => f_full(c_Nil) = c_False).
+fof(x, definition,
+    ! [Ipv_0,Ipv] :
+        ($min(f_full(c_Cons(Ipv_0,Ipv))) =>
+         f_full(c_Cons(Ipv_0,Ipv)) = c_True)).
+fof(x, definition,
+    ! [Ds] :
+        (($min(f_full(Ds)) &
+          Ds != c_bad &
+          Ds != c_Nil &
+          Ds != c_Cons(p_0_Cons(Ds),p_1_Cons(Ds))) =>
+         f_full(Ds) = c_unr)).
+
+% Pointer axiom to risersBy_hyp_cbE
+fof(x, axiom,
+    ! [X,Y] :
+        (($min(app(app(ptr_risersBy_hyp,X),Y)) |
+          $min(f_risersBy_hyp(X,Y))) =>
+         app(app(ptr_risersBy_hyp,X),Y) = f_risersBy_hyp(X,Y))).
+
+% App on $min
+fof(x, axiom, ! [F,X] : ($min(app(F,X)) => $min(F))).
+
+% Axioms for BAD and UNR
+fof(x, axiom, cf(c_unr)).
+fof(x, axiom, ~cf(c_bad)).
+fof(x, axiom, c_unr != c_bad).
+fof(x, axiom, ! [X] : ((X != c_unr & cf(X)) => $min(X))).
+
+% CF GHC.Types.Bool
+fof(x, axiom, cf(c_False)).
+fof(x, axiom, cf(c_True)).
+
+% CF []
+fof(x, axiom, cf(c_Nil)).
+fof(x, axiom, ! [X,Y] : (cf(c_Cons(X,Y)) => (cf(X) & cf(Y)))).
+fof(x, axiom,
+    ! [X,Y] :
+        (($min(c_Cons(X,Y)) & ~cf(c_Cons(X,Y))) =>
+         ((~cf(X) & $min(X)) | (~cf(Y) & $min(Y))))).
+fof(x, hypothesis,
+    ! [Ct_a] :
+        ((? [Ct_b] :
+              (($min(Ct_b) => cf(Ct_b)) &
+               (? [Ct_c] :
+                    (($min(Ct_c) => cf(Ct_c)) &
+                     $min(app(app(Ct_a,Ct_b),Ct_c)) &
+                     ~cf(app(app(Ct_a,Ct_b),Ct_c)))))) |
+         (! [Ct_d] :
+              (($min(Ct_d) & ~cf(Ct_d)) |
+               ($min(Ct_d) &
+                $min(f_full(Ct_d)) &
+                Ct_d != c_unr &
+                (f_full(Ct_d) = c_False | f_full(Ct_d) = c_bad)) |
+               (($min(f_risersBy_hyp(Ct_a,Ct_d)) =>
+                 cf(f_risersBy_hyp(Ct_a,Ct_d))) &
+                ($min(f_risersBy_hyp(Ct_a,Ct_d)) =>
+                 ($min(f_full(f_risersBy_hyp(Ct_a,Ct_d))) &
+                  (f_risersBy_hyp(Ct_a,Ct_d) = c_unr |
+                   f_full(f_risersBy_hyp(Ct_a,Ct_d)) = c_unr |
+                   f_full(f_risersBy_hyp(Ct_a,Ct_d)) = c_True)))))))).
+
+% risersBy_concl_cbB = \ (@ a) (<= :: a -> a -> GHC.Types.Bool) (ds_daS :: [a]) ->
+%   case ds_daS of _ {
+%     [] -> GHC.Types.[] @ [a];
+%     : x ds_daT ->
+%       case ds_daT of _ {
+%         [] ->
+%           GHC.Types.:
+%             @ [a] (GHC.Types.: @ a x (GHC.Types.[] @ a)) (GHC.Types.[] @ [a]);
+%         : y xs ->
+%           case risersBy_hyp_cbE @ a <= (GHC.Types.: @ a y xs) of _ {
+%             [] -> lvl_risersBy_step_cbC @ a;
+%             : s ss ->
+%               case <= x y of _ {
+%                 GHC.Types.False ->
+%                   GHC.Types.:
+%                     @ [a]
+%                     (GHC.Types.: @ a x (GHC.Types.[] @ a))
+%                     (GHC.Types.: @ [a] s ss);
+%                 GHC.Types.True -> GHC.Types.: @ [a] (GHC.Types.: @ a x s) ss
+%               }
+%           }
+%       }
+%   }
+% Dependencies: lvl_risersBy_step_cbC risersBy_hyp_cbE
+
+% Our proof obligations are these groups of cnfs, really
+%cnf(x, axiom, list = c_Nil).
+
+%cnf(x, axiom, list = c_unr).
+
+%cnf(x, axiom, list = c_bad).
+
+%cnf(x, axiom, list = c_Cons(x,c_Nil)).
+
+%cnf(x, axiom, list = c_Cons(x,c_unr)).
+
+%cnf(x, axiom, list = c_Cons(x,c_bad)).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_Nil).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_unr).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_bad).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_Cons(s,ss)).
+%cnf(x, axiom, app(app(le,x),y) = c_False).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_Cons(s,ss)).
+%cnf(x, axiom, app(app(le,x),y) = c_True).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_Cons(s,ss)).
+%cnf(x, axiom, app(app(le,x),y) = c_unr).
+
+%cnf(x, axiom, list = c_Cons(x,c_Cons(y,xs))).
+%cnf(x, axiom, f_risersBy_hyp(le,c_Cons(y,xs)) = c_Cons(s,ss)).
+%cnf(x, axiom, app(app(le,x),y) = c_bad).
+
+% Equinox properly understands more than one conjecture in one go:
+%fof(x, conjecture, list != c_Nil).
+%
+%fof(x, conjecture, list != c_unr).
+%
+%fof(x, conjecture, list != c_bad).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Nil)).
+%
+%fof(x, conjecture, list != c_Cons(x,c_unr)).
+%
+%fof(x, conjecture, list != c_Cons(x,c_bad)).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_Nil).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_unr).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_bad).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_Cons(s,ss)
+%                 | app(app(le,x),y) != c_False).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_Cons(s,ss)
+%                 | app(app(le,x),y) != c_True).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_Cons(s,ss)
+%                 | app(app(le,x),y) != c_unr).
+%
+%fof(x, conjecture, list != c_Cons(x,c_Cons(y,xs))
+%                 | f_risersBy_hyp(le,c_Cons(y,xs)) != c_Cons(s,ss)
+%                 | app(app(le,x),y) != c_bad).
+
+fof(x, axiom,
+    (! [Ct_b] :
+         (($min(Ct_b) & ~cf(Ct_b)) |
+          (! [Ct_c] :
+               (($min(Ct_c) & ~cf(Ct_c)) |
+                ($min(app(app(le,Ct_b),Ct_c)) =>
+                 cf(app(app(le,Ct_b),Ct_c))))))) &
+    ($min(list) => cf(list)) &
+    ($min(list) =>
+     ($min(f_full(list)) &
+      (list = c_unr |
+       f_full(list) = c_unr |
+       f_full(list) = c_True))) &
+    (($min(f_risersBy_concl(le,list)) &
+      ~cf(f_risersBy_concl(le,list))) |
+     ($min(f_risersBy_concl(le,list)) &
+      $min(f_full(f_risersBy_concl(le,list))) &
+      f_risersBy_concl(le,list) != c_unr &
+      (f_full(f_risersBy_concl(le,list)) = c_False |
+       f_full(f_risersBy_concl(le,list)) = c_bad)))).
