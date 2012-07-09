@@ -34,14 +34,30 @@ not False = True
 {-# NOINLINE (.) #-}
 f . g = \x -> f (g x)
 
-unsat_le_contr :: Statement
-unsat_le_contr = (<=) ::: CF --> CF --> CF
+unsat_le :: Statement
+unsat_le = (<=) ::: CF --> CF --> CF
 
-unsat_risers_contr :: Statement
-unsat_risers_contr = risers
+unsat_risers :: Statement
+unsat_risers = risers
     ::: CF :&: Pred (not . null)
     --> CF :&: Pred (not . null)
-  `Using` unsat_le_contr
+  `Using` unsat_le
+
+sat_risers_missing_le = risers
+    ::: CF :&: Pred (not . null)
+    --> CF :&: Pred (not . null)
+
+sat_risers_broken = risers
+    ::: CF :&: Pred (not . null) --> CF
+  `Using` unsat_le
+
+sat_risers_broken2 = risers
+    ::: CF --> CF
+  `Using` unsat_le
+
+sat_risers_broken3 = risers
+    ::: CF --> CF :&: Pred (not.null)
+  `Using` unsat_le
 
 risersBy :: (a -> a -> Bool) -> [a] -> [[a]]
 risersBy (<) [] = []
@@ -51,14 +67,26 @@ risersBy (<) (x:y:xs) = case risersBy (<) (y:xs) of
          | otherwise -> [x]:(s:ss)
     [] -> error "internal error"
 
-unsat_risersBy_contr :: Statement
-unsat_risersBy_contr =
+unsat_risersBy :: Statement
+unsat_risersBy =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred (not . null)
              --> CF :&: Pred (not . null)
 
-unsat_risersBy_nonEmpty_contr :: Statement
-unsat_risersBy_nonEmpty_contr =
+big_unsat_risersBy_nonEmpty :: Statement
+big_unsat_risersBy_nonEmpty =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred nonEmpty
              --> CF :&: Pred nonEmpty
+
+big_sat_risersBy_nonEmpty_broken :: Statement
+big_sat_risersBy_nonEmpty_broken =
+    risersBy ::: (CF --> CF --> CF)
+             --> CF :&: Pred nonEmpty
+             --> CF
+
+big_sat_risersBy_nonEmpty_broken2 :: Statement
+big_sat_risersBy_nonEmpty_broken2 =
+    risersBy ::: (CF --> CF --> CF)
+             --> CF
+             --> CF

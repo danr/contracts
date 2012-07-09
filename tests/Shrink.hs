@@ -36,8 +36,8 @@ shrink_lazy (*) []     = error "Empty list!"
 shrink_lazy (*) [x]    = fromJust x
 shrink_lazy (*) (x:xs) = fromJust x * shrink_lazy (*) xs
 
-unsat_shrink = shrink
+big_unsat_shrink = shrink
     ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF
 
-sat_shrink_lazy = shrink_lazy
+big_sat_shrink_lazy = shrink_lazy
     ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF

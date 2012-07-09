@@ -38,7 +38,3 @@ unsat_ind_contr_retain
     `Using`
       unsat_and_cf
 
-
-
-         -- ::: (CF --> CF)
-         -- :&: (CF :&: Pred invariant --> Pred invariant)
