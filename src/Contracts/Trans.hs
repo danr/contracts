@@ -50,7 +50,7 @@ trStatement params@Params{..} ss fix_info stm = do
     return $ map extend parts_and_content
 
 trFPI :: Params -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trFPI params fix_info stm@(Statement n f c _using deps)
+trFPI params@Params{..} fix_info stm@(Statement n f c _using deps)
     | fpiApplicable fix_info f = do
 
         let [f_base,f_hyp,f_concl]
@@ -83,9 +83,9 @@ trFPI params fix_info stm@(Statement n f c _using deps)
         let content_base = map Function deps_base ++ map Pointer ptrs_base
             content_step = map Function deps_step ++ map Pointer ptrs_step
 
-        return
-            [(FixpointBase,(tr_base,content_base))
-            ,(FixpointStep,(tr_step,content_step))]
+        return $
+            [(FixpointBase,(tr_base,content_base)) | not fpi_no_base ] ++
+            [(FixpointStep,(tr_step,content_step))]
 
     | otherwise = return []
 
