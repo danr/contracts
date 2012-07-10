@@ -36,8 +36,8 @@ denote a single-element cpo -- the $bad$ subscript is just there for readability
 The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous 
 functions.
 \[\begin{array}{l}
-   \ret   : D =>_c D_\bot \\ 
-   \bind_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
+   \retK   : D =>_c D_\bot \\ 
+   \bindK_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
 \end{array}\]
 with the obvious definitions. 
 
@@ -71,8 +71,8 @@ Moreover, let a value-domain: $V_{\infty}$ be defined as:
 The following continuous functions also exist, each being the inverse of the 
 other (i.e. composing to the identity function on the corresponding cpo):
 \[\begin{array}{l}
-  \roll : (V_{\infty})_\bot =>_c D_{\infty} \\ 
-  \unroll : D_{\infty} =>_c (V_{\infty})_\bot
+  \rollK : (V_{\infty})_\bot =>_c D_{\infty} \\ 
+  \unrollK : D_{\infty} =>_c (V_{\infty})_\bot
 \end{array}\] 
 \end{lemma}
 
@@ -165,12 +165,12 @@ We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\in
 function: 
 {\setlength{\arraycolsep}{2pt}
 \[\begin{array}{rcll}
-   \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll(\bind_g (\unroll (\pi_1(d))))} \\
-   \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
+  \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll{ \bind{g}{\unroll{\pi_1(d)}}}} \\
+  \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
                     &   &  , & \ldots \\
                     &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
-                    &   &  , & \dlambda d' @.@ \unroll(d'(\pi_2(d))) \\
-                    &   &  , & \dlambda b @.@ \dlambda d. \ret(\inj{bad}(b))\hspace{2pt} ] 
+                    &   &  , & \dlambda d' @.@ \unroll{d'(\pi_2(d))} \\
+                    &   &  , & \dlambda b @.@ \dlambda d. \ret{\inj{bad}(b)}\hspace{2pt} ] 
 \end{array}\]}%
 Informally, what does the $\dapp$ combinator express? If the first
 argument is $\bot$ it will return $\bot$, if the first argument is an
@@ -202,22 +202,22 @@ $$
 \multicolumn{3}{l}{\interp{e}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\
   \interp{x}{\sigma}{\rho} & = & \rho(x) \\ 
   \interp{f\;[\taus]}{\sigma}{\rho} & = & \sigma(f) \\
-  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll(\ret(\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle))) \\ 
+  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll{\ret{\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle)}} \\ 
   \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle) \\ 
-  \interp{@BAD@}{\sigma}{\rho} & = & \roll(\ret(\inj{bad}1)) \\[2mm] 
+  \interp{@BAD@}{\sigma}{\rho} & = & \roll{\ret{\inj{bad}1}} \\[2mm] 
 \hline \\
 \multicolumn{3}{l}{\interp{u}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\
   \interp{e}{\sigma}{\rho} & = & \interp{e}{\sigma}{\rho} \\
   \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} 
-          & = & \roll(\bind_{g} (\unroll(\interp{e}{\sigma}{\rho}))) \\ 
+          & = & \roll{\bind{g}{\unroll{\interp{e}{\sigma}{\rho}}}} \\ 
   \text{ where } g  & = & \begin{array}[t]{ll} 
                              [ & h_{K_1} \\
                              , & \ldots \\
                              , & h_{K_k} \\
                              , & \bot \\ 
-                             , & \dlambda b @.@ \ret(b) \hspace{2pt} ] 
+                             , & \dlambda b @.@ \ret{b} \hspace{2pt} ] 
                            \end{array} \\ 
-              h_{K} & =  & \dlambda d @.@ \unroll(\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}}) \\ 
+              h_{K} & =  & \dlambda d @.@ \unroll{\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}}} \\ 
                     &   &  \text{when } K \text{ is in the branches} \\
               h_{K}  & = & \bot \\ 
                     &   &  \text{otherwise}
@@ -226,10 +226,10 @@ $$
 \begin{array}{rcl}
 \multicolumn{3}{l}{\dbrace{P} : (\FVarCpo =>_c D_{\infty}) =>_c (\FVarCpo =>_c D_{\infty})}  \\
 \dbrace{P}_{\sigma} f & = & 
-   \text{ if } (f |-> \Lambda\as @.@ \lambda\oln{x:\tau}{n} @.@ u) \in P \\
+   \text{ if } (f\;\ol{a}\;\ol{x} = u) \in P \\
 && \text{ then } \\
-&& \quad\quad \roll(\ret(\inj{->}(\dlambda d_1 @.@ \ldots  \\
-&& \quad\quad\quad \roll(\ret(\inj{->}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})))\ldots))) \\
+&& \quad\quad \roll{\ret{\inj{->}(\dlambda d_1 @.@ \ldots  \\
+&& \quad\quad\quad \roll{\ret{\inj{->}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})}}\ldots)}} \\
 && \text{ else } \bot 
 \end{array}
 \end{array}
@@ -299,7 +299,7 @@ Assume $\Sigma |- P$ and $u$ with no free term variables. If $P |- u \Downarrow 
 Finally we are interested in proving the following theorem
 \begin{theorem}[Computational adequacy]\label{thm:adequacy}
 Assume that $\Sigma |- P$ and $e$ contains no free term variables.
-If $\unroll(\dbrace{e}) = \ret(d)$ for some element $d$ of $V_{\infty}$, then 
+If $\unroll{\dbrace{e}} = \ret{d}$ for some element $d$ of $V_{\infty}$, then 
 there exists a $v$ such that $P |- e \Downarrow v$.
 \end{theorem}
 
@@ -453,86 +453,61 @@ logical relation, which asserts that every expression is related to its denotati
 
 \subsection{Semantics of contracts}
 
-\spj{I have created Figure~\ref{f:den-sem-contracts}, but it nees love and attention. It's
-really only half done, sep the first two equations.}
-
 \begin{figure}
 $$
 \setlength{\arraycolsep}{2pt}
 \begin{array}{rcl}
 \multicolumn{3}{c}{
-\ruleform{\dbrace{\Ct} \subseteq D_{\infty}} }
+\ruleform{\dbrace{\Ct}_{\rho} \subseteq D_{\infty}} }
 \\ \\
+\multicolumn{3}{l}{
 \dbrace{x \mid e}_\rho 
- & = & \{d \begin{array}[t]{ll} \mid & \unroll(d) = \bot \\
-                  \lor & \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot \\
-                  \lor & \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1)
-             \end{array} \}
-\\
+  =  \left\{ \begin{array}{rcl} d & \mid & \unroll{d} = \bot \\
+              & \lor & \unroll{\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}} = \bot \\
+              & \lor & \unroll{\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}} = \ret{\inj{\True} 1}
+             \end{array} \right\} 
+}
+\\[2em]
 \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho} 
- & = & \text{for all } d_x \in D_\infty \\ 
-    &&   \quad\quad \text{if }
-                     \dbrace{\Ct_1}_\rho(d_x)\text{ then }
-                     \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) 
-\\
+ & = & \left\{ \begin{array}{rcl} d & \mid &
+           \forall d_x \in \dbrace{\Ct_1}_\rho. \\
+           && \quad \dapp(d,d_x) \in \dbrace{\Ct_2}_{\rho,x|->d_x}
+           \end{array} \right\}
+\\[1em]
 \dbrace{\Ct_1 \& \Ct_2}_\rho 
- & = & \{ d | d \in \dbrace{\Ct_1}_\rho(d) /\ d \in \dbrace{\Ct_2}_\rho \}
-\\
+ & = & \{ d | d \in \dbrace{\Ct_1}_\rho /\ d \in \dbrace{\Ct_2}_\rho \}
+\\[1em]
 \dbrace{\CF}_\rho & = &  \Fcf^{\infty} 
 \end{array}
 $$
-\caption{Dentotations of contracts} \label{f:den-sem-contracts}
+\caption{Denotations of contracts} \label{f:den-sem-contracts}
 \end{figure}
 
-The specification of what it means for a function to satisfy a
+The original specification of what it means for a function to satisfy a
 contract (Figure~\ref{f:contract-spec-op}) is cast in terms of
 \emph{operational} semantics but we re-cast it here in \emph{denotational} terms.
 The two do not match perfectly but, as we discuss in Section~\ref{sect:discussion}, 
 the mis-match is unimportant.
+We define the semantics of a contract as the set of denotations that satisfy it:
+\[              \dbrace{\Ct}_\rho \subseteq D_\infty  \]
+where $\Ct$ is a contract with free term variables in the semantic environment $\rho$. 
+Figure~\ref{f:den-sem-contracts} gives the definition of this function.
+A base contract $\{x \mid e\}$ is satisfied by a diverging
+computation, or by a computation that causes the predicate $e$ to diverge
+return \True\footnote{
+In previous
+work \cite{xc+:contracts} the base contract also 
+required {\em crash-freedom}. 
+We changed this choice only for reasons of taste; both choices
+are equally straightforward technically.}.
+The reason for introducing the
+possibility of $\bot$ either for the expression or for the predicate
+is associated with {\em admissibility} of induction, a topic that we
+return to in Section~\ref{sect:induction}. 
+The denotation of an arrow contract, and of conjunction, are both straightforward.
 
-
-The semantics of contracts is to a certain extent a matter of design decisions, and previous
-work has discussed several decisions. Our goal is to define a predicate 
-\[              \dbrace{\Ct}_\rho : D_\infty -> @Prop@   \]
-where $\Ct$ is a contract with free term variables in the semantic environment $\rho$. Below
-we present this definition recursively on the structure of the contract $\Ct$.
-
-\paragraph{Denotations of base contracts}
-We may define the denotation of a base contract as follows: 
-\[\begin{array}{l}
-    \dbrace{x \mid e}_\rho(d) \text{ iff } \\
-        \quad \unroll(d) = \bot \text{ or } 
-        \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
-        \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1) 
-\end{array}\] 
-Hence, a base contract is satisfied by a diverging computation, or by a computation that causes the 
-predicate to diverge as well, or return the \True value. The reason for introducing the possibility of
-$\bot$ either for the expression or for the predicate is associated to {\em admissibility} of induction, 
-a topic that we return to in Section~\ref{sect:induction}. Notice that in previous work, the base 
-contracts require also {\em crash-freedom} -- this is a design choice guided by practicality reasons, 
-and either option is unproblematic for the semantics. 
-
-\paragraph{Denotations of arrow contracts and conjunctions} 
-The denotation of an arrow contract can be recursively defined using the denotations of the argument
-and the result contract and it is what one expects: 
-\[\begin{array}{l}
-    \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho}(d) \text{ iff } \\
-        \quad \text{for all } d_x \in D_\infty \\ 
-        \quad\quad \text{if }
-                     \dbrace{\Ct_1}_\rho(d_x)\text{ then }
-                     \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) 
-\end{array}\]
-Similarly, the denotation of a conjunction of two contracts is recursively defined:
-\[\begin{array}{l}
-    \dbrace{\Ct_1 \& \Ct_2}_\rho(d) \text{ iff } 
-       \dbrace{\Ct_1}_\rho(d) \text{ and } 
-       \dbrace{\Ct_2}_\rho(d)
-\end{array}\]
-
-\paragraph{Denotation of crash-freedom}
-
-This leaves us with the $\CF$ contract. Intuitively an expression is crash-free iff it cannot
-cause a crash if plugged in inside a context which is itself crash-free. Of course this is a 
+However the $\CF$ contract is a little harder. Intuitively an expression is crash-free iff it cannot
+cause a crash if plugged into a context which is itself crash-free. Of course this is a 
 self-referential definition so how do we know it makes sense? The original paper that proposed
 a crash-free contract~\cite{xu+:contracts} asserted that an expression is crash free iff it 
 cannot cause a crash when plugged in in a context which {\em syntactically} does not contain the
@@ -544,14 +519,14 @@ using the following strict bi-functor on admissible sets of
 denotations $S^{-},S^{+} \subseteq D_\infty$.
 {\setlength{\arraycolsep}{2pt}
 \[\begin{array}{rcl}
-   F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad} 1 ) \text{ and } \\ 
+   F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll{d} \neq \ret{\inj{bad} 1} \text{ and } \\ 
                       &    & \quad \text{for all } \ol{d}, \\ 
-                      &    & \quad\quad\text{ if } \unroll(d) = \ret(\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle) \\ 
+                      &    & \quad\quad\text{ if } \unroll{d} = \ret{\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle} \\ 
                       &    & \quad\quad\text{ then } \ol{d} \in S^{+} \} \\ 
                    & \cup & \ldots \\ 
-                   & \cup & \{\;d\;\mid\;\unroll(d) \neq \ret(\inj{bad} 1 ) \text{ and } \\ 
+                   & \cup & \{\;d\;\mid\;\unroll{d} \neq \ret{\inj{bad} 1} \text{ and } \\ 
                    &      & \quad \text{for all } d_0, \\
-                   &      & \quad\quad\text{ if } \unroll(d) = \ret(\inj{->}(d_0)) \text{ then } \\ 
+                   &      & \quad\quad\text{ if } \unroll{d} = \ret{\inj{->}(d_0)} \text{ then } \\ 
                    &      & \quad\quad\text{ for all }\;d' \in S^{-} \text{ it is } d_0(d') \in S^{+} \}  \\
 \end{array}\]}
 The intersection of admissible sets is admissible so the $\Fcf$ bi-functor has a negative and positive fixpoint, and by minimal 
@@ -662,10 +637,10 @@ signature as elements of $D_\infty$. Happily this is straightforward to do:
    \linterp{f^{\ar}}(d_1,\ldots,d_\ar) & = & \dapp(\dbrace{f},\oln{d}{\ar}) \\ 
    \linterp{app}(d_1,d_2)     & = & \dapp(d_1,d_2) \\
    \linterp{f_{ptr}}  & = & \dbrace{f} \\
-   \linterp{K^{\ar}}(d_1,\ldots,d_\ar) & = & \roll(\ret(\inj{K}\langle d_1,\ldots,d_\ar\rangle)) \\ 
-   \linterp{\sel{K}{i}}(d) & = &  \roll(\bind_g(\unroll(d))) \\ 
+   \linterp{K^{\ar}}(d_1,\ldots,d_\ar) & = & \roll{\ret{\inj{K}\langle d_1,\ldots,d_\ar\rangle}} \\ 
+   \linterp{\sel{K}{i}}(d) & = &  \roll{\bind{g}{\unroll{d}}} \\ 
      \text{where } g  & = & [\;\bot \\ 
-                      &   & ,\;\dlambda d @.@ \unroll(\pi_i(d))  \quad (\text{case for K}) \\ 
+                      &   & ,\;\dlambda d @.@ \unroll{\pi_i(d)}  \quad (\text{case for K}) \\ 
                       &   & ,\;\bot \\
                       &   & ,\;\ldots\\
                       &   & ,\;\bot\; ] \\

@@ -351,7 +351,7 @@ $\Sigma |- P$ and $\Sigma;\cdot |- e \Downarrow v$ then $\Sigma;\cdot |- v : \ta
 
 \begin{figure}
 \[\begin{array}{lcl}
-e \in \{ x\;\mid\;e_p\} & <=> &  e \not\Downarrow \text{ or } e_p[e/x] \not\Downarrow \text{ or} \\
+e \in \{ x \mid e_p\} & <=> &  e \not\Downarrow \text{ or } e_p[e/x] \not\Downarrow \text{ or} \\
                         &     &  e_p[e/x] \Downarrow True \\
 e \in (x{:}\Ct_1) -> \Ct_2 & <=> &
                         \forall e' \in \Ct_1.\; (e\;e') \in \Ct_2[e'/x] \\
@@ -366,8 +366,8 @@ We now turn our attention to contracts. The syntax of contracts
 is given in Figure~\ref{fig:syntax} and includes base contracts
 $\{ x \mid e \}$, arrow contracts $(x : \Ct_1) -> \Ct_2$, conjunctions
 $\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts}
-includes other constructs as well, but these constructs are enough to verify
-many programs and already demonstrate the interesting theoretical and practical problems.
+includes other constructs as well, but the constructs we give here are enough to verify
+many programs and exhibit all the interesting theoretical and practical problems.
 
 We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
 for functions $f$.

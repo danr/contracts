@@ -40,10 +40,23 @@
 \newcommand{\dtrans}[2]{{\cal D}\{\!\!\{#2\}\!\!\}}
 \newcommand{\ptrans}[2]{{\cal P}\{\!\!\{#2\}\!\!\}}
 %% Gadgets of domain theory 
-\newcommand{\roll}{\mathsf{roll}}
-\newcommand{\unroll}{\mathsf{unroll}}
-\newcommand{\bind}{\mathsf{bind}}
-\newcommand{\ret}{\mathsf{ret}}
+
+
+
+\newcommand{\rollK}{\mathsf{roll}}
+\newcommand{\unrollK}{\mathsf{unroll}}
+\newcommand{\bindK}{\mathsf{bind}}
+\newcommand{\retK}{\mathsf{ret}}
+
+% \newcommand{\roll}[1]{\rollK(#1)}
+% \newcommand{\unroll}[1]{\unrollK(#1)}
+% \newcommand{\bind}[2]{\bindK_{#1}(#2)}
+% \newcommand{\ret}[1]{\retK(#1)}
+\newcommand{\roll}[1]{#1}
+\newcommand{\unroll}[1]{#1}
+\newcommand{\bind}[2]{#1(#2)}
+\newcommand{\ret}[1]{#1}
+
 \newcommand{\dlambda}{\mathsf{\lambda}}
 \newcommand{\curry}{\mathsf{curry}}
 \newcommand{\eval}{\mathsf{eval}}
