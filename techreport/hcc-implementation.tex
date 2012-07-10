@@ -1,5 +1,5 @@
 Our prototype contract checker is called \textbf{Halo}.
-It uses GHC to parse, typecheck, and desugar a Haskell program, 
+It uses GHC to parse, typecheck, and desugar a Haskell program,
 translates it into first order logic (exactly as in Section~\ref{ssect:trans-fol}), and
 invokes a FOL theorem prover (Equinox, Z3, Vampire, etc) on the FOL formula.
 The desugared Haskell program is expressed in GHC's intermediate language
@@ -8,10 +8,10 @@ to translate this into our language $\cal L$.
 
 \subsection{Using the tool}
 
-How does the user express contracts? We use HOAS and let the user define
-contracts by primitive connectives, which can be extended by the user.
-The connectives are defined as a GADT, where @Contract t@ is a 
-a contract for a function of type @t@:
+How does the user express contracts? We use HOAS and let the user
+define contracts by primitive connectives.  The connectives are
+defined in a GADT, where @Contract t@ is a a contract for a function
+of type @t@:
 \begin{code}
 data Contract t where
   (:->) :: Contract a -> (a -> Contract b) ->
@@ -23,11 +23,11 @@ data Contract t where
 
 The connectives are @:->@ for dependent contract function space, @CF@
 for crash-freedom, @Pred@ for predication, and
-@:&:@ for conjunction. 
+@:&:@ for conjunction.
 A useful derived connective is non-dependent function space:
 \par {\small
 \begin{code}
-(-->) :: Contract a -> Contract b -> Contract (a->b)
+(-->) :: Contract a -> Contract b -> Contract (a -> b)
 c1 --> c2 = c1 :-> \_ -> c2
 \end{code}
 } \par
@@ -51,7 +51,7 @@ data Statement where
     (:::) :: a -> Contract a -> Statement
 \end{code}
 For example, in our previous notation we might write the following
-contract for @head@
+contract for @head@:
 $$
 @head@ \in \CF \;\&\; \{@xs@ \mid @not (null xs)@ \} \rightarrow \CF
 $$
@@ -69,42 +69,20 @@ f . g = \x -> f (g x)
 c_head :: Statement
 c_head = head ::: CF :&: Pred (not . null) --> CF
 \end{code}
-Upon saving this file to, say, @Head.hs@ and running @halo Head@, 
+Upon saving this file to, say, @Head.hs@ and running @halo Head@,
 @halo@ translates the contract (and the supporting definitions) into
 FOL, generates a TPTP file and invokes a theorem prover.
-In fact @c_head@ 
-is verified by all theorem provers we tried.
+In fact @c_head@ is verified by all theorem provers we tried.
 
-\subsection{Practical considerations}
+We apply fixpoint induction on contracts for recursive functions, as
+described in Section~\ref{s:induction}.
 
-To make the theorem prover work as fast as possible we trim the
-theories to include only what is needed to prove a
-property. Unnecessary function pointers, data types and definitions
-for the current goal are not generated.
-
-When proving a series of contracts, it is natural to do so in dependency order.
-For example:
-\begin{code}
-  reverse :: [a] -> [a]
-  reverse [] = []
-  reverse (x:xs) = reverse xs ++ [x]
-
-  reverse_c :: Statement
-  reverse_c = reverse ::: CF --> CF
-\end{code}
-To prove this contract we must first prove that $@(++)@ \in \CF \rightarrow \CF$;
-then we can prove @reverse@'s contract assuming the one for @(++)@.
-At the moment we ask the programmer to specify which auxiliary contracts
-are useful, via a second constructor in the @Statement@ type:
-\begin{code}
-  reverse_c = reverse ::: CF --> CF
-              `Using` append_c
-\end{code}
-
+% ------------------------ Omit ----------------------------
+\begin{comment}
 \subsection{Recursion}
 
-We prove the contract for a recursive function 
-using fixed point induction (Section~\ref{s:induction}). 
+We prove the contract for a recursive function
+using fixed point induction (Section~\ref{s:induction}).
 For recursive
 functions, the tool then gives three files, one without induction, one
 for the base case and step case. The typical situation is that the one
@@ -134,16 +112,45 @@ c_foldr = foldr1 ::: (CF --> CF --> CF) -->
 \end{code}
 
 Our tool proves this contract, but only when recursion is used.
+\end{comment}
+% ------------------------ End Omit ----------------------------
+
+\subsection{Practical considerations}
+
+To make the theorem prover work as fast as possible we trim the
+theories to include only what is needed to prove a
+property. Unnecessary function pointers, data types and definitions
+for the current goal are not generated.
+
+When proving a series of contracts, it is natural to do so in dependency order.
+For example:
+\begin{code}
+  reverse :: [a] -> [a]
+  reverse [] = []
+  reverse (x:xs) = reverse xs ++ [x]
+
+  reverse_cf :: Statement
+  reverse_cf = reverse ::: CF --> CF
+\end{code}
+To prove this contract we must first prove that
+$@(++)@ \in \CF \rightarrow \CF \rightarrow \CF$;
+then we can prove @reverse@'s contract assuming the one for @(++)@.
+At the moment we ask the programmer to specify which auxiliary contracts
+are useful, via a second constructor in the @Statement@ type:
+\begin{code}
+  reverse_cf = reverse ::: CF --> CF
+                 `Using` append_cf
+\end{code}
+
 
 \subsection{Dependent contracts}
 
 Here is an example of a contract about @filter@,
 where the result depends on an earlier argument, the predicate @p@:
-
-\[
+$$
 @filter@ \in (@p@ : \CF \rightarrow \CF) \rightarrow
              \CF \rightarrow \CF \;\&\; \{@ys@ \mid @all p ys@ \}
-\]
+$$
 This contract says that under good crash-free circumstances, the
 all elements in the resulting list from filtering a list with @p@
 satisfies @p@.
@@ -153,9 +160,9 @@ filter_all :: Statement
 filter_all = filter ::: (CF --> CF) :-> \p ->
                         CF --> (CF & Pred (all p))
 \end{code}
-It is a little confusing since we then get two ``arrows'', one from
-@:->@, and one from the @->@ in the lambda.
-The contract can then proved by using fixed point induction (and not without).
+It is a little confusing since we get two ``arrows'', one from @:->@,
+and one from the @->@ in the lambda.  This contract is proved by
+applying fixed point induction.
 
 \subsection{Higher order functions}
 
@@ -309,14 +316,14 @@ or post-conditions too strong.
 In practice, programmers will often propose contracts that do not hold.
 Unfortunately, in almost all such cases, all FOL provers will loop.
 The prover is trying to prove that a theory is unsatisfiable.  A resolution
-based prover (such as Vampire or eprover) will keep applying deduction rules, 
+based prover (such as Vampire or eprover) will keep applying deduction rules,
 trying to find a contradiction, but no such contradiction exists.  A
 model-based theorem prover will seek a finite counter-model to the theory, but
 again no such counter-model exists. \spj{Koen please fix the wording here!}
 
 It is obviouly unacceptable for the system to go into a loop if
 the programmer writes a bogus contract, and we have promising
-preliminary results based on so-called ``minimisation'', and 
-finite counter-model generators such as Paradox \cite{koen}, but we 
+preliminary results based on so-called ``minimisation'', and
+finite counter-model generators such as Paradox \cite{koen}, but we
 leave this for (absolutely essential) future work.
 
