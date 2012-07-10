@@ -77,7 +77,7 @@ omitted $\ol{x}$ has a size which is implied by the context or is not
 interesting.
 
 A program \emph{crashes} if it evaluates the special value @BAD@.
-For example, we assume that the standard Haskell function @error@ 
+For example, we assume that the standard Haskell function @error@
 simply invokes @BAD@, thus:
 \begin{code}
   error :: String -> a
@@ -96,7 +96,7 @@ and verification amounts to proving that a program cannot invoke @BAD@.
 Our language embodies several convenient syntactic constraints:
 (i)~$\lambda$ abstractions occur only at the top-level,
 (ii)~@case@-expressions can only immediately follow a function
-definition, and (iii) constructors are fully applied.  
+definition, and (iii) constructors are fully applied.
 Any Haskell program can be transformed into this restricted
 form using lambda-lifting, @case@-lifting, and eta-expansion respectively,
 and our working prototype does just this.
@@ -124,11 +124,11 @@ and the error term @BAD@.
 
 The operational semantics of $\cal L$ is entirely standard, and we do not give it here.
 We write $P |- u \Downarrow v$ to mean ``In program P, right-hand side $u$ evaluates to
-value $v$'', 
+value $v$'',
 
 % -------------------- Omitted section on operational semantics ------------
 % \subsection{Operational semantics of $\cal L$}
-% 
+%
 % \spj{Why do we give an operational as well as denotational semantics?}
 % The big-step operational semantics of our language is given in
 % Figure~\ref{fig:opsem}, which contains no surprises. One interesting
@@ -242,11 +242,11 @@ includes other constructs as well, but the constructs we give here are enough to
 many programs and exhibit the interesting theoretical and practical problems.
 
 We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
-for functions $f$.  We will say what contracts mean formally in 
+for functions $f$.  We will say what contracts mean formally in
 Section~\ref{s:den-sem-contracts}.  However, here is their informal meaning:
 \begin{itemize}
 \item $e \in \{x | e'\}$ if $e$ diverges or $e[e'/x]$ evaluates to @True@ or diverges.
-Notice that $e'$ is an arbitrary expression 
+Notice that $e'$ is an arbitrary expression
 (in our implementation, arbitrary Haskell expressions),
 rather than being restricted to some well behaved meta-language.  This
 is great for the programmer because the language and its library
@@ -306,7 +306,7 @@ $f(\ol{t})$, saturated constructor applications $K(\ol{t})$, and variables. They
 also include, for each data constructor $K^\ar$ in the signature
 $\Sigma$ with arity $\ar$ a set of {\em selector functions}
 $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.  The terms $app(t,s)$ and
-$f_{ptr}$ concern the higher-order aspects of $\cal L$ 
+$f_{ptr}$ concern the higher-order aspects of $\cal L$
 (namely un-saturated applications), which we
 discuss in Section~\ref{s:hof}.  Finally we introduce two new
 syntactic constructs $\unr$ and $\bad$. As an abbreviation we often use
@@ -345,7 +345,7 @@ we discuss in Section~\ref{s:cf-fol}.
     = & \formula{(t = \bad => s = bad)} \\
     \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = \etrans{\Sigma}{\Gamma}{e'_1})\;\land \ldots}  \\
     \land & \formula{(t{\neq}\bad\;\land\;
-                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr} \\
+                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s=\unr)} \\
     \mbox{where} & t  =  \etrans{\Sigma}{\Gamma}{e}
  \end{array}
 }
@@ -357,7 +357,7 @@ we discuss in Section~\ref{s:cf-fol}.
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]} & = & \formula{f_{ptr}} \\
 \etrans{\Sigma}{\Gamma}{K[\ol{\tau}](\ol{e})} & = & \formula{K(\ol{\etrans{\Sigma}{\Gamma}{e}})} \\
 \etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{\Gamma}{e_1},
-                                                     \etrans{\Sigma}{\Gamma}{e_1})} \\
+                                                     \etrans{\Sigma}{\Gamma}{e_2})} \\
 \etrans{\Sigma}{\Gamma}{@BAD@} & = & \formula{\bad}
 \end{array}
 \\ \\
@@ -420,7 +420,7 @@ We are primarily interested in reasoning about equality, so we might
 hope for this informal guiding principle:
 
 \begin{quote}
-If we can prove in FOL that $\etrans{}{}{e_1} = \etrans{}{}{e_2}$ then  
+If we can prove in FOL that $\etrans{}{}{e_1} = \etrans{}{}{e_2}$ then
 $e_1$ and $e_2$ are semantically equivalent.
 \end{quote}
 
@@ -516,7 +516,7 @@ right-hand side, $e'_i$, after quantifying the variables $\ol{y}$ bound by the @
 \item Otherwise the result is $unr$.
 The bit before the implication $\Rightarrow$ is just the
 negation of the previous preconditions; the formula
-  $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$
+  $t{\neq}K_1(\oln{{\sel{K}{1}}(t)}{})$
 is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$''.
 \end{itemize}
 Why do we need the last clause? Consider the function @not@:
