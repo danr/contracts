@@ -91,17 +91,17 @@
            {Chalmers University}{}
 \authorinfo{Dimitrios Vytiniotis \\ Simon Peyton Jones}
            {Microsoft Research}{}
-\authorinfo{Nathan Collins}
-           {Portland State University}{}
+%% \authorinfo{Nathan Collins}
+%%            {Portland State University}{}
 \maketitle
 \makeatactive
 
 \begin{abstract}
 Despite the benefits of strong types and purity for reasoning about
 programs, many bugs remain in well-typed and purely functional
-code.  Programmers often introduce assertions to ensure that their
-code is crash-free.  In this work we allow programmers to express
-assertions as contracts, whose validity we can check statically.  Our main
+code.  Functional programmers often have to introduce assertions to 
+ensure that their code is crash-free.  In this work we allow programmers to express
+assertions as contracts, whose validity we can check statically. Our main
 contribution is a novel translation to first-order logic 
 of both Haskell programs, and contracts written in Haskell,
 all justified by denotational semantics.

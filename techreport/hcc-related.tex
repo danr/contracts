@@ -51,9 +51,12 @@ that we propose to perform induction.
 The recent work on the Leon system~\cite{Suter:2011:SMR:2041552.2041575} presents
 an effective approach to the verification of {\em first-order} and {\em call-by-value} 
 recursive functional programs which appears to be very efficient in practice: it works
-by extending SMT with recursive programs and is guaranteed to find a model if one 
-exists (whereas that is not the case in our system, as we discussed earlier). 
-\dv{Say something more substantial? ... } 
+by extending SMT with recursive programs and ``control literals'' that guide the pattern
+matching search for a counter-model, and is guaranteed to find a model if one exists 
+(whereas that is not the case in our system, as we discussed earlier). It does not include
+a $\CF$-analogous predicate and, due to call-by-value, no special treatment of $\unr$ seems
+necessary, which is most likely a huge win in terms of performance.
+
 
 \begin{itemize}
   \item Contracts in general (Findler Felleisen etc)

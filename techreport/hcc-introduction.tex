@@ -10,12 +10,12 @@ that embodied in a standard type system.
 
 One response to this challenge is to beef up the type system, a 
 path that leads to dependently typed programming.  Another alternative,
-studied by many researchers, is to allow the programmer to 
-annotate a function with one or more
+studied by many researchers~\cite{contracts-literature}, is to allow 
+the programmer to annotate a function with one or more
 \emph{contracts}, in addition to its normal type.
 For example, we might write the following contract for @reverse@:
 \begin{code}
-reverse ::: xs:CF -> { ys | null xs <=> null ys }
+  reverse ::: xs:CF -> { ys | null xs <=> null ys }
 \end{code}
 This asserts that if @reverse@ is applied to a crash-free (@CF@) argument list @xs@
 then the result @ys@ will be empty (@null@) if and only if @xs@ is empty.
@@ -26,10 +26,9 @@ With this in hand we might hope to prove that @f@ satisfies the contract
   f ::: CF -> CF
 \end{code}
 But how do we verify that @reverse@ and @f@ satisfy the claimed
-contracts.  The classical approach is to add dynamic tests
-\cite{finder-felliesen}, but our plan here is different: we want to
-verify contracts \emph{statically} and \emph{automatically}. It
-should be clear that there is a good deal of logical reasoning to do,
+contracts.  Contracts are often tested dynamically~\cite{finder-felliesen}, but 
+our plan here is different: we want to verify contracts \emph{statically} 
+and \emph{automatically}. It should be clear that there is a good deal of logical reasoning to do,
 and a now-popular approach is to hand off the task to a theorem
 prover, a SMT solver or first-order logic prover.
 With that in mind, we make the following new contributions:
