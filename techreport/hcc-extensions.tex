@@ -92,6 +92,8 @@ refer to the terms in the $min(\cdot)$ predicate as the {\em set of terms we are
 \caption{A theory with minimization}\label{fig:min-theory}
 \end{figure}
 
+\kc{I don't understand why AxInj has min(sel(K(x)) as a condition and not min(K(x)). I seem to recall that both work in practice, but I don't understand why. Where does this turn up in the proof? With the condition as it is now, it is possible to get e.g. min(Just False), min(Just True), Just False = Just True, and min(False), min(True), but obviously not False = True.}
+
 Figure~\ref{fig:min-theory} presents a variation of $\Th$, called $\ThMin$, which includes minimization.
 In this figure, we have highlighted the parts where our theory differs compared to $\Th_\infty$ from
 Figure~\ref{fig:prelude}. The first interesting axiom is \rulename{AxAppMin} which asserts that, if an 
@@ -341,6 +343,8 @@ then {\em at some point} we have been interested in that value, or that it is $\
 \rulename{AxCfC2} asserts that if we are interested in a constructor value $K(\ol{x})$ which is 
 nevertheless not crash-free, we know that there must exist some $x_i$ which we have been intrested 
 in, and is nevertheless crash-free.
+
+\kc{I don't get why we have AxCfMin at all. Forcing something to be min means that it will be evaluated by the theorem prover. Stating that something is crash-free should not necessary lead to the whole thing being evaluated. Where is this needed in any proof?}
 
 \paragraph{Soundness}
 These choices are extremely delicate and have been derived very carefully from our intuitions about 
