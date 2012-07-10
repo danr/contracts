@@ -23,7 +23,7 @@ Suppose that we would like to check that
 which is a falsifiable contract.  A satisfiability-based checker 
 will simply diverge trying to construct a counter model for the negation of the above query; we 
 have confirmed that this is indeed the behaviour of several tools (Z3, Equinox, Eprover).
-Indeed the table for @length@ is infinite since @[]@ is always disjoint from @Cons x x@ for 
+Indeed the table for @length@ is infinite since @[]@ is always disjoint from @Cons x xs@ for 
 any @x@ and @xs@. Even if there is a finitely representable infinite model there is always the 
 possibility of the theorem prover searching in the ``wrong corner'' of the model for a 
 counterexample with no success. 
