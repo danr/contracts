@@ -1,18 +1,18 @@
 Consider this Haskell definition:
 \begin{code}
-  f xs = head (reverse (x:xs))
+  f xs = head (reverse (True : xs))
+  g xs = head (reverse xs)
 \end{code}
-Can a call to @f@ crash?  No: although @head@ crashes if applied to the
-empty list, it is clear that this particular use of @head@ will never
-do so, because @reverse@ is applied to a non-empty list and
-hence returns a non-empty list.  However the fact is that 
-well-typed programs can and do go wrong, and it takes reasoning beyond that
-checked by the type system to convince oneself that they don't.
+Both @f@ and @g@ are well typed (and hence do not ``go wrong'' in Milner's sense),
+but @g@ can crash (when applied to the empty list), whereas @f@ cannot.
+To distinguish the two we need reasoning that goes well beyond 
+that embodied in a standard type system.
 
-One response to this challenge is to beef up the type system, a path that
-path leads us to dependently typed programming.  Another alternative,
-studied by many researchers, is to allow the programmer to attribute one or
-more \emph{contracts} to a function, in addition to its normal type.
+One response to this challenge is to beef up the type system, a 
+path that leads to dependently typed programming.  Another alternative,
+studied by many researchers, is to allow the programmer to 
+annotate a function with one or more
+\emph{contracts}, in addition to its normal type.
 For example, we might write the following contract for @reverse@:
 \begin{code}
 reverse ::: xs:CF -> { ys | null xs <=> null ys }
@@ -23,36 +23,36 @@ Notice that @null@ and @<=>@ are just ordinary Haskell functions, perhaps
 written by the programmer, even though they appear inside contracts.
 With this in hand we might hope to prove that @f@ satisfies the contract
 \begin{code}
-f ::: CF -> CF
+  f ::: CF -> CF
 \end{code}
 But how do we verify that @reverse@ and @f@ satisfy the claimed
 contracts.  The classical approach is to add dynamic tests
 \cite{finder-felliesen}, but our plan here is different: we want to
 verify contracts \emph{statically} and \emph{automatically}. It
 should be clear that there is a good deal of logical reasoning to do,
-and the non-popular approach is to hand off the task to a theorem
+and a now-popular approach is to hand off the task to a theorem
 prover, a SMT solver or first-order logic prover.
 With that in mind, we make the following new contributions:
 \begin{itemize}
-\item We show how to translate both Haskell terms
+\item We show how to translate Haskell terms
 into First Order Logic (FOL) (Section~\ref{ssect:denot-fol}).  
 It may appear surprising that this 
 is even possible, since Haskell is a higher order language.  Although
 the basic idea of the translation is folklore in the community,
-this we believe that this paper is the first to explain it explicitly.
+we believe that this paper is the first to explain it explicitly.
 
 \item We also show how to translate \emph{contracts} into FOL
       (Section~\ref{s:contracts-fol}), 
       a translation that is rather less obvious.
 
 \item We give a proof based on denotational semantics 
-that if that if the FOL prover discharges a 
+that if the FOL prover discharges a 
 suitable theorem about the translated Haskell term and contract, 
 then indeed the original Haskell term satisfies that contract (Section~\ref{s:xxx}).
 
 \item It is one thing to make a sound translation, and quite another
 to produce FOL terms that the FOL prover can actually prove anything
-about -- a common experience is that it goes out to lunch instead.  We
+about --- a common experience is that it goes out to lunch instead.  We
 describe a number of techniques that dramatically improve
 theorem-proving times, moving them from infeasible to feasible (Section\ref{xxx}).
 

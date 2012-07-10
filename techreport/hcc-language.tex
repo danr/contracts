@@ -1,6 +1,6 @@
 To formalise the ideas behind our implementation, we define a
 tiny source language $\cal L$:
-polymorphic, higher-order, call-by-name $\lambda$-calculus with
+a polymorphic, higher-order, call-by-name $\lambda$-calculus with
 algebraic datatypes, pattern matching, and recursion.
 Our actual implementation treats all of Haskell, by using GHC as a front
 end to translate Haskell into language $\cal L$.
@@ -10,16 +10,13 @@ end to translate Haskell into language $\cal L$.
 \begin{figure}
 \[\begin{array}{l}
 \begin{array}{lrll}
-\multicolumn{3}{l}{\text{Programs, definitions, and expressions}} \\
+\multicolumn{4}{l}{\text{Programs, definitions, and expressions}} \\
 P   & ::= & d_1 \ldots d_n \\
 d   & ::= & f\; \ol{a} \; \ol{(x\!:\!\tau)} = u \\
-u   & ::= & e \; \mid \; @case@\;e\;@of@\;\ol{K\;\ol{y} -> e}
-\end{array}
-\\
-\begin{array}{lrll}
+u   & ::= & \multicolumn{2}{l}{e \; \mid \; @case@\;e\;@of@\;\ol{K\;\ol{y} -> e}} \\
 e  & ::=  & x            & \text{Variables} \\
    & \mid & f[\ol{\tau}] & \text{Function variables} \\
-   & \mid & K[\ol{\tau}](\ol{e}) & \text{Data constructors (fully applied)} \\
+   & \mid & K[\ol{\tau}](\ol{e}) & \text{Data constructors (saturated)} \\
    & \mid & e\;e         & \text{Applications} \\
    & \mid & @BAD@        & \text{Runtime error} \\
 \end{array}\\ \\
@@ -54,7 +51,7 @@ e  & ::=  & x            & \text{Variables} \\
 %% constrs(\Sigma,T) & = & \{ K \mid (K{:}\forall \as @.@ \taus -> T\;\as) \in \Sigma \} \\
 (\cdot)^{-}            & = & \cdot \\
 (\Delta,a)^{-}         & = & \Delta^{-} \\
-(\Delta,(x{:}\tau)^{-} & = & \Delta^{-},x
+(\Delta,(x{:}\tau))^{-} & = & \Delta^{-},x
 %% \tyar{D}{f} & = & n & \\
 %%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\oln{a}{n} @.@ \lambda\ol{x{:}\tau} @.@ u) \in D} \\
 %% \tmar{D}{f} & = & n & \\
@@ -99,12 +96,11 @@ and verification amounts to proving that a program cannot invoke @BAD@.
 Our language embodies several convenient syntactic constraints:
 (i)~$\lambda$ abstractions occur only at the top-level,
 (ii)~@case@-expressions can only immediately follow a function
-definition, and (iii) constructors are fully applied.  These
-constraints do not restrict expressiveness; lambda-lifting,
-@case@-lifting, and eta-expansion respectively can easily transform a
-program with nested constructs and partially-applied constructors into
-our restricted form, and our working prototype relies on just such
-transformations.  However this simpler language is instead extremely
+definition, and (iii) constructors are fully applied.  
+Any Haskell program can be transformed into this restricted
+form using lambda-lifting, @case@-lifting, and eta-expansion respectively,
+and our working prototype does just this.
+However this simpler language is instead extremely
 convenient for the translation of programs to first-order logic.
 
 $\cal L$ is an explicitly-typed language, and we assume the existence
@@ -243,7 +239,7 @@ is given in Figure~\ref{fig:syntax} and includes base contracts
 $\{ x \mid e \}$, arrow contracts $(x : \Ct_1) -> \Ct_2$, conjunctions
 $\Ct_1 \& \Ct_2$ and crash-freedom $\CF$. Previous work~\cite{xu+:contracts}
 includes other constructs as well, but the constructs we give here are enough to verify
-many programs and exhibit all the interesting theoretical and practical problems.
+many programs and exhibit the interesting theoretical and practical problems.
 
 We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
 for functions $f$.  We will say what contracts mean formally in 
@@ -296,7 +292,7 @@ verify contracts.
 \\
 \multicolumn{1}{l}{\text{Abbreviations}} \\
 \begin{array}{rcl}
-app(t,\oln{s}{n} & = & (\ldots(app(t,s_1),\ldots s_n)\ldots) \\
+app(t,\oln{s}{n}) & = & (\ldots(app(t,s_1),\ldots s_n)\ldots) \\
 \phi_1 \Rightarrow \phi_2 & = & \neg \phi_1 \lor \phi_2
 \end{array}
 \end{array}\]
@@ -305,13 +301,14 @@ app(t,\oln{s}{n} & = & (\ldots(app(t,s_1),\ldots s_n)\ldots) \\
 
 We begin with the syntax of the FOL language, which is given in
 Figure~\ref{fig:fol-image}. There are two syntactic forms,
-\emph{terms} and \emph{formulae}. Terms include function applications
-$f(\ol{t})$, constructor applications $K(\ol{t})$, variables. They
+\emph{terms} and \emph{formulae}. Terms include saturated function applications
+$f(\ol{t})$, saturated constructor applications $K(\ol{t})$, and variables. They
 also include, for each data constructor $K^\ar$ in the signature
 $\Sigma$ with arity $\ar$ a set of {\em selector functions}
 $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.  The terms $app(t,s)$ and
-$f_{ptr}$ concern the higher-order aspects of $\cal L$, which we
-discuss in (see Section~\ref{s:hof}).  Finally we introduce two new
+$f_{ptr}$ concern the higher-order aspects of $\cal L$ 
+(namely un-saturated applications), which we
+discuss in Section~\ref{s:hof}.  Finally we introduce two new
 syntactic constructs $\unr$ and $\bad$. As an abbreviation we often use
 $app(t,\ol{s})$ for the sequence of applications to each $s_i$, as
 Figure~\ref{fig:fol-image} shows.
@@ -358,9 +355,9 @@ we discuss in Section~\ref{s:cf-fol}.
 \begin{array}{rcl}
 \etrans{\Sigma}{\Gamma}{x} & = & \formula{x} \\
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]} & = & \formula{f_{ptr}} \\
-\etrans{\Sigma}{\Gamma}{K[\ol{\tau}](\ol{e})} & = & \formula{K(\ol{\etrans{e}{\Gamma}{t}})} \\
-\etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{\Gamma}{t_1},
-                                                     \etrans{\Sigma}{\Gamma}{t_1})} \\
+\etrans{\Sigma}{\Gamma}{K[\ol{\tau}](\ol{e})} & = & \formula{K(\ol{\etrans{\Sigma}{\Gamma}{e}})} \\
+\etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{\Gamma}{e_1},
+                                                     \etrans{\Sigma}{\Gamma}{e_1})} \\
 \etrans{\Sigma}{\Gamma}{@BAD@} & = & \formula{\bad}
 \end{array}
 \\ \\
@@ -372,8 +369,7 @@ we discuss in Section~\ref{s:cf-fol}.
   & \lor & \formula{t'[t/x]{=}\True} \\
   & \mbox{where} &
     \begin{array}[t]{rcl}
-      t  & = & \etrans{\Sigma}{\Gamma}{e} \\
-      t' & = & \etrans{\Sigma}{\Gamma}{e'}
+      t  & = & \etrans{\Sigma}{\Gamma}{e} \; \text{and} \; t' = \etrans{\Sigma}{\Gamma}{e'}
     \end{array}
 \\
 \ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2}
@@ -421,13 +417,12 @@ we discuss in Section~\ref{s:cf-fol}.
 % ---------------------------------------------------
 What exactly does it mean to translate an expression to first-order logic?
 We are primarily interested in reasoning about equality, so we might
-hope for this (informal) guiding principle:
+hope for this informal guiding principle:
 $$
-e_1 =_S e_2 \;<=>\; \etrans{}{}{e_1} =_F \etrans{}{}{e_2}
+\etrans{}{}{e_1} = \etrans{}{}{e_2} \;\; \Rightarrow \;\; e_1 = e_2
 $$
-where $=_S$ means semantic equality, $=_F$ means equality in first-order logic,
-and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
-reason about the equality of Haskell terms by translating them into FOL using
+where $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
+reason about the equality of Haskell terms by translating them into FOL, and then using
 a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states this?}
 \kc{This is only going to hold from right to left}
 
@@ -473,8 +468,7 @@ $$
 At first it might be surprising that we can also translate a \emph{higher-order} language
 $\cal L$ into first order logic, but in fact it is easy to do so, as
 Figure~\ref{fig:etrans} shows.  We introduce into the logic
-(a) a single new constant $app$, standing
-for application, and (b) a nullary constant $f_{ptr}$ for each function $f$
+(a) a single new constant $app$, and (b) a nullary constant $f_{ptr}$ for each function $f$
 (see Figure~\ref{fig:fol-image}).
 Then, the equations for $\etrans{}{}{e}$ translate application in $\cal L$ to
 a use of $app$ in FOL, and any mention of function $f$ in $\cal L$ to a use
@@ -513,7 +507,7 @@ right-hand side, $e'_i$, after quantifying the variables $\ol{y}$ bound by the @
 The bit before the implication $\Rightarrow$ is just the
 negation of the previous preconditions; the formula
   $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$
-is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$.
+is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$''.
 \end{itemize}
 Why do we need the last clause? Consider the function @not@:
 \begin{code}
@@ -533,7 +527,7 @@ selectors, which is done in Figure~\ref{fig:data-cons}:
 \begin{itemize}
 \item \textsc{AxDisjCBU} explains that a term headed by a data constructor cannot
 also be $bad$ or $unr$.
-\item \textsc{AxInj} explains how selectors $\sel{K}{i}$ work.
+\item \textsc{AxInj} explains how the selectors $\sel{K}{i}$ work.
 \item \textsc{AxDisjC} tells the prover that all data constructors are pairwise disjoint.
 There are a quadratic number of such axioms, which presents a scaling problem.
 For this reason FOL provers sometimes offer a built-in notion of data constructors,
@@ -547,10 +541,10 @@ so this is not a problem in practice, but we ignore this pragmatic issue here.
 Now that we know how to translate \emph{programs} to first order
 logic, we turn our attention to translating \emph{contracts}.  We do
 not translate a contract \emph{per se}; rather we translate the claim
-$e \in C$.  Once we have translated $e \in \Ct$ to a first-order logic
+$e \in \Ct$.  Once we have translated $e \in \Ct$ to a first-order logic
 formula, we can ask the prover to prove it; and, if successful, we can
 claim that indeed $e$ does satisfy $C$.  Of course that needs proof,
-which we address in Section~\ref{xxx}.
+which we address in Section~\ref{s:soundness}.
 
 Figure~\ref{fig:contracts-minless} presents the translation
 $\ctrans{}{\Gamma}{e \in \Ct}$; there are four equations corresponding

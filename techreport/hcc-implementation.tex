@@ -1,6 +1,7 @@
 \dr{This is obviously chaotic, but I think we might want to keep some parts}
 The implementation of the contracts checker has two components:
 
+
 \begin{itemize}
     \item \textbf{Halo}, the Haskell to Logic translator, which takes
        GHC Core as input and translates function and data type
@@ -33,8 +34,9 @@ Rather than starting from scratch, using the GHC API gives us
 desugaring, type inference and even optimisations!
 
 We also do some optimisations for theorem provers, i.e. we try to
-clausify as much as possible (theorem provers like CNF), and instead
-of writing $x = K(xs) \rightarrow f(x) = e$, we simply write $f(K(xs)) = e$.
+clausify as much as possible (theorem provers typically work with
+CNF), and instead of writing $x = K(xs) \rightarrow f(x) = e$, we
+simply write $f(K(xs)) = e$.
 
 \subsection{Using the tool}
 
@@ -44,9 +46,8 @@ The connectives are defined as a GADT:
 
 \begin{code}
 data Contract t where
-  (:->) :: Contract a
-        -> (a -> Contract b)
-        -> Contract (a -> b)
+  (:->) :: Contract a -> (a -> Contract b) ->
+           Contract (a -> b)
   Pred  :: (a -> Bool) -> Contract a
   CF    :: Contract a
   (:&:) :: Contract a -> Contract a -> Contract a
@@ -59,7 +60,7 @@ for crash-freedom (no catchable bottoms), @Pred@ for predication, and
 A useful derived connective is non-dependent function space:
 
 \begin{code}
-(-->) :: Contract a -> Contract b -> Contract (a -> b)
+(-->) :: Contract a -> Contract b -> Contract (a->b)
 c1 --> c2 = c1 :-> \_ -> c2
 \end{code}
 
@@ -86,38 +87,41 @@ data Statement where
 This allows us to wrap a function with a contract.  We also see how
 GADTs can ensure that our contracts are well-typed.  One intended use
 for our tool is to, if you have a function @f@ and it is partial, you
-can state under which precoditions it is not partial, and then our
-tool proves that it will not crash if you only give it arguments
-satisfying these conditions. An example in this fashion about the
-@head@ function is from the \cite{xu+:contracts}:
+can state under which preconditions it is total, then we will try to
+proves that it will not crash if you only give it arguments satisfying
+these conditions. An example in this fashion about the @head@ function
+is from the \cite{xu+:contracts}
+\dr{If we have little space we can move function definitions to the
+  appendix (applies to all definitions in this section of course)
+}:
 
 \begin{code}
 head (x:xs) = x
 head []     = error "empty list"
 
-null [] = True
-null xs = False
-
-not True = False
-not False = True
+not True = False    null [] = True
+not False = True    null xs = False
 
 f . g = \x -> f (g x)
 
-head_contract =
-    head ::: CF :&: Pred (not . null) --> CF
+c_head = head ::: CF :&: Pred (not . null) --> CF
 \end{code}
 
+The @c_head@ definition is our statement expressing the contract
+\[
+@head@ \in @CF@ @&&@ \{@xs@ \mid @not (null xs)@ \} \rightarrow @CF@
+\].
+
 Upon saving this file to, say, @Head.hs@ and running @hcc Head@, a
-TPTP file named @Head.head_contract.tptp@ is generated. This can then
-be run with your favourite automated theorem prover, and the above
-contracts is easily verified by for instance @eprover@.
+TPTP file named @Head.contract.tptp@ is generated. This can then be
+run with your favourite automated theorem prover. The above contract
+is easily verified by all theorem provers we test our tool with.
 
 However, if we remove the precondition of crash-freedom to @head@,
 like this:
 
 \begin{code}
-head_contract_broken =
-    head ::: Pred (not . null) --> CF
+broken_c_head = head ::: Pred (not . null) --> CF
 \end{code}
 
 a theorem prover capable of giving finite counter-models, like
@@ -127,7 +131,8 @@ it is @:@ of some bad arguments. Note that we do not get a counter
 example if we give @hcc@ the debug flag @--no-min@ that turns off the
 min predicate introduced earlier \dr{where?}. The reason is that if we
 do not use min, we only have infinite counter models because we need
-to have an injective, but non-surjective function for @(:)@.
+to have an injective, but non-surjective function for @(:)@
+\dr{cite monotonicity work}.
 
 \subsection{Recursion}
 
@@ -142,31 +147,49 @@ check of the tool. The step case can pass or fail, depending on if the
 contract really holds, and if the induction hypothesis is strong
 enough, and if we assume the right contracts.
 
-\subsection{Higher order functions}
+One example of a recursive function in the Prelude is @foldr1@.
 
 \begin{code}
-all :: (a -> Bool) -> [a] -> Bool
-all p []     = True
-all p (x:xs) = p x && all p xs
-
-filter :: (a -> Bool) -> [a] -> [a]
-filter p [] = []
-filter p (x:xs) | p x       = x : filter p xs
-                | otherwise = filter p xs
-
-filter_all_contr =
-    filter ::: (CF --> CF) :-> \p ->
-               CF :-> \xs ->
-               (CF & Pred (all p))
+foldr1          :: (a -> a -> a) -> [a] -> a
+foldr1 f [x]    =  x
+foldr1 f (x:xs) =  f x (foldr1 f xs)
+foldr1 _ []     =  error "foldr1: empty list"
 \end{code}
 
-This says that if filter takes a @p@ that is @CF --> CF@, and a
-crash-free @xs@, then @filter p xs@ is @CF@ and satisfies @all p@,
-i.e, the following returns @True@ or diverges:
-@all p (filter p xs)@.
-This contract is easily proved using fixed point induction.
+We can state that if @foldr1@ is applied to a crash free function, and
+a non-empty list, then the result should be crash free as a contract:
 
-% Note, however, that without induction we get a counter-example.
+\begin{code}
+c_foldr = foldr1 ::: (CF --> CF --> CF) -->
+                 CF :&: Pred (not . null) --> CF
+\end{code}
+
+Our tool proves this contract, but only when recursion is used.
+
+\subsection{Dependent contracts}
+
+Here is an example of a contract about @filter@,
+where the result depends on an earlier argument, the predicate @p@:
+
+\[
+@filter@ \in (@p@ : @CF@ \rightarrow @CF@) \rightarrow
+             @CF@ \rightarrow @CF@ @&&@ \{@ys@ \mid @all p ys@ \}
+\].
+
+This contract says that under good crash-free circumstances, the
+all elements in the resulting list from filtering a list with @p@
+satisfies @p@.
+
+When we write this in our current syntax, We use @(:->)@ to bind @p@.
+It is a little confusing since we then get two ``arrows'', one from
+@:->@, and one from the @->@ in the lambda.
+
+\begin{code}
+filter_all = filter ::: (CF --> CF) :-> \p ->
+                        CF --> (CF & Pred (all p))
+\end{code}
+
+The contract can then proved by using fixed point induction (and not without).
 
 \subsection{Higher-higher order functions}
 
@@ -187,8 +210,8 @@ withMany :: (a -> (b -> res) -> res)
          -- ^ action on list of marshalled obj.s
          -> res
 withMany _       []     f = f []
-withMany withFoo (x:xs) f = withFoo x (\x2 ->
-      withMany withFoo xs (\xs2 -> f (x2:xs2)))
+withMany withFoo (x:xs) f = withFoo x (\x' ->
+      withMany withFoo xs (\xs' -> f (x':xs')))
 
 \end{code}
 
@@ -247,35 +270,43 @@ retain :: (a -> Bool) -> Contract (a -> a)
 retain p = Pred p :-> \x -> Pred (\r -> p x && p r)
 \end{code}
 
-TODO: explain this. Now, since @neg@ uses @map@, we need to show that
+\dr{TODO: explain this. This was DV's brilliant idea but I still don't
+  fully understand it} Now, since @neg@ uses @map@, we need to show that
 @map@ can retain the invariant. We use @all@, introduced above, for
 this:
 
 \begin{code}
-map_invariant = map ::: retain invariant
-                    --> retain (all invariant)
+map_invariant = map ::: retain invariant -->
+                        retain (all invariant)
 \end{code}
 
 Explicitly spelling out the definition of @retain@ in the statement
 above would be tedious and error-prone, so we see the benefit of being
 able to express contracts as a DSL.
 
-Together with the statement @invariant ::: CF --> CF@, we
-get that @neg@ retains the invariant thusly:
+We can now express that @neg@ retains the invariant:
 
 \begin{code}
 neg_contr = neg ::: retain invariant
-    `Using` map_invariant
-    `Using` invariant_cf
+  `Using` map_invariant
 \end{code}
 
 We use @Using :: Statement -> Statement -> Statement@, another
 constructor for @Statement@, which allows us to assume that other
-contracts holds, when proving a complicated statement. For now, it's
-the user's responsibility to prove these assumed contracts (for
-instance, with our tool!), but one can imagine a more sophisticated
-front-end which does this automatically.  Note that removing either
-assumption yields theories that are satisfiable by 4-5 elements.
+contracts holds, when proving a complicated statement, thus
+our Statement data type really looks like this:
+
+\begin{code}
+data Statement where
+    (:::) :: a -> Contract a -> Statement
+    Using :: Statement -> Statement -> Statement
+\end{code}
+
+For now, it's the user's responsibility to prove these assumed
+contracts (for instance, with our tool!), but one can imagine a more
+sophisticated front-end which does this automatically.  Note that
+the assumption in @neg_contr@ is necessary. If we remove it, and
+use the min-translation, we a finitely counter satisfiable theory.
 
 \subsection{Trimming}
 
