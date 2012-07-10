@@ -75,6 +75,37 @@ denotational approach.
 
 \paragraph{Higher-order axioms}
 
-\dv{Talk about variations on app and cf for higher-order functions}
+Observe that our axiomatization of crash-freedom in Figure~\ref{fig:prelude} 
+includes only axioms for data constructors. In fact, our denotational interpretation
+$\Fcf^{\infty}$ allows more axioms, such as:
+\[\begin{array}{l}
+    \forall x y @.@ \lcf{x} \land \lcf{y} => \lcf{app(x,y)}
+\]
+This axiom is useful if we wish to give directly a $\CF$ contract to a value of 
+arrow type. For instance, instead of specifying that @map@ satisfies the contract
+$(\CF -> \CF) -> \CF -> \CF$ one may want to say that it satisfies the contract
+$\CF -> \CF -> \CF$. With the latter contract we need the previous axiom to be 
+able to apply the function argument of @map@ to a crash-free value and geta a 
+crash-free result. 
+
+In some situations, the following axiom might be beneficial as well:
+\[\begin{array}{l}
+    (\forall \xs @.@ \lcf{f(\xs)}) => \lcf{f_{ptr}}
+\end{array}\]
+If the result of applying a function to any possible argument is crash-free then 
+so is the function pointer. This allows us to go in the inverse direction as before, 
+and pass a function pointer to a function that expects a $\CF$ argument. However notice
+that this last axiom introduces a quantified assumption, which might lead to significant
+efficiency problem.
+
+On a final note, observe that the variation of the latter axiom for the 
+$app(\cdot,\cdot)$ function
+\[\begin{array}{l}
+   (\forall x @.@ \lcf{app(y,x)}) => \lcf{y}
+\end{array}\]
+is {\em not} valid in the denotational model. For instance consider the
+value $\injK{K}(\injBad)$ for $y$. The left-hand side is going to always 
+be true, as the application will yield $\bot$, but $y$ is not crash-free 
+itself.
 
 
