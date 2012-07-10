@@ -23,6 +23,7 @@ Description
 
 @ack@ CF          & 1&61  & \tol & 0&04 & 0&02 & 0&47 & 0&14 \\
 @any@ morphism    & 10&40 & \tol & 0&07 & 0&04 & \tot & \tot \\
+@foldr1@ CF       & 2&50  & \tol & 0&04 & 0&01 & 1&20 & 1&16 \\
 @filter@ @all@    & 3&24  & \tol & 0&05 & 0&04 & \tot & \tot \\
 @concatMap@ CF    & 0&87  & \tol & 0&04 & 0&04 & 0&38 & 4&65 \\
 @invariant@ CF    & 23&37 & \tol & 0&08 & \tol & \tot & \tot \\
@@ -66,6 +67,8 @@ Description
 \hline
 
 @any@ morphism w/o @any@ CF    & 2&52 & \tol  & \tot \\
+@foldr1@ w/o nonempty precond. & 0&25 & 0&33  & \tot \\
+@foldr1@ with nonempty, w/o CF & 0&47 & 1&45  & \tot \\
 @concatMap@ CF w/o @(++)@ CF   & 0&09 & \tol  & \tot \\
 @concatMap@ invariant weak     & 0&61 & \tol  & \tot \\
 @neg@ invariant missing @map@  & 0&63 & \tol  & \tot \\
@@ -73,7 +76,7 @@ acc @exp@ CF w/o @(*)@ CF      & 0&15 & \tol  & \tot \\
 @risersBy@ wrong precond.      & 7&07 & 9&14  & \tot \\
 @risersBy@ wrong postcond.     & 3&14 & 19&70 & \tot \\
 @shrink@ too lazy              & \tol & 7&16  & \tot \\
-@head@ CF                      & 0&04 & 0&12  & 0&06 \\
+@head@ CF unconditionally      & 0&04 & 0&12  & 0&06 \\
 @head@ CF with wrong precond.  & 0&37 & 0&44  & \tot \\
 
 \end{satrestab}
