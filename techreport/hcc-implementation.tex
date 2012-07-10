@@ -301,3 +301,17 @@ types and definitions for the current goal are not generated.
 %     (CF :&: Pred nonEmpty :&: Pred (all isJust)) --> CF
 % \end{code}
 
+\subsection{Experimental Results}
+
+\input{hcc-resultstable}
+
+In Figure \ref{fig:unsres}, @shrink@ is basically
+@foldr1 op . map fromJust@, and @invariant@ is for a data type
+for predicate logic terms.
+
+In Figure \ref{fig:satres}, the satisfiable problems (under the line) are
+obtained by mutating the correct contract so it fails, i.e.  by
+removing a necessary assumption or making the pre-conditions too weak
+or post-conditions too strong.
+
+
