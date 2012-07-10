@@ -551,6 +551,7 @@ where $=_S$ means semantic equality, $=_F$ means equality in first-order logic,
 and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL using
 a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states this?}
+\kc{This is only going to hold from right to left}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
@@ -658,6 +659,8 @@ There are a quadratic number of such axioms, which presents a scaling problem.
 For this reason FOL provers sometimes offer a built-in notion of data constructors,
 so this is not a problem in practice, but we ignore this pragmatic issue here.
 \end{itemize}
+
+\kc{Something needs to be said about recursion. Higher-order functions are not the problem, but recursive definitions are. What we get in FOL are all fixpoints, but our denotational semantics only wants least fixpoints. Luckily, many things we want to prove hold for all fixpoints, but sometimes we need to invoke induction, which is not explicitly part of the translation. Translating all this into a higher-order logic (such as Isabelle) would allow us to express that we mean the least fixpoint.}
 
 \subsection{Translation of contracts to FOL} \label{s:contracts-fol}
 
