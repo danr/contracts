@@ -1,3 +1,4 @@
+\dr{This is obviously chaotic, but I think we might want to keep some parts}
 The implementation of the contracts checker has two components:
 
 \begin{itemize}
@@ -13,6 +14,29 @@ The implementation of the contracts checker has two components:
         conjecture for each contract, so the users can try them with
         their installed first order theorem provers.
 \end{itemize}
+
+Our tool is in under major development, but it already works off
+actual Haskell programs.
+
+\subsection{Why GHC Core}
+
+The core language introduced in previous section \dr{which?} is very
+similar to GHC Core so it is natural place to start. But what
+differences do we have? Our language
+\dr{does it have a name? $\mathcal{H}$?} is quite simplistic and does not allow local lambdas
+or lets, and not case-expressions except at the top of a function
+definition, so we lift all these definitions to the top, and introduce
+a new function for each local lambda, let and case.  Since we are
+doing an untyped translation, we remove all type information that is
+available in this core language.
+Rather than starting from scratch, using the GHC API gives us
+desugaring, type inference and even optimisations!
+
+We also do some optimisations for theorem provers, i.e. we try to
+clausify as much as possible (theorem provers like CNF), and instead
+of writing $x = K(xs) \rightarrow f(x) = e$, we simply write $f(K(xs)) = e$.
+
+\subsection{Using the tool}
 
 How does the user input contracts? We use HOAS and let the user define
 contracts by primitive connectives, which can be extended by the user.
@@ -96,14 +120,14 @@ head_contract_broken =
     head ::: Pred (not . null) --> CF
 \end{code}
 
-a theorem prover capable of giving finite counter-models, like @paradox@,
-will give you a counter model, which, upon examination, will tell you
-that its input argument is indeed not an empty list, but it is @:@ of
-some bad arguments. Note that we do not get a counter example if we
-give @hcc@ the debug flag @--no-min@ that turns off the min predicate
-introduced earlier. The reason is that if we do not use min, we only
-have infinite counter models because we need to have an injective, but
-non-surjective function for @(:)@.
+a theorem prover capable of giving finite counter-models, like
+@paradox@, will give you a counter model, which, upon examination,
+will tell you that its input argument is indeed not an empty list, but
+it is @:@ of some bad arguments. Note that we do not get a counter
+example if we give @hcc@ the debug flag @--no-min@ that turns off the
+min predicate introduced earlier \dr{where?}. The reason is that if we
+do not use min, we only have infinite counter models because we need
+to have an injective, but non-surjective function for @(:)@.
 
 \subsection{Recursion}
 
@@ -256,6 +280,24 @@ assumption yields theories that are satisfiable by 4-5 elements.
 \subsection{Trimming}
 
 We trim the theories as much as possible to only include exactly what
-is needed to prove a property. All unnecessary function pointers, data
-types and definitions are removed.
+is needed to prove a property. Unnecessary function pointers, data
+types and definitions for the current goal are not generated.
+
+% \subsection{Example: shrink}
+%
+% Recall that @fromJust@ is the partial function @Maybe a -> a@, and consider
+% this code:
+%
+% \begin{code}
+% shrink :: (a -> a -> a) -> [Maybe a] -> a
+% shrink op []     = error "Empty list!"
+% shrink op [x]    = fromJust x
+% shrink op (x:xs) = fromJust x `op` shrink op xs
+% \end{code}
+%
+% Is this contract satisfied for it?
+% \begin{code}
+%     (CF --> CF --> CF) -->
+%     (CF :&: Pred nonEmpty :&: Pred (all isJust)) --> CF
+% \end{code}
 
