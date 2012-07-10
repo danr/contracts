@@ -1,18 +1,70 @@
+
+There is a very large number of related works on verification of pure and non-pure
+functional programs. Despite the fact that verifying pure programs should be easier than
+verifying impure ones, there are very few tools for the automatic verification of lazy, 
+higher-order, functional programs. Furthermore, our approach of translating directly the 
+denotational semantics of programs is not something that appears to be well-explored in 
+the literature. Below we present some related works on verification of functional 
+programs below.
+
+Catch~\cite{Mitchell:2008:PBE:1411286.1411293} is one of the very few tools that 
+have been evaluated in large scale and address the verification of lazy Haskell 
+programs. Using static analysis, Catch can detect pattern match failures, and hence 
+prove that a program cannot crash. Some specification which describes the set of 
+constructors that are expected as arguments to each function might be required. 
+necessary for the analysis to succeed. Our aim with this work is to achieve similar and
+moreove be in a position to also assert functional correctness specification.
+
+Liquid Types~\cite{Rondon:2008:LT:1375581.1375602} has been an influential 
+approach to call-by-value functional program verification. In Liquid Types, 
+contracts are written as refinements in a fixed language of predicates (which may 
+include recursive predicates) and the extracted conditions are discharged using an 
+SMT-solver. Because the language of predicates is fixed, predicate abstraction can 
+very effectively {\em infer} precise refinements, even for recursive functions, and 
+hence the annotation burden is very low. In our case, since the language of predicates
+is the very same programming language with the same semantics {\em by design}, inference
+of function specifications is harder. The other important deviation is that liquid types
+requires all {\em uses} of a function to satisfy its precondition whereas in the semantics
+that we have chosen, bad uses are allowed but the programmer gets no guarantees back.
+\dv{Todo: Andrey Rybalchenko ``sausage factory''}
+
+Rather different to Liquid Types, allowing refinements to be written 
+in the very same programming language that programs are written, is the 
+Dminor~\cite{Bierman+:subtyping} approach. Contrary to our case however, in Dminor
+the expressions that refine type must be pure, that is, terminating and having a unique
+denotation (e.g. not dependent on the store). Driven from a typing relation that includes
+logic entailment judgements, verification conditions are extracted and discharged automatically using Z3. Similar in spirit, other refinement type systems such 
+as Fstar~\cite{fstar} extract verification conditions which can be discharged 
+using automated tools 
+or interactive theorem provers. Hybrid type systems such as Sage~\cite{Knowles+:sage}
+will also attempt to prove as many of the goals statically and defer the rest as runtime
+goals.
+
+Boogie~\cite{boogie} is a verification back end which supports procedures as well as 
+pure functions, and axiomatization of theories and could potentially be used as the 
+backend of our translation as well. Boogie verify programs written in the BoogiePL 
+programming languages using Z3. Recent work on performing induction on-top of an 
+induction-free SMT solver~\cite{Leino:2012:AIS:2189257.2189278} proposes a ``tactic''
+for encoding induction schemes as first-order queries, which is reminiscent of the way
+that we propose to perform induction.
+
+The recent work on the Leon system~\cite{Suter:2011:SMR:2041552.2041575} presents
+an effective approach to the verification of {\em first-order} and {\em call-by-value} 
+recursive functional programs which appears to be very efficient in practice: it works
+by extending SMT with recursive programs and is guaranteed to find a model if one 
+exists (whereas that is not the case in our system, as we discussed earlier). 
+\dv{Say something more substantial? ... } 
+
 \begin{itemize}
   \item Contracts in general (Findler Felleisen etc)
   \item Xu's 2009
   \item Xu's PEPM 2012: Very related
   \item Minimization/finite models? Isabelle? (Jasmin's thesis?)
-  \item Liquid types 
-  \item Andrey Rybalchenko's ``sausage factory''
   \item Yann Regis-Giannas 
-  \item Neil Mitchel (catch)
   \item Xeno (equalities), Hipspec 
-  \item Leon (verification of functional programs)
+  \item Higher-order model checking
   \item Triggers
-  \item Refinement type systems (F7/F*)
   \item Our approach is reminiscent of appraches from the 80's/90's but which?
   \item Treatment of @BAD@ as in Extensible Extensions paper (maybe just a comment is neededed inline)
-  \item Dafny/Boogie
   \item More stuff that Koen knows about??????????
 \end{itemize}
