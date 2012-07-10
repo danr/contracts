@@ -597,7 +597,7 @@ be continuous or injectable into $D_\infty$). Happily this is straightforward to
 
 The essential soundness theorem that states that our interpretation makes sense is
 the following. 
-\begin{theorem}[Interpretation respects denotations] 
+\begin{theorem}[Interpretation respects denotations]\label{thm:interp-respect}
 Assume that $\Sigma |- P$ and expression $e$ does not contain any free variables. 
 Then, if $\etrans{}{\cdot}{e} = t$ then $\linterp{t} = \dbrace{e}$.
 \end{theorem}
@@ -613,6 +613,22 @@ If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \Th \land \ptr
 %% \end{theorem}
 %% \begin{theorem}\label{thm:models-cf} $\langle D_\infty,{\cal I}\rangle \models \Th_\lcfZ$.
 %% \end{theorem}
+As a corollary we get our ``guiding principle'' from the introduction.
+\begin{corollary}\label{cor:guiding-principle} 
+Assume that $\Sigma |- P$ and $e_1$ and $e_2$ contain no free term variables. The following
+are true:
+\begin{itemize*}
+  \item $\dbrace{e_1} = \dbrace{e_2}$ iff ${\cal I}(\etrans{}{}{e_1}) = {\cal I}(\etrans{}{}{e_2})$.
+  \item If $\Th \land \ptrans{\Sigma}{P} |- \etrans{}{}{e_1} = \etrans{}{}{e_2}$ then $\dbrace{e_1} = \dbrace{e_2}$. 
+\end{itemize*}
+\end{corollary} 
+\begin{proof} The first part follows directly from Theorem~\ref{thm:interp-respect}.
+For the second part the left-hand side implies that $\etrans{}{}{e_1}$ and $\etrans{}{}{e_2}$ are 
+equal in all models of $\Th \land \ptrans{\Sigma}{P}$, in particular (using Theorem~\ref{thm:models-inf}) 
+by $\langle D_{\infty},{\cal I}\rangle$ and by the first part the case is finished. 
+\end{proof}
+
+
 \begin{theorem}\label{thm:den-contr-satisfaction} Assume that $e$ and $\Ct$ contain no free 
 term variables. Then the FOL translation of the claim $e \in \Ct$ holds in the model
 if and only if the denotation of $e$ is in the semantics of $\Ct$.  Formally:
