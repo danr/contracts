@@ -5,10 +5,12 @@
 For the implementation, we would like to add support for primitive
 data types, such as @Integer@. There exists theorem provers, such as
 @T-SPASS@, that can deal with the @tff@ extension of typed first order
-arithmetic problems of TPTP. Futhermore, supporting the SMT 2.0 input
-format that for instance z3 supports would enable us not only to use
-its input format for integers, but also use its mechanism for triggers
-that corresponds quite exactly to the min predicate. A way of
-presenting countermodels given by @paradox@ in an easily
-understandable way for the user would be helpful.
+arithmetic problems of TPTP. Another way is to also generate theories
+in the SMT 2.0 format, understood by Z3, which has support for
+integer arithmetic and more.
+As mentioned in Section~\ref{ssect:countersat} we have ideas how to
+generate finite counter examples for contracts that do not hold,
+and it would be interesting to see if triggers in SMT 2.0 could be used.
+%A way of presenting countermodels given by @paradox@ in an easily
+%understandable way for the user would be helpful.
 % quote Reasoning with Triggers?

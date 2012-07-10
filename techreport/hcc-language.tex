@@ -418,13 +418,17 @@ we discuss in Section~\ref{s:cf-fol}.
 What exactly does it mean to translate an expression to first-order logic?
 We are primarily interested in reasoning about equality, so we might
 hope for this informal guiding principle:
-$$
-\etrans{}{}{e_1} = \etrans{}{}{e_2} \;\; \Rightarrow \;\; e_1 = e_2
-$$
+
+\begin{quote}
+If we can prove in FOL that $\etrans{}{}{e_1} = \etrans{}{}{e_2}$ then  
+$e_1$ and $e_2$ are semantically equivalent.
+\end{quote}
+
 where $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL, and then using
-a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states this?}
-\kc{This is only going to hold from right to left}
+a FOL theorem prover. The formal statement of this property is Corollary~\ref{cor:guiding-principle}
+\spj{Dimitrios, can you forward-ref a theorem that states this?}
+\kc{This is only going to hold from right to left} \dv{Added statemnet.}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
