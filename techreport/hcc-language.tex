@@ -496,6 +496,8 @@ You can think of $@map@_{ptr}$ as a ``pointer to'', or ``name of'' of, @map@.
 The $app$ axiom for @map@ translates a saturated use of @map@'s pointer into
 a call of @map@ itself.
 
+\kc{This translation of higher-order functions to first-order logic may be easy, but it is not complete. In particular, in first-order logic we can only reason about functions with a concrete first-order representation (i.e. the functions that we already have and their (partial) applications), but for example lambda expressions cannot be created during proof time. Luckily, the class of properties we reason about (contracts) never require us to do so.}
+
 \subsection{Data types and {\tt case} expressions} \label{s:case-fol}
 
 The second equation for $\utrans{}{u}{s}$ in Figure~\ref{fig:etrans} deals with
