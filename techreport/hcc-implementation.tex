@@ -330,20 +330,3 @@ We tried four theorem provers, Equinox, Z3, Vampire and E, and gave
 them 60 seconds for each problem. For our problems, Z3 seems to be the most
 successful theorem prover.
 
-\subsection{Contracts that do not hold}
-\label{ssect:countersat}
-
-In practice, programmers will often propose contracts that do not hold.
-Unfortunately, in almost all such cases, all FOL provers will loop.
-The prover is trying to prove that a theory is unsatisfiable.  A resolution
-based prover (such as Vampire or eprover) will keep applying deduction rules,
-trying to find a contradiction, but no such contradiction exists.  A
-model-based theorem prover will seek a finite counter-model to the theory, but
-again no such counter-model exists. \spj{Koen please fix the wording here!}
-
-It is obviouly unacceptable for the system to go into a loop if
-the programmer writes a bogus contract, and we have promising
-preliminary results based on so-called ``minimisation'', and
-finite counter-model generators such as Paradox \cite{koen}, but we
-leave this for (absolutely essential) future work.
-
