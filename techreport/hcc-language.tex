@@ -261,7 +261,7 @@ crash regardless of what context it is plugged into (see Section~\ref{s:cf-fol})
 \end{itemize}
 
 % -----------------------------------------------------------------
-\section{Translating $\cal L$ to first-order logic} \label{ssect:denot-fol}
+\section{Translating $\cal L$ to first-order logic} \label{ssect:trans-fol}
 
 Our goal is to answer the question ``does expression $e$ satisfy
 contract $C$?''.  Our plan is to translate both the expression and the
@@ -490,7 +490,13 @@ You can think of $@map@_{ptr}$ as a ``pointer to'', or ``name of'' of, @map@.
 The $app$ axiom for @map@ translates a saturated use of @map@'s pointer into
 a call of @map@ itself.
 
-\kc{This translation of higher-order functions to first-order logic may be easy, but it is not complete. In particular, in first-order logic we can only reason about functions with a concrete first-order representation (i.e. the functions that we already have and their (partial) applications), but for example lambda expressions cannot be created during proof time. Luckily, the class of properties we reason about (contracts) never require us to do so.}
+This translation of higher-order functions to first-order logic may be
+easy, but it is not complete. In particular, in first-order logic we
+can only reason about functions with a concrete first-order
+representation (i.e. the functions that we already have and their
+(partial) applications) but, for example, lambda expressions cannot be
+created during proof time. Luckily, the class of properties we reason
+about (contracts) never require us to do so.
 
 \subsection{Data types and {\tt case} expressions} \label{s:case-fol}
 
