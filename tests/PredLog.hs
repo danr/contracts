@@ -48,14 +48,26 @@ big_unsat_invariant_cf = invariant ::: CF --> CF
   `Using` unsat_all_cf
 
 -- | Retaining is preserved by mapping
-big_unsat_map_retains_invariant =
+unsat_map_retains_invariant =
     map ::: retain invariant --> retain (all invariant)
   `Using` unsat_all_cf
 
+big_unsat_map_retains_invariant_wo_all_cf =
+    map ::: retain invariant --> retain (all invariant)
+
 -- | Negating retains the invariant
+unsat_neg_retains_invariant =
+    neg ::: retain invariant
+  `Using` unsat_map_retains_invariant
+  `Using` big_unsat_invariant_cf
+  `Using` unsat_all_cf
+
 big_unsat_neg_retains_invariant =
     neg ::: retain invariant
-  `Using` big_unsat_map_retains_invariant
+  `Using` big_unsat_map_retains_invariant_wo_all_cf
+
+big_sat_neg_retains_missing_map_retains =
+    neg ::: retain invariant
   `Using` big_unsat_invariant_cf
   `Using` unsat_all_cf
 
@@ -97,6 +109,7 @@ unsat_append_retains_invariant =
           -> Pred (\rs -> all invariant xs && all invariant ys && all invariant rs))
 
 -- | Retaining is preserved by concat mapping
+--   Some bug in this one
 unsat_concatMap_retains_invariant =
     concatMap ::: (Pred invariant :-> \x -> Pred (\rs -> invariant x && all invariant rs))
               --> retain (all invariant)
