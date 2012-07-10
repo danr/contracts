@@ -2,81 +2,41 @@
 
 \paragraph{A tighter correspondence to operational semantics?}
 
+From computational adequacy, Theorem~\ref{thm:adequacy} we can easily state
+the following theorem: 
 \begin{corollary} Assume that $e$ and $\Ct$ contain no term variables and 
 assume that $\ctrans{}{\cdot}{e \in \{x \mid e_p\}} = \formula{\phi}$. It is the case 
 that $\langle D_\infty,{\cal I}\rangle \models \phi$ if and only iff either
-$P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Downarrow \True$.
-\end{corollary}
+$P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Downarrow \True$. \end{corollary}
 
-We have mentioned before that big-step semantics is convenient and here it shows why: by 
-stating that $P \not|- e \Downarrow$ we allow $e$ to diverge or have a stuck evaluation, 
-which will both be modelled as $\bot$ in the denotational semantics that we have presented.
-In fact, by choosing weaker predicates for crash-freedom in the denotational world we can
-give a precise 1-1 correspondence with operational semantics for non-arrow contracts. 
-Section~\ref{sect:discussion} gives a more thorough discussion on connecting 
-the denotational contract satisfaction to a more operational one.
+Hence, the operational and the denotational semantics of base predicate contracts coincide.
+It is interesting to see whether our shift to denotational semantics -- at least compared
+to previous work on checking Haskell contracts~\cite{xu} -- has any other consequences? Does
+the above correspondence break for higher-order contracts?
 
-
-
-
-
-In the original work on static contract checking for Haskell, an operational defnition
-of contract satisfaction was presented. Adapted naively to our non-essential differences
-such an operational definition would be the following: 
-{\setlength{\arraycolsep}{2pt}
+The answer is that this precise correspondence indeed breaks. 
+Recall that the operational definition of contract satisfaction for a contract $\Ct_1 -> \Ct_2$ is the following: 
+\[\begin{array}{l} 
+   e \in (x{:}\Ct_1) -> \Ct_2 \text{iff} \\
+   \text{for all } e' \text{ such that } (e' \in \Ct_1) \text{ it is } e\;e' \in \Ct_2[e'/x]
+\end{array}\] 
+The denotational one requires that for all denotations $d'$ such that
+$d' \in \dbrace{\Ct_1}$ it is the case that 
+$\dapp(\dbrace{e},d') \in \dbrace{\Ct_2}_{x |->d'}$. 
+ 
+Alas there are {\em more} denotations than images of terms in $D_{\infty}$ and the correspondence breaks. Consider the program:
 \[\begin{array}{lcl}
-    P |- e \in \{ x\;\mid\;e_p\} & <=> & P |- e \not\Downarrow \text{ or } P |- e_p[e/x] \not\Downarrow \text{ or} \\ 
-                                 &     & P |- e_p[e/x] \Downarrow True \\
-    P |- e \in (x{:}\Ct_1) -> \Ct_2 & <=> & 
-                                 \text{for all } P' e', \\ 
-                                   &   &  \text{it is } P\uplus P' |- e\;e' \in \Ct_2[e'/x] \\
-    P |- e \in \Ct_1 \& \Ct_2 & <=> & P |- e \in \Ct_1 \text{ and } P |- e \in \Ct_2 \\
-    P |- e \in \CF            & <=> & \ldots 
-\end{array}\]}
-Some ugliness aside (such as we extend the set of definition $P$ to $P'$ in the arrow case to get full expressive 
-power since we do not have $\lambda$-abstractions in the syntax for expressions $e$), and omitting the case for crash-freedom
-is there hope to prove that denotational contract satisfaction can imply the operational one? In order to do this, due to 
-arrow contracts the opposite direction must hold as well -- operational satisfaction must imply denotational contract 
-satisfaction. 
-
-%% Note we made the definition above well-scoped but not necessarily well-typed; let's ignore that for now (making everything
-%% well-typed includes extra difficulties in the proof but hopefully not surmountable).
-
-%% The interesting case is the case for arrow contracts, where we have extended the set of definitions $P$ with more 
-%% definitions $P'$ -- that is to allow for tests $e'$ which can have arbitrary computational power, and not only those
-%% that can be constructed in the current environment. That is expected the way we have set up things, so let us examine
-%% what happens when we try to prove the proposition below:
-
-%% \begin{proposition} Assume that $\Sigma |- P$ and $fv(e) \subseteq dom(P)$, i.e. $e$ is closed.
-%% Then: $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{\Delta}{e \in \Ct}$ iff $P |- e \in \Ct$.
-%% \end{proposition}
-
-%% {\flushleft{\em Failed proof}:}
-%% The base case and the case of $\CF$ follow from computational adequacy so we are good. However
-%% let's try to prove the arrow case and in particular the $(<=)$ direction. 
-
-%% Let us assume that for all $P'$ and $e'$ such that $fv(e') \subseteq dom(P\uplus P')$ it is the case that
-%% $P |- e\;e' \in \Ct_2[e'/x]$. We need to show that $\langle D_\infty,{\cal I}\rangle$ is a model of the 
-%% formula $\forall x. \ctrans{\Sigma}{x}{x \in \Ct_1} => \ctrans{\Sigma}{x}{e\;x \in \Ct_2}$. Let us fix
-%% a denotation $d \in D_{\infty}$ and let us assume 
-%% that $\langle D_{\infty},{\cal I} \rangle \models \ctrans{\Sigma}{x}{x \in \Ct_1}[d/x]$. However, this does not 
-%% necessarily mean that we can find a closed $e'$ and $P'$, such 
-%% that $\interp{e'}{\dbrace{P{\uplus}P'}^\infty}{\cdot} = d$ to be able to use the assumptions, unless some sort
-%% of full-abstraction property is true. So we are stuck.
-
-Alas, the latter statement is false, due the well-known problem of the lack of full-abstraction and arrow
-contracts. Consider the program $P$ below:
-\[\begin{array}{lcl}
-f_\omega & |-> & f_\omega \\
-f & |-> & \lambda (b{:}Bool) @.@ \lambda (h{:}Bool->Bool->Bool) @.@ \\
+f_\omega = f_\omega \\
+f (b{:}Bool) (h{:}Bool->Bool->Bool) = \\ 
+\begin{array}{lll}
   &     & \quad @if@\;(h\;True\;b)\;\&\&\;(h\;b\;True)\;\&\& \\ 
   &     & \quad\qquad\qquad not\;(h\;False\;False)\;@then@ \\
   &     & \quad\quad @if@\;(h\;True\;f_\omega)\;\&\&\;(h\;f_\omega\;True)\;@then@\;@BAD@ \\
   &     & \quad\quad @else@\;True \\
   &     & \quad @else@\;True
+\end{array}
 \end{array}\]
-Consider now the candidate contract for $f$ below and assume that we have managed to equate the 
-denotational and the operational definitions of crash-freedom.
+Also consider now the candidate contract for $f$ below (and assume that we have managed to equate the denotational and the operational definitions of crash-freedom):
 \[ \CF -> (\CF -> \CF -> \CF) -> \CF \]
 Operationally we may assume a crash-free boolean as well as a function $h$ which is 
 $\CF -> \CF -> \CF$. The first conditional ensures that the function behaves like an ``or'' function or 
@@ -97,17 +57,18 @@ we like when both arguments are @BAD@.
 Now, this is denotationally a $\CF -> \CF -> \CF$ function, and it will pass the first conditional, but it will
 also pass the second conditional, yielding @BAD@. Hence denotationally the contract for $f$ {\em does not hold}.
 
-So we have a concrete case where an expression may satisfy its contract operationally but not denotationally, 
-because there are more tests than programs in the denotational world. Due to contra-variance we expect that the 
-other inclusion will fail too. There are many ways to go round the problem of full abstraction (e.g. add a $por$-like 
-construct to the language) but we will not bother and simply work with the denotational semantics. In the end of 
-the day we will be interested on whether a program crashes or not and if we have proven that it is crash-free 
-denotationally, it is definitely crash-free in any operationally reasonable term. 
+So we have a concrete case where an expression may satisfy its
+contract operationally but not denotationally, because there are more
+tests than programs in the denotational world. Due to contra-variance
+we expect that the other inclusion will fail too. This is not a catastrophic 
+problem for our reasoning principles about programs -- after all the two 
+definitions will mostly coincide and they will precisely coincide in the base case. 
+In the end of the day we will be interested on whether a program crashes or not and 
+if we have proven that it is crash-free denotationally, it is definitely crash-free in 
+any operationally reasonable term. 
 
-Finally, why did why bother to go to denotational semantics to define a FOL model for our 
-axioms and contracts? After all, a term-based model with equality being {\em contextual 
-equivalence} might work as well. That is true and potentially would side-step some issues with 
-full-abstraction but we do not expect that it would make the proofs and identifying equations
-easier than the denotational approach. 
-
+Finally, was it possible to define an operational model for our FOL theory that interpreted
+equality as contextual equivalence? Probably this could be made to work, although we believe
+that the formal clutter from syntactic manipulation of terms could be worse than the current
+denotational approach. 
 
