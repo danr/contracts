@@ -429,6 +429,7 @@ where $=_S$ means semantic equality, $=_F$ means equality in first-order logic,
 and $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL using
 a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states this?}
+\kc{This is only going to hold from right to left}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
@@ -495,6 +496,8 @@ You can think of $@map@_{ptr}$ as a ``pointer to'', or ``name of'' of, @map@.
 The $app$ axiom for @map@ translates a saturated use of @map@'s pointer into
 a call of @map@ itself.
 
+\kc{This translation of higher-order functions to first-order logic may be easy, but it is not complete. In particular, in first-order logic we can only reason about functions with a concrete first-order representation (i.e. the functions that we already have and their (partial) applications), but for example lambda expressions cannot be created during proof time. Luckily, the class of properties we reason about (contracts) never require us to do so.}
+
 \subsection{Data types and {\tt case} expressions} \label{s:case-fol}
 
 The second equation for $\utrans{}{u}{s}$ in Figure~\ref{fig:etrans} deals with
@@ -536,6 +539,8 @@ There are a quadratic number of such axioms, which presents a scaling problem.
 For this reason FOL provers sometimes offer a built-in notion of data constructors,
 so this is not a problem in practice, but we ignore this pragmatic issue here.
 \end{itemize}
+
+\kc{Something needs to be said about recursion. Higher-order functions are not the problem, but recursive definitions are. What we get in FOL are all fixpoints, but our denotational semantics only wants least fixpoints. Luckily, many things we want to prove hold for all fixpoints, but sometimes we need to invoke induction, which is not explicitly part of the translation. Translating all this into a higher-order logic (such as Isabelle) would allow us to express that we mean the least fixpoint.}
 
 \subsection{Translation of contracts to FOL} \label{s:contracts-fol}
 
