@@ -98,13 +98,13 @@
 
 \begin{abstract}
 Despite the benefits of strong types and purity for reasoning about
-programs, many bugs remain inside well-typed and purely functional
-code, and programmers often introduce assertions to ensure that their
+programs, many bugs remain in well-typed and purely functional
+code.  Programmers often introduce assertions to ensure that their
 code is crash-free.  In this work we allow programmers to express
 assertions as contracts, whose validity we can check statically.  Our main
-contribution is a novel translation of programs and contracts written in
-the same lazy, higher-order, and recursive language to first-order
-logic, justified by denotational semantics.
+contribution is a novel translation to first-order logic 
+of both Haskell programs, and contracts written in Haskell,
+all justified by denotational semantics.
 \end{abstract}
 
 
@@ -141,7 +141,8 @@ logic, justified by denotational semantics.
 \section{Future work}\label{sect:future}
   \input{hcc-future}
 
-
+\paragraph{Acknowledgements}
+Thanks to Richard Eisenberg for some helpful feedback.
 
 \bibliographystyle{plainnat}
 \bibliography{hcc-popl}

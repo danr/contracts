@@ -4,14 +4,14 @@ the corresponding $\cal L$ program indeed satisfies the claimed contract?
 
 To prove this claim we take a denotational approach.  
 Most of what follows is an adaptation of folklore techniques to
-our setting and there are no surprises -- we refer the reader
+our setting and there are no surprises --- we refer the reader
 to~\cite{winskel} or~\cite{benton+:coq-domains} for a short and modern
 exposition of the standard methodology.
 
 \subsection{Technical preliminaries}
 
 We will assume a program $P$, well-formed in a signature $\Sigma$, so
-that $\Sigma |- P$ (Section~\ref{s:syntax}).  
+that $\Sigma |- P$.  
 Given a signature $\Sigma$ we define a strict
 bi-functor $F$ on complete partial orders (cpos), below:
 %% For a well-formed signature $\Sigma$, we define the strict bi-functor on cpos, below, 
@@ -575,7 +575,7 @@ $F_{\lcfZ}^{\infty}$ then so is its limit.
 %% %% of the contract $\Ct$, such that:
 
 
-\subsection{Soundness of the logic translation} 
+\subsection{Soundness of the logic translation}  \label{s:soundness}
 
 We have developed a formal semantics for expressions as well as contracts, so it is time we 
 see how we can use this semantics to show that our translation to first-order logic is sound 
