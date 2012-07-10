@@ -1,15 +1,12 @@
-Given a program $P$ with signature $\Sigma$, that is $\Sigma |- P$, we may define the theory $\Th$ 
-as follows:
-     \[ \Th = \Th_\infty\;\land\;\Th_\lcfZ\;\land\;\ptrans{}{P} \] 
-we know that $\langle D_\infty,{\cal I}\rangle \models \Th$ from 
-Theorems~\ref{thm:models-defs}, \ref{thm:models-inf}, and \ref{thm:models-cf}.
-
+We have established in the previous section the soundness of our translation, so it is time 
+we see in this section how we can use this sound translation to verify a program. 
 The following theorem is then true:
 
 \begin{theorem}[Soundness]\label{thm:prover-soundness}
-Assume that $e$ and $\Ct$ contain only function symbols from $P$ and no free term variables. 
-If $\Th \land \neg\ctrans{\Sigma}{P}{e \in \Ct}$ is 
-unsatisfiable then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ and 
+Assume that $e$ and $\Ct$ contain only function symbols from $P$ and no free term variables.
+Let $\Th = \Th_\infty\;\land\;\Th_\lcfZ\;\land\;\ptrans{}{P}$. 
+If $\Th \land \neg\ctrans{\Sigma}{P}{e \in \Ct}$ is unsatisfiable 
+then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ and 
 consequently $\dbrace{\Ct}(\dbrace{e})$.
 \end{theorem}
 \begin{proof}
@@ -22,7 +19,14 @@ and hence $\langle D_\infty,{\cal I} \rangle \models \ctrans{\Sigma}{P}{e \in \C
 Theorem~\ref{thm:den-contr-satisfaction} finishes the proof.
 \end{proof}
 
-\subsection{End-goal and incremental verification}\label{sect:incremental}
+Hence, to verify a program $e$ satisfies a contract $\Ct$ we need to do the following:
+\begin{itemize}
+  \item Generate formulae for the theory $\Th_\infty\;\land\;\Th_\lcfZ\;\land\;\ptrans{}{P}$
+  \item Generate the negation of a contract translation: $\neg\ctrans{\Sigma}{P}{e \in \Ct}$
+  \item Ask a SAT solver for a model for the conjunction of the above formulae
+\end{itemize}
+
+\paragraph{Incremental verification}
 
 Theorem~\ref{thm:prover-soundness} gives us a way to check that an expression satisfies a 
 contract. Assume that we are given a program $P$ with a function $f \in dom(P)$, for which 

@@ -2,6 +2,24 @@
 
 \paragraph{A tighter correspondence to operational semantics?}
 
+\begin{corollary} Assume that $e$ and $\Ct$ contain no term variables and 
+assume that $\ctrans{}{\cdot}{e \in \{x \mid e_p\}} = \formula{\phi}$. It is the case 
+that $\langle D_\infty,{\cal I}\rangle \models \phi$ if and only iff either
+$P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Downarrow \True$.
+\end{corollary}
+
+We have mentioned before that big-step semantics is convenient and here it shows why: by 
+stating that $P \not|- e \Downarrow$ we allow $e$ to diverge or have a stuck evaluation, 
+which will both be modelled as $\bot$ in the denotational semantics that we have presented.
+In fact, by choosing weaker predicates for crash-freedom in the denotational world we can
+give a precise 1-1 correspondence with operational semantics for non-arrow contracts. 
+Section~\ref{sect:discussion} gives a more thorough discussion on connecting 
+the denotational contract satisfaction to a more operational one.
+
+
+
+
+
 In the original work on static contract checking for Haskell, an operational defnition
 of contract satisfaction was presented. Adapted naively to our non-essential differences
 such an operational definition would be the following: 

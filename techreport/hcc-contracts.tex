@@ -451,7 +451,7 @@ logical relation, which asserts that every expression is related to its denotati
 %% and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
 %% \end{proof}
 
-\subsection{Semantics of contracts}
+\subsection{Denotational semantics of contracts}
 
 \begin{figure}
 $$
@@ -477,7 +477,14 @@ $$
 \dbrace{\Ct_1 \& \Ct_2}_\rho 
  & = & \{ d | d \in \dbrace{\Ct_1}_\rho /\ d \in \dbrace{\Ct_2}_\rho \}
 \\[1em]
-\dbrace{\CF}_\rho & = &  \Fcf^{\infty} 
+\dbrace{\CF}_\rho & = &  \Fcf^{\infty}  \\ 
+\multicolumn{3}{l}{\text where} \\ 
+   F_{\lcfZ}^{\infty} & = & \{\;d\;\mid\; d \neq \inj{bad} \text{ and } \\ 
+                      &    & \quad\quad\text{ if } d = \inj{K_1^\ar\langle\oln{d}{\ar}\rangle} \text{ then } \ol{d} \in F_{\lcfZ}^{\infty} \} \\
+                   & \cup & \ldots \\ 
+                   & \cup & \{\;d\;\mid\;d \neq \inj{bad} \text{ and } \\ 
+                   &      & \quad\quad\text{ if } d = \inj{->}(d_0) \text{ then } \\ 
+                   &      & \quad\quad\text{ for all }\;d' \in F_{\lcfZ}^{\infty} \text{ it is } d_0(d') \in F_{\lcfZ}^{\infty} \}
 \end{array}
 $$
 \caption{Denotations of contracts} \label{f:den-sem-contracts}
@@ -492,18 +499,19 @@ We define the semantics of a contract as the set of denotations that satisfy it:
 \[              \dbrace{\Ct}_\rho \subseteq D_\infty  \]
 where $\Ct$ is a contract with free term variables in the semantic environment $\rho$. 
 Figure~\ref{f:den-sem-contracts} gives the definition of this function.
-A base contract $\{x \mid e\}$ is satisfied by a diverging
-computation, or by a computation that causes the predicate $e$ to diverge
+A base contract $\{x \mid e\}$ is satisfied by $\bot$ or 
+or by a computation that causes the predicate $e$ to become $\bot$
+\dv{it used to say ``diverge'' but it is not true. Ill typed ones are also there.} 
 return \True\footnote{
 In previous
 work \cite{xc+:contracts} the base contract also 
 required {\em crash-freedom}. 
 We changed this choice only for reasons of taste; both choices
 are equally straightforward technically.}.
-The reason for introducing the
-possibility of $\bot$ either for the expression or for the predicate
-is associated with {\em admissibility} of induction, a topic that we
-return to in Section~\ref{sect:induction}. 
+%% The reason for introducing the
+%% possibility of $\bot$ either for the expression or for the predicate
+%% is associated with {\em admissibility} of induction, a topic that we
+%% return to in Section~\ref{sect:induction}. 
 The denotation of an arrow contract, and of conjunction, are both straightforward.
 
 However the $\CF$ contract is a little harder. Intuitively an expression is crash-free iff it cannot
@@ -512,127 +520,85 @@ self-referential definition so how do we know it makes sense? The original paper
 a crash-free contract~\cite{xu+:contracts} asserted that an expression is crash free iff it 
 cannot cause a crash when plugged in in a context which {\em syntactically} does not contain the
 @BAD@ value. This is a reasonable definition in the operational semantics world, but note that
-here we can do better because we are working with elements of $D_\infty$. 
+here we can do better because we are working with elements of $D_\infty$. Fortunately, using
+techniques developed by Pitts we can define crash-freedom denotationally as the greatest solution
+to the recursive equation for $F_{\lcfZ}^{\infty}$ in Figure~\ref{f:den-sem-contracts}. Technically, 
+since the equation involves mixed-variance recursion, to show that such a fixpoint exists we have 
+to use minimal invariance. In addition we get the following, which will be useful later on for 
+induction: 
 
-Using the techniques developed by Pitts we may define a recursive predicate for crash-freedom,
-using the following strict bi-functor on admissible sets of 
-denotations $S^{-},S^{+} \subseteq D_\infty$.
-{\setlength{\arraycolsep}{2pt}
-\[\begin{array}{rcl}
-   F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll{d} \neq \ret{\inj{bad} 1} \text{ and } \\ 
-                      &    & \quad \text{for all } \ol{d}, \\ 
-                      &    & \quad\quad\text{ if } \unroll{d} = \ret{\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle} \\ 
-                      &    & \quad\quad\text{ then } \ol{d} \in S^{+} \} \\ 
-                   & \cup & \ldots \\ 
-                   & \cup & \{\;d\;\mid\;\unroll{d} \neq \ret{\inj{bad} 1} \text{ and } \\ 
-                   &      & \quad \text{for all } d_0, \\
-                   &      & \quad\quad\text{ if } \unroll{d} = \ret{\inj{->}(d_0)} \text{ then } \\ 
-                   &      & \quad\quad\text{ for all }\;d' \in S^{-} \text{ it is } d_0(d') \in S^{+} \}  \\
-\end{array}\]}
-The intersection of admissible sets is admissible so the $\Fcf$ bi-functor has a negative and positive fixpoint, and by minimal 
-invariance they coincide (one direction follows by Tarski-Knaster, the other can be inductively proved using the fact that the 
-lub of the chain of embedding-projections is the identity and the fact that this 
-functor preserves admissibility for the covariant argument). Let us call this admissible set $\Fcf^{\infty} \subseteq D_{\infty}$.
+\begin{lemma}
+$\bot \in F_{\lcfZ}$ and $F_{\lcfZ}^{\infty}$ is admissible, that is if all elements of a chain are in 
+$F_{\lcfZ}^{\infty}$ then so is its limit. 
+\end{lemma}
+the functor $F_{\lcfZ}^{\infty}$. 
 
-We may now define the interpretation of $\CF$ contracts using this fixpoint: 
-\[     \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty}    \] 
+%% Using the techniques developed by Pitts we may define a recursive predicate for crash-freedom,
+%% using the following strict bi-functor on admissible sets of 
+%% denotations $S^{-},S^{+} \subseteq D_\infty$.
+%% {\setlength{\arraycolsep}{2pt}
+%% \[\begin{array}{rcl}
+%%    F_{\lcfZ}(S^{-},S^{+}) & = & \{\;d\;\mid\;\unroll{d} \neq \ret{\inj{bad} 1} \text{ and } \\ 
+%%                       &    & \quad \text{for all } \ol{d}, \\ 
+%%                       &    & \quad\quad\text{ if } \unroll{d} = \ret{\inj{K_1^\ar}\langle\oln{d}{\ar}\rangle} \\ 
+%%                       &    & \quad\quad\text{ then } \ol{d} \in S^{+} \} \\ 
+%%                    & \cup & \ldots \\ 
+%%                    & \cup & \{\;d\;\mid\;\unroll{d} \neq \ret{\inj{bad} 1} \text{ and } \\ 
+%%                    &      & \quad \text{for all } d_0, \\
+%%                    &      & \quad\quad\text{ if } \unroll{d} = \ret{\inj{->}(d_0)} \text{ then } \\ 
+%%                    &      & \quad\quad\text{ for all }\;d' \in S^{-} \text{ it is } d_0(d') \in S^{+} \}  \\
+%% \end{array}\]}
+%% The intersection of admissible sets is admissible so the $\Fcf$ bi-functor has a negative and positive fixpoint, and by minimal 
+%% invariance they coincide (one direction follows by Tarski-Knaster, the other can be inductively proved using the fact that the 
+%% lub of the chain of embedding-projections is the identity and the fact that this 
+%% functor preserves admissibility for the covariant argument). Let us call this admissible set $\Fcf^{\infty} \subseteq D_{\infty}$.
 
-%% We may also define the denotational semantics of contracts, below. We assume again 
-%% that there is a program $P$, well-formed in a signature $\Sigma$. In the definition, 
-%% $\rho$ is a semantic environment. 
+%% We may now define the interpretation of $\CF$ contracts using this fixpoint: 
+%% \[     \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty}    \] 
 
-%% \begin{definition}[Denotational semantics of contracts]
-%% \[\begin{array}{l}
-%%     \dbrace{x \mid e}_\rho(d) \text{ iff } \\
-%%         \quad \unroll(d) = \bot \text{ or } 
-%%         \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
-%%         \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1) \\ \\
-%%     \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho}(d) \text{ iff } \\
-%%         \quad \text{for all } d_x \in D_\infty \\ 
-%%         \quad\quad \text{if }
-%%                      \dbrace{\Ct_1}_\rho(d_x)\text{ then }
-%%                      \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
-%%     \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\
-%%     \dbrace{\Ct_1 \& \Ct_2}_\rho(d) \text{ iff } 
-%%        \dbrace{\Ct_1}_\rho(d) \text{ and } 
-%%        \dbrace{\Ct_2}_\rho(d)
-%% \end{array}\]
-%% For a closed contract $\Ct$ we will use notation
-%% $\dbrace{\Ct}$ for its denotation in the empty 
-%% semantic environment.
-%% \end{definition}
+%% %% We may also define the denotational semantics of contracts, below. We assume again 
+%% %% that there is a program $P$, well-formed in a signature $\Sigma$. In the definition, 
+%% %% $\rho$ is a semantic environment. 
 
-%% To the extend that in the end we are only interested in base contracts, giving a 
-%% denotational semantics of full-higher-order contracts is not really interesting 
-%% but we do this anyway. For a given denotation $d$, we define the 
-%% predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
-%% of the contract $\Ct$, such that:
+%% %% \begin{definition}[Denotational semantics of contracts]
+%% %% \[\begin{array}{l}
+%% %%     \dbrace{x \mid e}_\rho(d) \text{ iff } \\
+%% %%         \quad \unroll(d) = \bot \text{ or } 
+%% %%         \unroll(\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}) = \bot\;\text{ or } \\
+%% %%         \quad \unroll(\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}) = \ret(\inj{\True} 1) \\ \\
+%% %%     \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho}(d) \text{ iff } \\
+%% %%         \quad \text{for all } d_x \in D_\infty \\ 
+%% %%         \quad\quad \text{if }
+%% %%                      \dbrace{\Ct_1}_\rho(d_x)\text{ then }
+%% %%                      \dbrace{\Ct_2}_{\rho,x|->d_x}(\dapp(d,d_x)) \\ \\ 
+%% %%     \dbrace{\CF}_\rho(d) \text{ iff }  d \in \Fcf^{\infty} \\  \\
+%% %%     \dbrace{\Ct_1 \& \Ct_2}_\rho(d) \text{ iff } 
+%% %%        \dbrace{\Ct_1}_\rho(d) \text{ and } 
+%% %%        \dbrace{\Ct_2}_\rho(d)
+%% %% \end{array}\]
+%% %% For a closed contract $\Ct$ we will use notation
+%% %% $\dbrace{\Ct}$ for its denotation in the empty 
+%% %% semantic environment.
+%% %% \end{definition}
 
-\subsection{Contracts in first-order logic}\label{sect:contracts-fol}
-
-In terms of semantics we give an interpretation to the logical predicate $\lcf{\cdot}$ as:
-\[           \linterp{\lcfZ}(d) = d \in F_\lcfZ^\infty  \] 
-As a consequence the following two lemmas hold: 
-
-\begin{theorem}\label{thm:den-contr-satisfaction} Assume that $e$ and $\Ct$ contain no term variables and 
-assume that $\ctrans{}{\cdot}{e \in \Ct} = \formula{\phi}$. It is the case 
-that $\langle D_\infty,{\cal I}\rangle \models \phi$ iff $\dbrace{\Ct}(\dbrace{e})$.
-\end{theorem} 
-\begin{theorem}\label{thm:models-cf} The axiomatization of crash-freedom is true in the denotational model, that is, $\langle D_\infty,{\cal I}\rangle \models \Th_\lcfZ$.
-\end{theorem}
-
-Finally, by computational adequacy, we can connect the denotational semantics and 
-a corresponding operational notion of satisfaction at least for base contracts. 
-
-\begin{corollary} Assume that $e$ and $\Ct$ contain no term variables and 
-assume that $\ctrans{}{\cdot}{e \in \{x \mid e_p\}} = \formula{\phi}$. It is the case 
-that $\langle D_\infty,{\cal I}\rangle \models \phi$ if and only iff either
-$P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Downarrow \True$.
-\end{corollary}
-We have mentioned before that big-step semantics is convenient and here it shows why: by 
-stating that $P \not|- e \Downarrow$ we allow $e$ to diverge or have a stuck evaluation, 
-which will both be modelled as $\bot$ in the denotational semantics that we have presented.
-In fact, by choosing weaker predicates for crash-freedom in the denotational world we can
-give a precise 1-1 correspondence with operational semantics for non-arrow contracts. 
-Section~\ref{sect:discussion} gives a more thorough discussion on connecting 
-the denotational contract satisfaction to a more operational one.
+%% %% To the extend that in the end we are only interested in base contracts, giving a 
+%% %% denotational semantics of full-higher-order contracts is not really interesting 
+%% %% but we do this anyway. For a given denotation $d$, we define the 
+%% %% predicate $\interp{\Ct}{\dbrace{P}^\infty}{\rho}(d)$ by recursion on the structure 
+%% %% of the contract $\Ct$, such that:
 
 
+\subsection{Soundness of the logic translation} 
 
-\subsection{Axiomatization of denotational semantics}
-\spj{Is this section in the right place?}
+We have developed a formal semantics for expressions as well as contracts, so it is time we 
+see how we can use this semantics to show that our translation to first-order logic is sound 
+with respect to this semantics. 
 
-
-It is straightforward again to show the following theorem: 
-\begin{theorem}\label{thm:models-inf}
-If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \Th_\infty$. 
-\end{theorem} 
-
-Interestingly, our formalisation is not complete -- $D_\infty$ has a complex structure 
-and there are many more equalities that one could add to the axiomatization. For instance, 
-here are some more axioms that are validated by the denotational model:
-\[\begin{array}{l}
-    \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
-    \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
-    \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
-    \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  
-    \text{ and } K \in \Sigma \text{ with } m > n
-%% \\
-%%     \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n 
-\end{array}\]
-These axioms assert that partial applications cannot be equated to 
-any constructor, $\bot$ nor $\inj{@BAD@}(1)$. If the reader is worried that without a 
-complete formalisation of all equalities of $D_\infty$ it is impossible to prove any 
-programs correct, we would like to reassure them that that is not the case as we shall
-see in the next section.
-
-\subsection{Denotational interpretation of FOL terms}
-\spj{This section may well be in the wrong place}
-
-It is now time to give an interpretation to our FOL terms. Our idea is to use the 
-denotational semantics domain $D_\infty$ {\em itself} as the carrier set of the model. 
-We then need to give an interpretation of the functions and constants in our first-order
-signature as elements of $D_\infty$. Happily this is straightforward to do:
+Our plan about how to do this is to give an interpretation (in the FOL sense of the term) to our 
+translated FOL terms, using the carrier set of $D_\infty$ as our model. 
+We need to give an interpretation of the functions and constants in our 
+first-order signature as functions operating on elements of $D_\infty$ (they do not need themselves
+be continuous or injectable into $D_\infty$). Happily this is straightforward to do:
 \[\begin{array}{rcl}
    \linterp{f^{\ar}}(d_1,\ldots,d_\ar) & = & \dapp(\dbrace{f},\oln{d}{\ar}) \\ 
    \linterp{app}(d_1,d_2)     & = & \dapp(d_1,d_2) \\
@@ -646,6 +612,7 @@ signature as elements of $D_\infty$. Happily this is straightforward to do:
                       &   & ,\;\bot\; ] \\
   \linterp{unr}       & = & \bot 
 \end{array}\]
+
 The essential soundness theorem that states that our interpretation makes sense is
 the following. 
 \begin{theorem}[Interpretation respects denotations] 
@@ -654,12 +621,46 @@ Then, if $\etrans{}{\cdot}{e} = t$ then $\linterp{t} = \dbrace{e}$.
 \end{theorem}
 The proof is an easy induction on the size of the term $e$.
 
-Indeed the denotational domain $D_\infty$ along with the interpretation 
-${\cal I}$ constitutes a model of the formulae generated by $\dtrans{}{P}$. 
+Our soundness results are expressed with the following theorem 
 
-\begin{theorem}\label{thm:models-defs}
-If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
-\end{theorem}
+\begin{theorem}\label{thm:models-inf}
+If $\Sigma |- P$ then 
+\[ \langle D_{\infty},{\cal I}\rangle \models \Th_\infty \land \ptrans{\Sigma}{P} \land \Th_{\lcfZ} \] 
+\end{theorem} 
+%% \begin{theorem}\label{thm:models-defs}
+%% If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
+%% \end{theorem}
+%% \begin{theorem}\label{thm:models-cf} $\langle D_\infty,{\cal I}\rangle \models \Th_\lcfZ$.
+%% \end{theorem}
+\begin{theorem}\label{thm:den-contr-satisfaction} Assume that $e$ and $\Ct$ contain no term variables and 
+assume that $\ctrans{}{\cdot}{e \in \Ct} = \formula{\phi}$. It is the case 
+that $\langle D_\infty,{\cal I}\rangle \models \phi$ iff $\dbrace{\Ct}(\dbrace{e})$.
+\end{theorem} 
+
+What does the last result tell us about the actual execution of the program $e$? In this
+paper we have eluded a discussion about the operational semantics but we discuss this
+in further detail in Section~\ref{sect:discussion}.
+
+\paragraph{Completeness of axiomatization} 
+
+The $D_\infty$ domain has a complex structure and there are many more facts that 
+hold about elements of $D_\infty$ that are not reflected in any of our axioms in $\Th_{\infty}$. 
+For instance, here are some admissible axioms that are valid: 
+\[\begin{array}{l}
+    \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
+    \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+    \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
+    \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  
+    \text{ and } K \in \Sigma \text{ with } m > n
+%% \\
+%%     \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n 
+\end{array}\]
+These axioms assert that partial applications cannot be equated to 
+any constructor, $\bot$ nor $\inj{@BAD@}(1)$. If the reader is worried that without a 
+complete formalization of all equalities of $D_\infty$ it is impossible to prove any 
+programs correct, we would like to reassure them that that is not the case as we 
+shall see in the next section.
+
 
 
 %% \subsection{Denotational versus operational semantics for contracts}
