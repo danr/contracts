@@ -301,9 +301,34 @@ use the min-translation, we a finitely counter satisfiable theory.
 
 \input{hcc-resultstable}
 
-In Figure \ref{fig:unsres} some theorem prover invocation times can be
-seen for some contracts that hold in our test suite.
-\dr{TODO Describe this}
+We have made some initial experimental results which can be viewed in
+Figrue~\ref{fig:unsres}. ``Trivial'' contracts used for sanity
+checking of the tool are not listed.
+
+Some parts of what is covered:
+
+\begin{itemize}
+  \item Crash freeness of standard haskell functions, given
+        appropriate preconditions (@(++)@,@foldr1@,@concatMap@,@iterate@),
+
+  \item CF of functions with a bit more involving recursive patterns
+        (Ackermann's function, functions with accumulators),
+
+  \item A library for predicate logic terms with some smart constructors
+        retaining an invariant,
+
+  \item Partial functions (@head@,@fromJust@),
+
+  \item The @risers@ example from \citep{catch},
+
+  \item Some properties of functions, such that
+        $@any p xs || any p ys@ = @any p (xs ++ ys)@$
+        and the example with @filter@ and @any@ above.
+\end{itemize}
+
+We tried four theorem provers, Equinox, Z3, Vampire and E, and gave
+them 60s for each problem. For our problems, Z3 seems to be the most
+successful tool.
 
 \subsection{Contracts that do not hold}
 \label{ssect:countersat}
