@@ -26,15 +26,15 @@ nonEmpty [] = False
 nonEmpty (_:_) = True
 
 shrink :: (a -> a -> a) -> [Maybe a] -> a
-shrink (*) []          = error "Empty list!"
-shrink (*) (Nothing:_) = error "Nothing!"
-shrink (*) [Just x]    = x
-shrink (*) (Just x:xs) = x * shrink (*) xs
+shrink op []          = error "Empty list!"
+shrink op (Nothing:_) = error "Nothing!"
+shrink op [Just x]    = x
+shrink op (Just x:xs) = x `op` shrink op xs
 
 shrink_lazy :: (a -> a -> a) -> [Maybe a] -> a
-shrink_lazy (*) []     = error "Empty list!"
-shrink_lazy (*) [x]    = fromJust x
-shrink_lazy (*) (x:xs) = fromJust x * shrink_lazy (*) xs
+shrink_lazy op []     = error "Empty list!"
+shrink_lazy op [x]    = fromJust x
+shrink_lazy op (x:xs) = fromJust x `op` shrink_lazy op xs
 
 big_unsat_shrink = shrink
     ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF
