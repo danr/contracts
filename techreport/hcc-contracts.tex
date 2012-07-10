@@ -176,29 +176,6 @@ an element of $D_{\infty} =>_c D_{\infty}$ into the function component of $V_{\i
 %% \end{itemize}
 %% \end{theorem}
 
-\paragraph{Definability of application}
-We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as a continuous
-function\footnote{
-A small technical remark: we write
-the definition with pattern matching notation
-$\dapp(d,a)$ (instead of using $\pi_1$ for projecting
-out $d$ and $\pi_2$ for projecting out $a$) but that is fine,
-since $\times$ is not a lifted construction.
-Also note that we are, as advertised, suppressing uses
-of $\bindK$, $\rollK$, etc.
-}: 
-{\setlength{\arraycolsep}{2pt}
-\[\begin{array}{rcll}
-  \dapp(d,a) & = & d_f(a)    & \text{if}\; d = \injFun{d_f} \\
-             & = & \injBad & \text{if}\; d = \injBad \\
-             & = & \bot    & \text{otherwise} 
-\end{array}\]}%
-That is, application applies the summand if the function $d$ comes
-from the appropriate component of $V_{\infty}$, propagates $\injBad$,
-and otherwise returns $\bot$.  Indeed application, partial
-application, and currying are all definable in cpos of continuous
-functions, so we will be using $\lambda$-calculus notation for our
-domain theory, as above.
 
 \subsection{Denotational semantics of expressions and programs}
 
@@ -246,10 +223,33 @@ cpo $\FVarCpo$. We define, {\em semantic term environments} to be the cpo $(\Var
 and {\em semantic function environments} to be the cpo $(\FVarCpo =>_c D_{\infty})$. 
 
 Figure~\ref{f:denot} defines the denotational semantics of expressions
-$\dbrace{e}$ as a continuous map from these two environments to $D_{\infty}$,
-which is entirely straightforward.
+$\dbrace{e}$ as a continuous map from these two environments to $D_{\infty}$.
+It is entirely straightforward except for application, which depends on
+the continuous function $\dapp : D_\infty \times D_\infty =>_c D_\infty$, 
+defined thus\footnote{
+A small technical remark: we write
+the definition with pattern matching notation
+$\dapp(d,a)$ (instead of using $\pi_1$ for projecting
+out $d$ and $\pi_2$ for projecting out $a$) but that is fine,
+since $\times$ is not a lifted construction.
+Also note that we are, as advertised, suppressing uses
+of $\bindK$, $\rollK$, etc.
+}: 
+{\setlength{\arraycolsep}{2pt}
+\[\begin{array}{rcll}
+  \dapp(d,a) & = & d_f(a)    & \text{if}\; d = \injFun{d_f} \\
+             & = & \injBad & \text{if}\; d = \injBad \\
+             & = & \bot    & \text{otherwise} 
+\end{array}\]}%
+That is, application applies the payload $d_f$ 
+if the function $d$ comes
+from the appropriate component of $V_{\infty}$, propagates $\injBad$,
+and otherwise returns $\bot$.  Indeed application, partial
+application, and currying are all definable in cpos of continuous
+functions, so we will be using $\lambda$-calculus notation for our
+domain theory, as above.
 
-The semantics of right-hand sides $u$ is defined similarly.  The 
+The semantics of right-hand sides $\dbrace{u}$ is defined similarly.  The 
 semantics of a @case@ expression is the semantics of the matching branch,
 if one exists. Otherise, like application, it propagates $\injBad$.
 In all other cases we return $\bot$, not $\injBad$; 
@@ -448,11 +448,11 @@ logical relation, which asserts that every expression is related to its denotati
 %% and hence $P |- e\;e_2 \Downarrow$. The other direction is symmetric.
 %% \end{proof}
 
-\subsection{Denotational semantics of contracts}
+\subsection{Denotational semantics of contracts} \label{s:den-sem-contracts}
 
 \begin{figure}
 $$
-\setlength{\arraycolsep}{2pt}
+\setlength{\arraycolsep}{1pt}
 \begin{array}{rcl}
 \multicolumn{3}{c}{
 \ruleform{\dbrace{\Ct}_{\rho} \subseteq D_{\infty}} }
@@ -460,48 +460,40 @@ $$
 \multicolumn{3}{l}{
 \dbrace{x \mid e}_\rho 
   =  \left\{ \begin{array}{rcl} d & \mid & \unroll{d} = \bot \\
-              & \lor & \unroll{\interp{e}{\dbrace{P}^\infty}{\rho,x|->d}} = \bot \\
-              & \lor & \unroll{\interp{e}{\dbrace{P}^\infty}{\rho \uplus x|->d}} = \ret{\inj{\True} 1}
+              & \lor & \unroll{\dbrace{e}_{\rho,x|->d}} = \bot \\
+              & \lor & \unroll{\dbrace{e}_{\rho,x|->d}} = \ret{\injKZ{True}}
              \end{array} \right\} 
 }
 \\[2em]
 \dbrace{(x{:}\Ct_1) -> \Ct_2}_{\rho} 
- & = & \left\{ \begin{array}{rcl} d & \mid &
-           \forall d_x \in \dbrace{\Ct_1}_\rho. \\
-           && \quad \dapp(d,d_x) \in \dbrace{\Ct_2}_{\rho,x|->d_x}
-           \end{array} \right\}
+ & = & \{ d \mid
+           \forall d' \!\in\! \dbrace{\Ct_1}_\rho.
+           \dapp(d,d') \in \dbrace{\Ct_2}_{\rho,x|->d'}
+           \}
 \\[1em]
 \dbrace{\Ct_1 \& \Ct_2}_\rho 
  & = & \{ d | d \in \dbrace{\Ct_1}_\rho /\ d \in \dbrace{\Ct_2}_\rho \}
 \\[1em]
 \dbrace{\CF}_\rho & = &  \Fcf^{\infty}  \\ 
-\multicolumn{3}{l}{\text where} \\ 
-   F_{\lcfZ}^{\infty} & = & \{\;d\;\mid\; d \neq \inj{bad} \text{ and } \\ 
-                      &    & \quad\quad\text{ if } d = \inj{K_1^\ar\langle\oln{d}{\ar}\rangle} \text{ then } \ol{d} \in F_{\lcfZ}^{\infty} \} \\
-                   & \cup & \ldots \\ 
-                   & \cup & \{\;d\;\mid\;d \neq \inj{bad} \text{ and } \\ 
-                   &      & \quad\quad\text{ if } d = \inj{->}(d_0) \text{ then } \\ 
-                   &      & \quad\quad\text{ for all }\;d' \in F_{\lcfZ}^{\infty} \text{ it is } d_0(d') \in F_{\lcfZ}^{\infty} \}
+\multicolumn{3}{l}{\text{where}} \\ 
+   F_{\lcfZ}^{\infty} & = & \{ \bot \} \\
+                   & \cup & \{\;\injK{K}{\ol{d}} \mid K^n \in \Sigma,\; d_i \in F_{\lcfZ}^{\infty} \} \\
+                   & \cup & \{\;\injFun{d} \mid \forall d' \in F_{\lcfZ}^{\infty}.\; d(d') \in F_{\lcfZ}^{\infty} \}
 \end{array}
 $$
 \caption{Denotations of contracts} \label{f:den-sem-contracts}
 \end{figure}
 
-The original specification of what it means for a function to satisfy a
-contract (Figure~\ref{f:contract-spec-op}) is cast in terms of
-\emph{operational} semantics but we re-cast it here in \emph{denotational} terms.
-The two do not match perfectly but, as we discuss in Section~\ref{sect:discussion}, 
-the mis-match is unimportant.
+Now we are ready to say formally what it means for a function to satisfy a contract.
 We define the semantics of a contract as the set of denotations that satisfy it:
 \[              \dbrace{\Ct}_\rho \subseteq D_\infty  \]
 where $\Ct$ is a contract with free term variables in the semantic environment $\rho$. 
 Figure~\ref{f:den-sem-contracts} gives the definition of this function.
 A base contract $\{x \mid e\}$ is satisfied by $\bot$ or 
 or by a computation that causes the predicate $e$ to become $\bot$
-\dv{it used to say ``diverge'' but it is not true. Ill typed ones are also there.} 
-return \True\footnote{
+or return \True\footnote{
 In previous
-work \cite{xc+:contracts} the base contract also 
+work \cite{xu+:contracts} the base contract also 
 required {\em crash-freedom}. 
 We changed this choice only for reasons of taste; both choices
 are equally straightforward technically.}.
@@ -511,18 +503,17 @@ are equally straightforward technically.}.
 %% return to in Section~\ref{sect:induction}. 
 The denotation of an arrow contract, and of conjunction, are both straightforward.
 
-However the $\CF$ contract is a little harder. Intuitively an expression is crash-free iff it cannot
-cause a crash if plugged into a context which is itself crash-free. Of course this is a 
-self-referential definition so how do we know it makes sense? The original paper that proposed
-a crash-free contract~\cite{xu+:contracts} asserted that an expression is crash free iff it 
-cannot cause a crash when plugged in in a context which {\em syntactically} does not contain the
-@BAD@ value. This is a reasonable definition in the operational semantics world, but note that
-here we can do better because we are working with elements of $D_\infty$. Fortunately, using
+The $\CF$ contract is a little harder. Intuitively an expression is crash-free iff it cannot
+crash if plugged into an arbitrary crash-free context. Of course this is a 
+self-referential definition so how do we know it makes sense? The original paper
+\cite{xu+:contracts} specified that an expression is crash free iff it 
+cannot crash when plugged into a context that {\em syntactically} does not contain the
+@BAD@ value. This is a reasonable definition in the operational semantics world, but 
+here we can do better because we are working with elements of $D_\infty$. Using
 techniques developed by Pitts we can define crash-freedom denotationally as the greatest solution
 to the recursive equation for $F_{\lcfZ}^{\infty}$ in Figure~\ref{f:den-sem-contracts}. Technically, 
 since the equation involves mixed-variance recursion, to show that such a fixpoint exists we have 
 to use minimal invariance. 
-
 In addition we get the following, which will be useful later on for induction:
 \begin{lemma}
 $\bot \in F_{\lcfZ}$ and $F_{\lcfZ}^{\infty}$ is admissible, that is if all elements of a chain are in 
@@ -596,16 +587,12 @@ We need to give an interpretation of the functions and constants in our
 first-order signature as functions operating on elements of $D_\infty$ (they do not need themselves
 be continuous or injectable into $D_\infty$). Happily this is straightforward to do:
 \[\begin{array}{rcl}
-   \linterp{f^{\ar}}(d_1,\ldots,d_\ar) & = & \dapp(\dbrace{f},\oln{d}{\ar}) \\ 
-   \linterp{app}(d_1,d_2)     & = & \dapp(d_1,d_2) \\
+   \linterp{f(\ol{t})} & = & \dapp(\dbrace{f},\ol{\linterp{t}}) \\ 
+   \linterp{app(t_1,t_2)}     & = & \dapp(\linterp{t_1}, \linterp{t_2}) \\
    \linterp{f_{ptr}}  & = & \dbrace{f} \\
-   \linterp{K^{\ar}}(d_1,\ldots,d_\ar) & = & \roll{\ret{\inj{K}\langle d_1,\ldots,d_\ar\rangle}} \\ 
-   \linterp{\sel{K}{i}}(d) & = &  \roll{\bind{g}{\unroll{d}}} \\ 
-     \text{where } g  & = & [\;\bot \\ 
-                      &   & ,\;\dlambda d @.@ \unroll{\pi_i(d)}  \quad (\text{case for K}) \\ 
-                      &   & ,\;\bot \\
-                      &   & ,\;\ldots\\
-                      &   & ,\;\bot\; ] \\
+   \linterp{K(\ol{t})} & = & \roll{\ret{\injK{K}{\ol{\linterp{t}}}}} \\ 
+   \linterp{\sel{K}{i}(t)} & = &  d_i \quad \text{if}\; \linterp{t} = \injK{K}{\ol{d}} \\ 
+                           & = & \bot \quad \text{otherwise} \\
   \linterp{unr}       & = & \bot 
 \end{array}\]
 
@@ -620,39 +607,41 @@ The proof is an easy induction on the size of the term $e$.
 Our soundness results are expressed with the following theorem 
 
 \begin{theorem}\label{thm:models-inf}
-If $\Sigma |- P$ then 
-\[ \langle D_{\infty},{\cal I}\rangle \models \Th_\infty \land \ptrans{\Sigma}{P} \land \Th_{\lcfZ} \] 
+If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \Th \land \ptrans{\Sigma}{P}$ 
 \end{theorem} 
 %% \begin{theorem}\label{thm:models-defs}
 %% If $\Sigma |- P$ then $\langle D_{\infty},{\cal I}\rangle \models \dtrans{\Sigma}{P}$. 
 %% \end{theorem}
 %% \begin{theorem}\label{thm:models-cf} $\langle D_\infty,{\cal I}\rangle \models \Th_\lcfZ$.
 %% \end{theorem}
-\begin{theorem}\label{thm:den-contr-satisfaction} Assume that $e$ and $\Ct$ contain no term variables and 
-assume that $\ctrans{}{\cdot}{e \in \Ct} = \formula{\phi}$. It is the case 
-that $\langle D_\infty,{\cal I}\rangle \models \phi$ iff $\dbrace{\Ct}(\dbrace{e})$.
+\begin{theorem}\label{thm:den-contr-satisfaction} Assume that $e$ and $\Ct$ contain no free 
+term variables. Then the FOL translation of the claim $e \in \Ct$ holds in the model
+if and only if the denotation of $e$ is in the semantics of $\Ct$.  Formally:
+$$\langle D_\infty,{\cal I}\rangle \models \ctrans{}{\cdot}{e \in \Ct}
+  \;\; \Leftrightarrow \;\; \dbrace{e} \in \dbrace{\Ct}
+$$
 \end{theorem} 
 
 What does the last result tell us about the actual execution of the program $e$? In this
-paper we have eluded a discussion about the operational semantics but we discuss this
+paper we have elided a discussion about the operational semantics but we discuss this
 in further detail in Section~\ref{sect:discussion}.
 
 \paragraph{Completeness of axiomatization} 
 
 The $D_\infty$ domain has a complex structure and there are many more facts that 
-hold about elements of $D_\infty$ that are not reflected in any of our axioms in $\Th_{\infty}$. 
+hold about elements of $D_\infty$ that are not reflected in any of our axioms in $\Th$. 
 For instance, here are some admissible axioms that are valid: 
 \[\begin{array}{l}
-    \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
-    \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
+    \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} 
+    \formula{\land\; app(f_{ptr},\xs) \neq \bad} \\
     \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
-    \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  
+    \text{ for every } (f\;\ol{a}\;\oln{x}{m} = u) \in P  
     \text{ and } K \in \Sigma \text{ with } m > n
 %% \\
 %%     \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n 
 \end{array}\]
 These axioms assert that partial applications cannot be equated to 
-any constructor, $\bot$ nor $\inj{@BAD@}(1)$. If the reader is worried that without a 
+any constructor, $\bot$ nor $\injBad$. If the reader is worried that without a 
 complete formalization of all equalities of $D_\infty$ it is impossible to prove any 
 programs correct, we would like to reassure them that that is not the case as we 
 shall see in the next section.
