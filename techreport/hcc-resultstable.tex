@@ -21,22 +21,28 @@ Description
 
 \hline
 
-@ack@ CF        & 1&61  & \tol & 0&04 & 0&02 & 0&47 & 0&14 \\
-@any@ morphism  & 10&40 & \tol & 0&07 & 0&04 & \tot & \tot \\
-@filter@ @all@  & 3&24  & \tol & 0&05 & 0&04 & \tot & \tot \\
-@invariant@ CF  & 23&37 & \tol & 0&08 & \tol & \tot & \tot \\
-@map@ invariant & 22&82 & \tol & 0&17 & \tol & \tot & \tot \\
-@neg@ invariant & \tot  & \tol & 0&83 & \tol & \tot & \tot \\
-acc @exp@ CF    & 0&54  & \tol & 0&06 & 0&04 & 2&27 & 3&44 \\
-@risersBy@      & 26&18 & \tol & \tot & \tol & 7&80 & 0&82 \\
-@shrink@        & 5&64  & \tol & 0&05 & 0&05 & 2&04 & \tot \\
-@withMany@      & 21&51 & \tol & 0&05 & 0&01 & 3&96 & \tot \\
+@ack@ CF          & 1&61  & \tol & 0&04 & 0&02 & 0&47 & 0&14 \\
+@any@ morphism    & 10&40 & \tol & 0&07 & 0&04 & \tot & \tot \\
+@filter@ @all@    & 3&24  & \tol & 0&05 & 0&04 & \tot & \tot \\
+@concatMap@ CF    & 0&87  & \tol & 0&04 & 0&04 & 0&38 & 4&65 \\
+@invariant@ CF    & 23&37 & \tol & 0&08 & \tol & \tot & \tot \\
+@map@ invariant   & 22&82 & \tol & 0&17 & \tol & \tot & \tot \\
+@neg@ invariant   & \tot  & \tol & 0&83 & \tol & \tot & \tot \\
+@(++)@ inv. @all@ & \tot  & \tol & 0&08 & \tol & 2&70 & \tot \\
+acc @exp@ CF      & 0&54  & \tol & 0&06 & 0&04 & 2&27 & 3&44 \\
+@iterate@ CF      & 0&42  & 5&82 & 0&03 & 0&00 & 0&18 & 0&00 \\
+@iterTree@ CF     & 1&85  & \tol & 0&03 & 0&00 & 2&90 & 0&01 \\
+@repeat@ CF       & 0&10  & 0&05 & 0&03 & 0&00 & 0&01 & 0&00 \\
+@risersBy@        & 26&18 & \tol & \tot & \tol & 7&80 & 0&82 \\
+@shrink@          & 5&64  & \tol & 0&05 & 0&05 & 2&04 & \tot \\
+@withMany@        & 21&51 & \tol & 0&05 & 0&01 & 3&96 & \tot \\
 \end{unsrestab}
 \end{center}
 
 \caption{
-Theorem prover running time in seconds on some of the problems in the test suite
-  on contracts that hold. Paradox with only timeouts not listed.
+  Theorem prover running time in seconds on some of the problems in the test suite
+  on contracts that \emph{do} hold.
+  Paradox had only timeouts and is not listed.
   }
   \label{fig:unsres}
 
@@ -46,27 +52,38 @@ Theorem prover running time in seconds on some of the problems in the test suite
 \begin{center}
 \begin{satrestab}
 
- & \multicolumn{4}{c | }{Paradox}
- & \multicolumn{4}{c  }{Equinox}
+ & \multicolumn{2}{c | }{Paradox}
+ & \multicolumn{2}{c | }{Equinox}
+ & \multicolumn{2}{c  }{Z3}
  \\
 
 Description
- & \multicolumn{2}{c}{min} & \multicolumn{2}{c |}{w/o}
- & \multicolumn{2}{c}{min} & \multicolumn{2}{c }{w/o}
+ & \multicolumn{2}{c |}{min}
+ & \multicolumn{2}{c |}{min}
+ & \multicolumn{2}{c }{min}
   \\
 
 \hline
 
-@any@ morphism w/o @any@ CF  & 2&52 & \tol & \tot  & \tot \\
-acc @exp@ CF w/o @(*)@ CF        & 0&15 & \tol & \tot  & \tot \\
-@risersBy@ bad precond.      & 7&07 & \tol & 9&14  & \tot \\
-@risersBy@ bad postcond.     & 3&14 & \tol & 19&70 & \tot \\
-@shrink@ too lazy            & \tot & \tol & 7&16  & \tot \\
-@concatMap@ CF w/o @(++)@ CF & 0&09 & \tol & \tot  & \tot \\
+@any@ morphism w/o @any@ CF    & 2&52 & \tol  & \tot \\
+@concatMap@ CF w/o @(++)@ CF   & 0&09 & \tol  & \tot \\
+@concatMap@ invariant weak     & 0&61 & \tol  & \tot \\
+@neg@ invariant missing @map@  & 0&63 & \tol  & \tot \\
+acc @exp@ CF w/o @(*)@ CF      & 0&15 & \tol  & \tot \\
+@risersBy@ wrong precond.      & 7&07 & 9&14  & \tot \\
+@risersBy@ wrong postcond.     & 3&14 & 19&70 & \tot \\
+@shrink@ too lazy              & \tol & 7&16  & \tot \\
+@head@ CF                      & 0&04 & 0&12  & 0&06 \\
+@head@ CF with wrong precond.  & 0&37 & 0&44  & \tot \\
+
 \end{satrestab}
 \end{center}
 \caption{Theorem prover running time in seconds on some of the problems in the test suite
-  on contracts that \emph{does not} hold. Z3 and Vampire had only timeouts and are not listed.
+  on contracts that \emph{does not} hold.
+  Without using min we only got timeouts so it is not listed.
+  Vampire had only timeouts and is not listed.
   }
   \label{fig:satres}
 \end{figure}
+
+% Z3 actually kills this :p
