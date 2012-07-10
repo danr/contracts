@@ -304,14 +304,11 @@ use the min-translation, we a finitely counter satisfiable theory.
 
 \input{hcc-resultstable}
 
-We have made some initial experimental results which can be viewed in
-Figrue~\ref{fig:unsres}. ``Trivial'' contracts used for sanity
-checking of the tool are not listed.
-
-Some parts of what is covered:
-
+We have made some initial experimental results, shown in
+Figure~\ref{fig:unsres}. 
+The test cases include:
 \begin{itemize}
-  \item Crash freeness of standard haskell functions, given
+  \item Crash freeness of standard Haskell functions, given
         appropriate preconditions (@(++)@,@foldr1@,@concatMap@,@iterate@),
 
   \item CF of functions with a bit more involving recursive patterns
@@ -344,7 +341,7 @@ trying to find a contradiction, but no such contradiction exists.  A
 model-based theorem prover will seek a finite counter-model to the theory, but
 again no such counter-model exists. \spj{Koen please fix the wording here!}
 
-It is obviouly unacceptable for the system to go into a loop if
+It is obviously unacceptable for the system to go into a loop if
 the programmer writes a bogus contract, and we have promising
 preliminary results based on so-called ``minimisation'', and
 finite counter-model generators such as Paradox \cite{koen}, but we

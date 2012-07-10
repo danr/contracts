@@ -427,8 +427,6 @@ $e_1$ and $e_2$ are semantically equivalent.
 where $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL, and then using
 a FOL theorem prover. The formal statement of this property is Corollary~\ref{cor:guiding-principle}
-\spj{Dimitrios, can you forward-ref a theorem that states this?}
-\kc{This is only going to hold from right to left} \dv{Added statemnet.}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
@@ -459,8 +457,6 @@ $$ \etrans{}{}{e} = bad $$
 in the logic, then the source program $e$
 must be semantically equivalent to @BAD@, meaning that it definitely
 crashes.
-
-\spj{We ought to say a bit more about $unr$ somewhere}
 
 \subsection{Translating higher-order functions} \label{s:hof}
 
@@ -525,12 +521,16 @@ Why do we need the last clause? Consider the function @not@:
   not True = False
   not False = True
 \end{code}
-Suppose we want to prove that $@not@ \in @CF@ \rightarrow @CF@$.
-If we lack the last clause above, the FOL prover would have
-no way to dismiss the possibility that $@not@(@3@) =_F bad$, and thus
-would fail to prove the theorem.  However, the type system guarantees
-that @not 3@ will never show up, and the final clause is the way we express that
-fact to the FOL prover.
+Suppose we claim that $@not@ \in @CF@ \rightarrow @CF@$, which is patently true.
+But if we lack the last clause above, the claim 
+is \emph{not} true in every model;
+for example @not@ might crash when given the (ill-typed but crash-free) 
+argument @3@.  The third clause above excludes this possibility by
+asserting that the result of @not@ is the special crash-free constant $unr$
+if the scrutinee is ill-typed (i.e. not $bad$ and not built with the 
+constructors of the type).  This is the whole reason we need $unr$ in the first place.
+In general, if $\etrans{}{}{e} = unr$ is provable in the logic, then $e$ is ill-typed, 
+or divergent.
 
 Of course, we also need to axiomatise the behaviour of data constructors and
 selectors, which is done in Figure~\ref{fig:data-cons}:
@@ -567,7 +567,8 @@ We discuss crash-freedom in Section~\ref{s:cf-fol}.
 
 The first equation, for predicate contracts $e \in \{(x{:}\tau) \mid e' \}$,
 is sightly more complicated.
-The first clause $t=unr$ says that the contract holds if $e$ diverges \spj{Is this right?}.
+The first clause $t=unr$, together with the axioms for $unr$ in Figure~\ref{}, ensures
+that $unr$ satisfies every contract.
 The second and third say that the contract holds if $e'$ diverges or is semantically
 equal to @True@.  The choices embodied in this rule were discussed at length
 in earlier work \cite{xu+:contracts} and we do not rehearse it here.
@@ -592,5 +593,4 @@ from a $\cal L$ program and a set of contract claims, into first-order logic.
 To a first approximation, we can now turn the whole formula over to a FOL prover,
 and hope that it proves the assertion.
 
-\spj{What else should we say here.  Something about recursion?  About multiple functions?}
 

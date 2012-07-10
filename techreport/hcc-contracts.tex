@@ -255,11 +255,8 @@ if one exists. Otherise, like application, it propagates $\injBad$.
 In all other cases we return $\bot$, not $\injBad$; 
 all the missing cases can only be constructors
 of different datatypes than the datatype that $K$ belongs to, because
-all @case@ expressions are complete (Section~\ref{s:syntax}).  As a
-consequence, returning the ``benign'' value $\bot$ is the right thing
-to do if we are to completely ignore type errors in our denotational
-semantics. \spj{Have we mentioned that we are going to ``ignore'' type
-errors?  Why is $\bot$ ``benign''?}
+all @case@ expressions are complete (Section~\ref{s:syntax}).
+This treatment corresponds directly to our treatment of $unr$ in Section~\ref{s:case-fol}.
 
 Finally, Figure~\ref{f:denot} gives the semantics of a program $P$, which should
 be read recalling its syntax in Figure~\ref{fig:syntax}.
@@ -590,7 +587,8 @@ Happily this is straightforward to do:
    \linterp{K(\ol{t})} & = & \roll{\ret{\injK{K}{\ol{\linterp{t}}}}} \\ 
    \linterp{\sel{K}{i}(t)} & = &  d_i \quad \text{if}\; \linterp{t} = \injK{K}{\ol{d}} \\ 
                            & = & \bot \quad \text{otherwise} \\
-  \linterp{unr}       & = & \bot 
+  \linterp{unr}       & = & \bot \\
+  \linterp{bad}       & = & \injBad
 \end{array}\]
 
 The essential soundness theorem that states that our interpretation makes sense is
