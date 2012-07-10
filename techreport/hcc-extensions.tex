@@ -1,11 +1,13 @@
+\newcommand{\ThMin}{\Th_{\infty}^{min}}
+
 So far we have described the basic translation of the denotational semantics, programs, and contracts
 to first-order logic. However, to enable verification of contracts in practice we must consider two 
 important extensions, outlined in the rest of this section.
 
-\subsection{A heuristic for minimization of countermodels}\label{sect:minimization}
+\subsection{Heuristics for countermodel minimization}\label{sect:minimization}
 
-For a query of the form $\Th \land \Th_\lcfZ \land \neg \ctrans{}{P}{e \in \Ct}$, a SAT solver will search for
-a model. When such a model exists, it will nclude tables for the function symbols in the formula. Notice that functions 
+For a query of the form $\Th_{\infty} \land \ptrans{}{P} \land \neg \ctrans{}{P}{e \in \Ct}$, a SAT-solver will search
+for a model. When such a model exists, it will include tables for the function symbols in the formula. Notice that functions 
 in FOL are total over the domain of the terms in the model. This means that function tables may be {\em infinite} if the 
 terms in the model are infinite. Several (very useful!) axioms such as the discrimination axioms \textsc{AxDisjC} may in 
 fact force the models to be infinite. For instance consider the following devinitions:
@@ -35,51 +37,45 @@ the set of expressions that appear during the finite evaluation of a counterexam
 
 This is a challenge that we solve by modifying our axiomatization of the semantics 
 and the translation of programs and contracts in a way that it can still admit 
-the $\langle D_\infty,{\cal I}\rangle$ model, but also some {\em finite} model in 
-the case that a counterexample exists. 
+the ``proper'' $\langle D_\infty,{\cal I}\rangle$ model, but can also admit 
+some {\em finite} model in the case that a counterexample exists. 
 
 To achieve this effect, we introduce a predicate $min(\cdot)$ that, intuitively, is true
-for the terms that have been evaluated during the execution of a counterexample. We use the
-name $min$ because the purpose of this predicate is to minimize countermodels. We often 
-refer to the terms in the $min(\cdot)$ predicate as the ``set of terms we are interested in''.
+for the terms that have been evaluated during the execution of a counterexample. We use 
+the name $min$ because the purpose of this predicate is to minimize countermodels. We often 
+refer to the terms in the $min(\cdot)$ predicate as the {\em set of terms we are interested in}.
 
 \begin{figure} 
 {\small
 \[\setlength{\arraycolsep}{1pt}
 \begin{array}{c}
-\ruleform{\Th_\infty^{min}} \\ \\ 
+\ruleform{\ThMin} \\ \\ 
 \begin{array}{lll}
- \textsc{AxDisjBU} & \formula{\bad \neq \unr} \\ 
+ \textsc{AxAppBad}  & \formula{\forall x @.@ app(\bad,x) = \bad} \\
+ \textsc{AxAppUnr}  & \formula{\forall x @.@ app(\unr,x) = \unr} \\ 
+ \textsc{AxDisjBU} & \formula{\bad \neq \unr} \\
+ \textsc{AxAppMin}& \formula{\highlight{\forall x, min(app(x,y)) => min(x)}} \\ \\
+
  \textsc{AxDisjC} & \formula{\forall \oln{x}{n}\oln{y}{m} @.@} \\ 
                   & \formula{\;\;\highlight{min(K(\ol{x}))\;\lor\;min(J(\ol{y}))} =>
                                   K(\ol{x}){\neq}J(\ol{y})} \\
                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
                   & \text{ and } (J{:}\forall\as @.@ \oln{\tau}{m} -> S\;\as) \in \Sigma \\
- %% \textsc{AxDisjCUnr} & \formula{\forall \oln{x}{n} @.@ \highlight{\neg min(\unr)}} \\ 
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
  \textsc{AxDisjCU} & \formula{\forall \oln{x}{n} @.@ \highlight{min(K(\ol{x}))} => K(\ol{x}) \neq unr} \\
- \textsc{AxDisjCB} & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) \neq \bad} \\ 
- %% \textsc{AxDisjCBad} & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) \neq \bad} \\ 
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ \\
-
- \textsc{AxPtr}  & \formula{\forall \oln{x}{n} @.@ \highlight{min(app(f_{ptr},\xs))} => f(\ol{x}) = app(f_{ptr},\xs)} \\
-                 & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
- %% \textsc{AxAppB}  & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) = app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots)} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- \textsc{AxApp}  & \formula{\forall x, app(\bad,x) = \bad \; /\ \; app(\unr,x) = \unr}    \\ 
- \textsc{AxAppMin}& \formula{\highlight{\forall x, min(app(x,y)) => min(x)}} \\ 
- %% Not needed: we can always extend partial constructor applications to fully saturated and use AxAppC and AxDisjC
- %% \textsc{AxPartA} & \formula{\forall \oln{x}{n} @.@ app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \unr} \\
- %%                  & \formula{\quad\quad \land\; app(\ldots (app(x_K,x_1),\ldots,x_n)\ldots) \neq \bad} \\
- %%                  & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{m} -> T\;\as) \in \Sigma \text{ and } m > n \\
- %% \textsc{AxPartB} & \formula{\forall \oln{x}{n} @.@ app(f_{ptr},\xs) \neq \unr} \\
- %%                  & \formula{\quad\land\; app(f_{ptr},\xs) \neq \bad} \\
- %%                  & \formula{\quad\land\; \forall \oln{y}{k} @.@ app(f_{ptr},\xs) \neq K(\ol{y})} \\
- %%                  & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{m} @.@ u) \in P  \\
- %%                  & \text{ and every } (K{:}\forall\as @.@ \oln{\tau}{k} -> T\;\as) \in \Sigma \text{ and } m > n  \\ \\ 
+ \textsc{AxDisjCB} & \formula{\forall \oln{x}{n} @.@ K(\ol{x}) \neq \bad} \\ \\ 
+ %% \textsc{AxPtr}  & \formula{\forall \oln{x}{n} @.@ \highlight{min(app(f_{ptr},\xs))} => f(\ol{x}) = app(f_{ptr},\xs)} \\
+ %%                 & \text{ for every } (f |-> \Lambda\as @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in P \\
  \textsc{AxInj}   & \formula{\forall \oln{y}{n} @.@ \highlight{min(\sel{K}{i}(K(\ys)))}} \\ %% \;\land\; min(y_i)}} \\ 
                   & \formula{\quad\qquad\qquad => \sel{K}{i}(K(\ys)) = y_i} \\ 
-                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n 
+                  & \text{for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \text{ and } i \in 1..n  \\ \\ \\ 
+ \textsc{AxCfBU}  & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
+ \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
+ %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
+ %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
+ \textsc{AxCfC1} & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
+                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
+ \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
+                 & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
 \end{array}
 %% \ruleform{\Th_\lcfZ^{min}} \\ \\ 
 %% \begin{array}{lll} 
@@ -96,78 +92,106 @@ refer to the terms in the $min(\cdot)$ predicate as the ``set of terms we are in
 \caption{A theory with minimization}\label{fig:min-theory}
 \end{figure}
 
-Figure~\ref{fig:min-theory} presents a variation of $\Th_\infty^{min}$ which includes minimization.
+Figure~\ref{fig:min-theory} presents a variation of $\Th$, called $\ThMin$, which includes minimization.
 In this figure, we have highlighted the parts where our theory differs compared to $\Th_\infty$ from
-Figure~\ref{fig:prelude}. The first intersting axiom group is \rulename{AxDisjC} where instead of 
-unconditionally asserting that two constructors are disjoint, we assert that they are disjoint if
-one of the two values is a member of the $min(\cdot)$ predicate. Intuitively, evaluation of a 
-counterexample has touched one of the two constructors (for instance, by performing a pattern matching
-on a value of this constructor) and hence we should consider this constructor value different than any 
-other one. Similarly \rulename{AxDisjCBU} asserts that a constructor value is not $\unr$ nor $\bad$ if 
-it is an interesting value. This leaves the possibility of a model where all elements that are not in 
-the $min(\cdot)$ set have been conflated to a single value. In \rulename{AxPtr}, if evaluation of a counterexample
-has touched an appliation of $app(f_{ptr},\ol{x})$ then we should be able to derive the equality 
-$f(\ol{x}) = app(f_{ptr},\ol{x})$, which will further allow us to gain knowledge about the definition of the function.
-The intuition behind \rulename{AxAppMin} is easy: if the term $min(app(x,y))$ has appeared in the evaluation trace, 
-we have definitely evaluated the argument and hence we have $min(x)$. Finally, the selector axiom group \rulename{AxInj}
-has been modified to guard the selector value as one would expect.
+Figure~\ref{fig:prelude}. The first interesting axiom is \rulename{AxAppMin} which asserts that, if an 
+appliction $app(x,y)$ has been evaluated during the execution of a counterexample, then so has $x$. This
+is axiom is simple reflecting the evaluation order in an operational semantics. The most crucial axioms for
+ensuring that we can still get finite models are given by \rulename{AxDisjC}, which asserts that two constructor
+values are disjoint {\em only} if we are interested in one of the two. Hence, if evaluation of a counterexample
+has never ``touched'' a particular constructor value, that value will not be in our interesting set, and a model
+that we get back from a theorem prover can conflate this value to other values or even the interpetation of $\unr$.
+Similarly \rulename{AxDisjCBU} asserts that a constructor value is not $\unr$ nor $\bad$ if it is an interesting value. 
+Finally, the selector axiom group \rulename{AxInj} has been modified to guard the selector value as one would expect.
+
 
 \begin{figure}\small
+\setlength{\arraycolsep}{2pt}
 \[\begin{array}{c}
-\ruleform{\uutrans{\Sigma}{\Gamma}{t \sim u}^{min} = \formula{\phi}} \\ \\ 
-\prooftree
-   \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t}
-   \end{array}
-   ----------------------------------------{DExp}
-   \begin{array}{l} 
-   \uutrans{\Sigma}{\Gamma}{s \sim e }^{min} = \formula{\highlight{min(s)} => (s = t)} 
-   \end{array}
-   ~~~~~
-  \begin{array}{l}
-  \etrans{\Sigma}{\Gamma}{e} = \formula{t} \\
-  %% constrs(\Sigma,T) = \ol{K} \\
-  \text{for each branch}\;(K\;\oln{y}{l} -> e') \text{ it is } 
-  %% \begin{array}{l}
-  %%          (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
-           \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
-  %% \end{array}
-  \end{array}
-  ------------------------------------------{DCase}
-  {\setlength{\arraycolsep}{1pt} 
-  \begin{array}{l}
-  \uutrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}^{min} = \\
-  \;\;\formula{ \begin{array}{l} 
-     \highlight{min(s)} => \\
-     \begin{array}{ll}
-          ( & \highlight{min(t)}\;\land \\
-            & (t = \bad => s = \bad)\;\land \\ 
-            & (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots \land \\
-            & (t{\neq}\bad\;\land\;t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s{=}\unr) \\
-          )
-%% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
-%%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
-%%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
-                   \end{array}
-     \end{array}}
-  \end{array}}
-  %% {       \setlength{\arraycolsep}{2pt} 
-  %% \begin{array}{l}
-  %% \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
-  %% \;\;\formula{
-  %%      \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
-  %%                           \;\; (\highlight{min(s) => min(t)}\;\land  \\
-  %%                           \quad((t = \bad /\ s = \bad)\;\lor \\
-  %%                           \quad\quad \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
-  %%                                          s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])))
-  %%                  \end{array}
-  %%          }
-  %% \end{array}}
-\endprooftree
+\ruleform{\utrans{\Sigma}{u}{s} = \formula{\phi}} \\ \\
+\begin{array}{rcl}
+\utrans{\Sigma}{e}{s}
+  & = & \formula{(s = \etrans{\Sigma}{\Gamma}{e})} \\
+\multicolumn{3}{l}{\utrans{\Sigma}
+    {@case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}{s}} \\
+\multicolumn{3}{l}{
+\quad
+  \begin{array}[t]{rl}
+    =     & \formula{\highlight{min(t)}} \\  
+    \land & \formula{(t = \bad => s = bad)} \\
+    \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = \etrans{\Sigma}{\Gamma}{e'_1})\;\land \ldots}  \\
+    \land & \formula{((t{\neq}\bad\;\land\;
+                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr))} \\
+    \mbox{where} & t  =  \etrans{\Sigma}{\Gamma}{e}
+ \end{array}
+}
+\end{array}
+\\ \\
+\ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
+\begin{array}{rcl}
+  \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u}
+    & =     & \formula{\forall \ol{x} @.@ \highlight{min(f(\ol{x})} => \utrans{\sigma}{u}{f(\ol{x})}} \\
+    & \land & \formula{\forall \ol{x} @.@ \highlight{min(f(\ol{x})} => f(\ol{x}) = app(f_{ptr},\xs)} \\
+\end{array}
 \end{array}\]
 \caption{Program translation with minimization}\label{fig:min-def-trans-min}
 \end{figure}
-\newcommand{\ThMin}{\Th_{\infty}^{min}}
+
+%% \begin{figure}\small
+%% \[\begin{array}{c}
+%% \ruleform{\uutrans{\Sigma}{\Gamma}{t \sim u}^{min} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%    \begin{array}{c}
+%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t}
+%%    \end{array}
+%%    ----------------------------------------{DExp}
+%%    \begin{array}{l} 
+%%    \uutrans{\Sigma}{\Gamma}{s \sim e }^{min} = \formula{\highlight{min(s)} => (s = t)} 
+%%    \end{array}
+%%    ~~~~~
+%%   \begin{array}{l}
+%%   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \\
+%%   %% constrs(\Sigma,T) = \ol{K} \\
+%%   \text{for each branch}\;(K\;\oln{y}{l} -> e') \text{ it is } 
+%%   %% \begin{array}{l}
+%%   %%          (K{:}\forall \cs @.@ \oln{\sigma}{l} -> T\;\oln{c}{k}) \in \Sigma \text{ and }
+%%            \etrans{\Sigma}{\Gamma,\ol{y}}{e'} = \formula{ t_K }
+%%   %% \end{array}
+%%   \end{array}
+%%   ------------------------------------------{DCase}
+%%   {\setlength{\arraycolsep}{1pt} 
+%%   \begin{array}{l}
+%%   \uutrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}^{min} = \\
+%%   \;\;\formula{ \begin{array}{l} 
+%%      \highlight{min(s)} => \\
+%%      \begin{array}{ll}
+%%           ( & \highlight{min(t)}\;\land \\
+%%             & (t = \bad => s = \bad)\;\land \\ 
+%%             & (\forall \ol{y} @.@ t = K_1(\ol{y}) => s = t_{K_1})\;\land \ldots \land \\
+%%             & (t{\neq}\bad\;\land\;t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s{=}\unr) \\
+%%           )
+%% %% (t = \bad /\ s = \bad)\;\lor\;(s = \unr)\;\lor \\
+%% %%                                 \quad      \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+%% %%                                            s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])
+%%                    \end{array}
+%%      \end{array}}
+%%   \end{array}}
+%%   %% {       \setlength{\arraycolsep}{2pt} 
+%%   %% \begin{array}{l}
+%%   %% \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
+%%   %% \;\;\formula{
+%%   %%      \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
+%%   %%                           \;\; (\highlight{min(s) => min(t)}\;\land  \\
+%%   %%                           \quad((t = \bad /\ s = \bad)\;\lor \\
+%%   %%                           \quad\quad \bigvee(t = K(\oln{{\sel{K}{i}}(t)}{}) \land
+%%   %%                                          s = t_K[\oln{\sel{K}{i}(t)}{}/\ol{y}])))
+%%   %%                  \end{array}
+%%   %%          }
+%%   %% \end{array}}
+%% \endprooftree
+%% \end{array}\]
+%% \caption{Program translation with minimization}\label{fig:min-def-trans-min}
+%% \end{figure}
 \newcommand{\SDownarrow}{\downarrow}
 
 The translation of programs to accomodate minimization requires only modification 
@@ -382,90 +406,138 @@ model in the case where there exists a counterexample in the $min$-enabled trans
 \paragraph{Finite model guarantees} 
 
 \begin{figure}\small
+\setlength{\arraycolsep}{2pt}
 \[\begin{array}{c} 
-\ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
-\prooftree
-  \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-  \end{array}
-  ------------------------------------------{CBase}
-  \begin{array}{l}
-   \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
-  %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
-   \quad \formula{\highlight{min(t) => (min(t'[t/x])\;}\land} \\ 
-   \quad \formula{\quad ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
-  \end{array}
-  ~~~~~ 
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
-  \end{array} 
-  ------------------------------------------{CArr}
-  \begin{array}{l} 
-  \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
-  \formula{\forall x @.@ \phi_1 \lor \phi_2}
-  \end{array}
-  ~~~~~
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
-  \end{array}
-  ------------------------------------------{CConj}
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
-  ~~~~~
-  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-  -------------------------------------------{CCf}
-  \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} => \lcf{t}}
- \endprooftree  \\ \\ 
-\ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
-\prooftree
-  \begin{array}{c}
-   \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
-   \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
-  \end{array}
-  ------------------------------------------{NCBase}
-  \begin{array}{l}
-   \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
-   \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
-   \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
-  \end{array}
-  ~~~~~ 
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
-  \end{array} 
-  ------------------------------------------{NCArr}
-  \begin{array}{l} 
-  \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
-  \formula{\exists x @.@ \phi_1 \land \phi_2}
-  \end{array}
-  ~~~~~
-  \begin{array}{c}
-  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
-  \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
-  \end{array}
-  ------------------------------------------{NCConj}
-  \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
-  ~~~~~
-  \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
-  -------------------------------------------{NCCf}
-  \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
- \endprooftree \\ \\ 
-\ruleform{\Th_\lcfZ^{min}} \\ \\ 
-\begin{array}{lll} 
- \textsc{AxCfBU}  & \formula{\lcf{\unr} /\ \lncf{\bad}} \\
- \textsc{AxCfMin} & \formula{\highlight{\forall x @.@ \lcf{x} => min(x) \lor x = unr}} \\
- %% \textsc{AxCfB1}   & \formula{\forall \oln{x}{n} @.@ \bigwedge_i (\lcf{x_i}\lor \neg(min(x_i))} => \lcf{K(\ol{x})} \lor \neg(min(K(\ol{x}))) \\
- %%                   & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\ 
- \textsc{AxCfC1} & \formula{\forall \oln{x}{n} @.@ \bigwedge\lcf{\ol{x}}} => \lcf{K(\ol{x})} \\
-                 & \text{ for every } (K{:}\forall\as @.@ \oln{\tau}{n} -> T\;\as) \in \Sigma \\
- \textsc{AxCfC2} & \formula{\highlight{min(K(\oln{x}{n}))\land\neg\lcf{K(\oln{x}{n})}}} \\ 
-                 & \formula{\quad\qquad\qquad \highlight{ => \bigvee_i (min(x_i)\land\neg\lcf{x_i})}}
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\
+\begin{array}{rcl}
+\ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}}
+  & = & \highlight{min(t) \land min(t'[t/x])} \\ 
+  & \land & t \neq \unr \\ 
+  & \land & t'[t/x] \neq \unr \\ 
+  & \land & t'[t/x] \neq True \\ 
+ \mbox{where} &  & 
+    \begin{array}[t]{lcl}
+      t  & = & \etrans{\Sigma}{\Gamma}{e} \\
+      t' & = & \etrans{\Sigma}{\Gamma}{e'}
+    \end{array}
+\\
+\ctrans{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2}
+  & = & \formula{\exists x @.@ \ctrans{\Sigma}{\Gamma,x}{x \in \Ct_1} 
+                          \land \ctrans{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2}}
+\\
+\ctrans{\Sigma}{\Gamma}{e \notin \Ct_1 \& \Ct_2}
+   & = & \formula{ \ctrans{\Sigma}{\Gamma}{e \notin \Ct_1} \lor 
+                   \ctrans{\Sigma}{\Gamma}{e \notin \Ct_2}}
+\\
+\ctrans{\Sigma}{\Gamma}{e \notin \CF} & = & \formula{\highlight{min(t)} \land
+                                               \neg\lcf{\etrans{\Sigma}{\Gamma}{e}}} \\ 
+\mbox{where}  &  & t = \etrans{\Sigma}{\Gamma}{e} \\ \\ 
+\end{array} \\ \\ 
+\ruleform{\ctrans{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\
+\begin{array}{rcl}
+\ctrans{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}}
+  & = & \highlight{min(t) => }  \\ 
+  &   & \begin{array}[t]{l} \highlight{(min(t'[t/x])} \land \\
+                           \;\;\begin{array}[t]{ll}
+                                      & (t{=}\unr\\ 
+                                 \lor & t'[t/x]{=}\unr \\ 
+                                 \lor & t'[t/x]{=}\True))
+                                \end{array}
+        \end{array} \\
+ \mbox{where}  &  &
+    \begin{array}[t]{lcl}
+      t  & = & \etrans{\Sigma}{\Gamma}{e} \\
+      t' & = & \etrans{\Sigma}{\Gamma}{e'}
+    \end{array}
+\\
+\ctrans{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2}
+  & = & \formula{\forall x @.@ \ctrans{\Sigma}{\Gamma,x}{x \notin \Ct_1} 
+                          \lor \ctrans{\Sigma}{\Gamma,x}{e\;x \in \Ct_2}}
+\\
+\ctrans{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2}
+   & = & \formula{ \ctrans{\Sigma}{\Gamma}{e \in \Ct_1} /\ \ctrans{\Sigma}{\Gamma}{e \in \Ct_2}}
+\\
+\ctrans{\Sigma}{\Gamma}{e \in \CF} & = & \formula{min(t) => \lcf{\etrans{\Sigma}{\Gamma}{e}}} \\
+\mbox{where}  &  & t = \etrans{\Sigma}{\Gamma}{e}
 \end{array}
 \end{array}\]
 \caption{Translation of contracts with minimization}\label{fig:min-typing}
 \end{figure}
+
+
+
+%% \ruleform{\ctransmin{\Sigma}{\Gamma}{e \in \Ct} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%   \begin{array}{c}
+%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+%%    \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+%%   \end{array}
+%%   ------------------------------------------{CBase}
+%%   \begin{array}{l}
+%%    \ctransmin{\Sigma}{\Gamma}{e \in \{(x{:}\tau) \mid e' \}} = \\
+%%   %% \Sigma;\Gamma |- e \in \{(x{:}\tau \mid e' \}
+%%    \quad \formula{\highlight{min(t) => (min(t'[t/x])\;}\land} \\ 
+%%    \quad \formula{\quad ((t{=}\unr) \lor (t'[t/x]{=}\unr) \lor (t'[t/x]{=}\True)))}
+%%   \end{array}
+%%   ~~~~~ 
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma,x}{x \notin \Ct_1} {=} \formula{\phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma,x}{e\;x \in \Ct_2} {=} \formula{\phi_2}
+%%   \end{array} 
+%%   ------------------------------------------{CArr}
+%%   \begin{array}{l} 
+%%   \ctransmin{\Sigma}{\Gamma}{e \in (x{:}\Ct_1) -> \Ct_2} = 
+%%   \formula{\forall x @.@ \phi_1 \lor \phi_2}
+%%   \end{array}
+%%   ~~~~~
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1} = \formula{ \phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_2} = \formula{ \phi_2}
+%%   \end{array}
+%%   ------------------------------------------{CConj}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 /\ \phi_2}
+%%   ~~~~~
+%%   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+%%   -------------------------------------------{CCf}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \CF} = \formula{\highlight{min(t)} => \lcf{t}}
+%%  \endprooftree  \\ \\ 
+%% \ruleform{\ctransmin{\Sigma}{\Gamma}{e \notin \Ct} = \formula{\phi}} \\ \\ 
+%% \prooftree
+%%   \begin{array}{c}
+%%    \etrans{\Sigma}{\Gamma}{e} = \formula{t} \quad
+%%    \etrans{\Sigma}{\Gamma,x}{e'} = \formula{t'}
+%%   \end{array}
+%%   ------------------------------------------{NCBase}
+%%   \begin{array}{l}
+%%    \ctransmin{\Sigma}{\Gamma}{e \notin \{(x{:}\tau) \mid e' \}} = \\
+%%    \quad\formula{\highlight{min(t)\;\land\;min(t'[t/x])}\;\land } \\
+%%    \quad\formula{\;\;((t{\neq}\unr) \land ((t'[t/x]{\neq}\unr) \land (t'[t/x]{\neq}\True)))}
+%%   \end{array}
+%%   ~~~~~ 
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma,x}{x \in \Ct_1} {=} \formula{\phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma,x}{e\;x \notin \Ct_2} {=} \formula{\phi_2}
+%%   \end{array} 
+%%   ------------------------------------------{NCArr}
+%%   \begin{array}{l} 
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin (x{:}\Ct_1) -> \Ct_2} = 
+%%   \formula{\exists x @.@ \phi_1 \land \phi_2}
+%%   \end{array}
+%%   ~~~~~
+%%   \begin{array}{c}
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_1} = \formula{ \phi_1} \quad
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin \Ct_2} = \formula{ \phi_2}
+%%   \end{array}
+%%   ------------------------------------------{NCConj}
+%%   \ctransmin{\Sigma}{\Gamma}{e \in \Ct_1 \& \Ct_2} = \formula{ \phi_1 \lor \phi_2}
+%%   ~~~~~
+%%   \etrans{\Sigma}{\Gamma}{e} =  \formula{t}
+%%   -------------------------------------------{NCCf}
+%%   \ctransmin{\Sigma}{\Gamma}{e \notin \CF} = \formula{\highlight{min(t)} \land \neg\lcf{t}}
+%%  \endprooftree
+%% \end{array}\]
+%% \caption{Translation of contracts with minimization}\label{fig:min-typing}
+%% \end{figure}
 
 Can we {\em guarantee} formally in some cases the existence of a finite model of the theory $\Th_{infty}^{min}$?
 The answer is yes for many practically important cases. We may define formally a variation on evaluation, 
