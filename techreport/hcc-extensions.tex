@@ -1,9 +1,55 @@
 \label{sect:induction}
 %% \subsection{Induction}\label{sect:induction}
 
-An important practical extension is the ability to prove contracts by induction. Unfortunately in 
-Haskell, datatypes are not inductive and hence ``ordinary'' induction without some extra care is 
-out of the question\dv{cite Dan's master thesis about datatype induction even for Haskell programs?}.
+An important practical extension is the ability to prove contracts about recursive functions
+using induction. For instance, we might want to prove that @length@ satisfies $\CF -> \CF$.
+\begin{code}
+length [] = Z 
+length (x:xs) = S (length xs)
+\end{code}
+In the second case we need to show that the result of @length xs@ is crash-free but we do not 
+have this information so the proof gets stuck, often resulting in the sat-solver looping. 
+
+A naive approach would be to perform induction over the list argument of @length@ -- however
+in Haskell datatypes may be lazy infinite streams and ordinary induction is not necessarily 
+a valid proof principle. Fortunately, we can still appeal to {\em fixpoint induction}. The 
+fixpoint induction sheme that we use for @length@ above would be to {\em assume} that the 
+contract holds for the occurence of @length@ inside the body of its definition, and then 
+try to prove it for 
+
+
+
+
+Fixpoint induction can be used to prove {\em admissible predicates} over denotations, 
+that is, predicates for which if the predicate holds for all elements of a chain in
+the domain, then it holds for the limit of that chain. 
+
+
+
+
+
+Consider the following function: 
+
+
+Unfortunately in 
+Haskell naively using some induction scheme is not guaranteed to work, so extra care is needed. For
+instance consider the function:
+\begin{code}
+ bList Z = [True]
+ bList (S x) = False : bList x
+\end{code}
+and a function @last :: List Bool -> Bool@ which returns the right-most element of a list.
+The interesting property of @bList@ is that @last (bList Z) = True@ and moreover, if 
+@last (bList y) = True@ we also get @last (bList (S y)) = True@, nevertheless it is 
+false that this property is true for {\em every} @x@, as the stream @s = S s@ is a 
+counterexample.
+
+Fortuanately, we can still perform {\em fixpoint induction} when we wish to prove a contract
+for a new function. 
+
+Fortunately, although induciton on data types 
+
+\dv{cite Dan's master thesis about datatype induction even for Haskell programs?}.
 \dv{Do we need an example or is this obvious? Simon?}
 
 Fortunately, we can still perform {\em fixpoint induction} whenever we would like to prove something 
