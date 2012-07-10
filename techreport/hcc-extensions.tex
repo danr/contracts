@@ -1,4 +1,6 @@
-\newcommand{\ThMin}{\Th_{\infty}^{min}}
+\newcommand{\ThMin}{\Th^{min}}
+\newcommand{\utransmin}[3]{\utrans{#1}{#2}{#3}^{min}} 
+\newcommand{\dtransmin}[3]{\dtrans{#1}{#2}{#3}^{min}} 
 
 So far we have described the basic translation of the denotational semantics, programs, and contracts
 to first-order logic. However, to enable verification of contracts in practice we must consider two 
@@ -93,7 +95,7 @@ refer to the terms in the $min(\cdot)$ predicate as the {\em set of terms we are
 \end{figure}
 
 Figure~\ref{fig:min-theory} presents a variation of $\Th$, called $\ThMin$, which includes minimization.
-In this figure, we have highlighted the parts where our theory differs compared to $\Th_\infty$ from
+In this figure, we have highlighted the parts where our theory differs compared to $\Th$ from
 Figure~\ref{fig:prelude}. The first interesting axiom is \rulename{AxAppMin} which asserts that, if an 
 appliction $app(x,y)$ has been evaluated during the execution of a counterexample, then so has $x$. This
 is axiom is simple reflecting the evaluation order in an operational semantics. The most crucial axioms for
@@ -104,15 +106,16 @@ that we get back from a theorem prover can conflate this value to other values o
 Similarly \rulename{AxDisjCBU} asserts that a constructor value is not $\unr$ nor $\bad$ if it is an interesting value. 
 Finally, the selector axiom group \rulename{AxInj} has been modified to guard the selector value as one would expect.
 
+We defer a detailed discussion of the crash-freeness axiomatization until the next section.
 
 \begin{figure}\small
 \setlength{\arraycolsep}{2pt}
 \[\begin{array}{c}
-\ruleform{\utrans{\Sigma}{u}{s} = \formula{\phi}} \\ \\
+\ruleform{\utransmin{\Sigma}{u}{s} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
-\utrans{\Sigma}{e}{s}
+\utransmin{\Sigma}{e}{s}
   & = & \formula{(s = \etrans{\Sigma}{\Gamma}{e})} \\
-\multicolumn{3}{l}{\utrans{\Sigma}
+\multicolumn{3}{l}{\utransmin{\Sigma}
     {@case@\;e\;@of@\;\ol{K\;\ol{y} -> e'}}{s}} \\
 \multicolumn{3}{l}{
 \quad
@@ -127,11 +130,11 @@ Finally, the selector axiom group \rulename{AxInj} has been modified to guard th
 }
 \end{array}
 \\ \\
-\ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
+\ruleform{\dtransmin{\Sigma}{d} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
   \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u}
-    & =     & \formula{\forall \ol{x} @.@ \highlight{min(f(\ol{x})} => \utrans{\sigma}{u}{f(\ol{x})}} \\
-    & \land & \formula{\forall \ol{x} @.@ \highlight{min(f(\ol{x})} => f(\ol{x}) = app(f_{ptr},\xs)} \\
+    & =     & \formula{\forall \ol{x} @.@ \highlight{min(f(\ol{x})} => \utransmin{\sigma}{u}{f(\ol{x})}} \\
+    & \land & \formula{\forall \ol{x} @.@ \highlight{app(f_{ptr},\xs)} => f(\ol{x}){=}app(f_{ptr},\xs)} \\
 \end{array}
 \end{array}\]
 \caption{Program translation with minimization}\label{fig:min-def-trans-min}
@@ -178,7 +181,7 @@ Finally, the selector axiom group \rulename{AxInj} has been modified to guard th
 %%   \end{array}}
 %%   %% {       \setlength{\arraycolsep}{2pt} 
 %%   %% \begin{array}{l}
-%%   %% \utrans{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
+%%   %% \utransmin{\Sigma}{\Gamma}{s \sim @case@\;e\;@of@\;\ol{K\;\ol{y}{->}e'}} = \\
 %%   %% \;\;\formula{
 %%   %%      \begin{array}{l} (\highlight{s{=}\unr})\;\lor \\ 
 %%   %%                           \;\; (\highlight{min(s) => min(t)}\;\land  \\
@@ -195,22 +198,22 @@ Finally, the selector axiom group \rulename{AxInj} has been modified to guard th
 \newcommand{\SDownarrow}{\downarrow}
 
 The translation of programs to accomodate minimization requires only modification 
-to the $\uutrans{}{\Gamma}{u}$ judgement, which now become $\uutrans{}{\Gamma}{u}^{min}$. Its definition
-is given in Figure~\ref{fig:min-def-trans-min}. Rule \rulename{DExp} is unfolding a function
-defininion only if the result of the function is in the $min(\cdot)$ set. Rule \rulename{DCase}
-has the same flavor. However if we have $min(s)$ then the focus of evaluation in the counterexample
-will move on to the scrutinee of the case expression, and hence we get a $min(t)$ predicate, where the 
-term $t$ is the FOL translation of the case scrutinee $e$.
+to the $\utrans{}{u}{s}$ judgement, which now become $\utransmin{}{u}{s}$. Its definition
+is given in Figure~\ref{fig:min-def-trans-min}. The important modification is that function definitions
+and full applications of $app(\cdot,\cdot)$ on some function are unfolded only if we are interested
+in the result of the function. Moreover, case expressions {\em shift} the focus of evaluation to the 
+case scrutinee, hence the extra $min(t)$ predicate in the translation of @case@ expressions ($t$ is the 
+FOL translation of the scrutinee $e$).
 
 An easy property of this translation is that it yields a theory that still admits the denotational model 
 when we interpret $min$ as the everywhere-true predicate:
 \begin{theorem} $\langle D_\infty, {\cal I}\uplus min |-> \lambda d.true\rangle \models \ThMin$. \end{theorem} 
 
-However, we shall later prove that, unlike $\Th_\infty$, the new theory $\ThMin$ does admit in many practical 
-cases finite models along with infinite ones (such as $\langle D_{\infty},{\cal I}\rangle$), and these finite 
-models are directly induced from finite traces of failed programs.
+However, we shall later prove that, unlike $\Th$, the new theory $\ThMin$ does admit in many practical 
+cases finite models along with infinite ones (such as $\langle D_{\infty},{\cal I}\rangle$), and these 
+finite models are directly induced from concrete finite traces of failed programs.
 
-
+\dv{HEre here her} 
 
 \subsection{Minimization in contracts}
 \newcommand{\ctransmin}[3]{\ctrans{#1}{#2}{#3}^{min}} 
