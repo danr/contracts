@@ -33,19 +33,23 @@ The notation $C =>_c D$ denotes the cpo
 induced by the space of continuous functions from the cpo $C$ to the cpo $D$. We use 
 the notation $\unitcpo_{bad}$ to 
 denote a single-element cpo -- the $bad$ subscript is just there for readability. 
-The notation $D_\bot$ is {\em lifting}, which is a monad, equipped with the following two continuous 
-functions.
-\[\begin{array}{l}
-   \retK   : D =>_c D_\bot \\ 
-   \bindK_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
-\end{array}\]
-with the obvious definitions. 
+The notation $D_\bot$ is {\em lifting}.
+% , which is a monad, equipped with the following two continuous 
+% functions.
+% \[\begin{array}{l}
+%    \retK   : D =>_c D_\bot \\ 
+%    \bindK_{f : D =>_c E_\bot} : D_\bot =>_c E_\bot
+% \end{array}\]
+% with the obvious definitions. 
 
-Observe that we have dropped all type information from the source language. The elements of the products 
-corresponding to data constructors are simply $D^{+}$ (instead of more a precise description from type 
-information) and the return types of data constructors are similarly ignored. This is not to say that 
-a more type-rich denotational semantics is not possible (or desirable even) but this simple denotational 
-semantics turns out to be sufficient for formalisation and verification. 
+Observe that we have dropped all type information from the source
+language. The elements of the products corresponding to data
+constructors are simply $D^{+}$ (instead of more a precise description
+from type information) and the return types of data constructors are
+similarly ignored. This is not to say that a more type-rich
+denotational semantics is not possible (or desirable even) but this
+simple denotational semantics turns out to be sufficient for
+formalisation and verification.
 
 %% for $\lambda$-abstractions and @BAD@. Observe that we have 
 %% Moreover, the following continuous operations are defined:
@@ -55,12 +59,11 @@ semantics turns out to be sufficient for formalisation and verification.
 %% \end{array}\] 
 %% for any cpos $D, E, F$.
 
-\spj{What is ``the equation induced by F''?  Maybe $$D_{\infty} = F( D_{\infty}, D_{\infty})$$? 
-Let's write it down.}
-Using the standard {\em embedding-projection} pairs methodology we can show the following.
-\begin{lemma}\label{lem:rec-solution} 
-There exists a solution to the domain-recursive equation induced by $F$, call it $D_{\infty}$.
-Moreover, let a value-domain: $V_{\infty}$ be defined as:
+Now we can define $D_{\infty}$ as the solution to this recursive domain equation
+$$D_{\infty} = F( D_{\infty}, D_{\infty})$$
+We can show that $D_{\infty}$ exists using the 
+standard {\em embedding-projection} pairs methodology. Moreover, we define the
+value domain $V_{\infty}$ thus:
     \[V_{\infty} = \begin{array}[t]{ll}
              \quad\;{\prod_{\ar_1}{D_{\infty}}} & K_1^{\ar_1} \in \Sigma \\
              \; + \;\ldots                    & \ldots \\
@@ -68,13 +71,26 @@ Moreover, let a value-domain: $V_{\infty}$ be defined as:
              \; + \;(D_{\infty} =>_c D_{\infty}) \\
              \; + \;\unitcpo_{bad} \quad
     \end{array}\]
-The following continuous functions also exist, each being the inverse of the 
-other (i.e. composing to the identity function on the corresponding cpo):
-\[\begin{array}{l}
-  \rollK : (V_{\infty})_\bot =>_c D_{\infty} \\ 
-  \unrollK : D_{\infty} =>_c (V_{\infty})_\bot
+The following continuous functions also exist:
+% , each being the inverse of the 
+% other (i.e. composing to the identity function on the corresponding cpo):
+\[\begin{array}{rcl}
+  \retK   & : & D =>_c D_\bot \\ 
+  \bindK_{f : D =>_c E_\bot} & : & D_\bot =>_c E_\bot \\
+  \rollK & : & (V_{\infty})_\bot =>_c D_{\infty} \\ 
+  \unrollK & : &D_{\infty} =>_c (V_{\infty})_\bot
 \end{array}\] 
-\end{lemma}
+However in what follows we will always elide these functions to reduce clutter.
+
+To denote elements of $V_{\infty}$ we use the following notation.
+\begin{itemize}
+\item $\injK{K}{d_1, \ldots, d_n}$ denotes the injection of
+the $n$-ary product of $D_{\infty}$ into the component of the sum 
+$V_{\infty}$ corresponding to the $n$-ary constructor $K$.  
+\item $\injFun{d}$ is the injection of 
+an element of $D_{\infty} =>_c D_{\infty}$ into the function component of $V_{\infty}$
+\item $\injBad$ is the unit injection into $V_{\infty}$.
+\end{itemize}
 
 %% We summarize the (standard) construction needed for the proof of Lemma~\ref{lem:rec-solution} based on embedding-projection pairs, 
 %% because some of its details will be useful later. Consider the chain of cpos $D_i$ defined as: 
@@ -162,35 +178,27 @@ other (i.e. composing to the identity function on the corresponding cpo):
 
 \paragraph{Definability of application}
 We may now {\em define} application $\dapp : D_\infty \times D_\infty =>_c D_\infty$ as a continuous
-function: 
+function\footnote{
+A small technical remark: we write
+the definition with pattern matching notation
+$\dapp(d,a)$ (instead of using $\pi_1$ for projecting
+out $d$ and $\pi_2$ for projecting out $a$) but that is fine,
+since $\times$ is not a lifted construction.
+Also note that we are, as advertised, suppressing uses
+of $\bindK$, $\rollK$, etc.
+}: 
 {\setlength{\arraycolsep}{2pt}
 \[\begin{array}{rcll}
-  \dapp & = & \multicolumn{2}{l}{\dlambda d @.@ \roll{ \bind{g}{\unroll{\pi_1(d)}}}} \\
-  \text{ where } g & = &  [ & \bot : \prod_{\ar_1}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
-                    &   &  , & \ldots \\
-                    &   &  , & \bot : \prod_{\ar_k}{D_\infty} =>_c D_\infty =>_c (V_\infty)_\bot \\
-                    &   &  , & \dlambda d' @.@ \unroll{d'(\pi_2(d))} \\
-                    &   &  , & \dlambda b @.@ \dlambda d. \ret{\inj{bad}(b)}\hspace{2pt} ] 
+  \dapp(d,a) & = & d_f(a)    & \text{if}\; d = \injFun{d_f} \\
+             & = & \injBad & \text{if}\; d = \injBad \\
+             & = & \bot    & \text{otherwise} 
 \end{array}\]}%
-Informally, what does the $\dapp$ combinator express? If the first
-argument is $\bot$ it will return $\bot$, if the first argument is an
-injection $\inj{bad}$ it will return the same, if it corresponds to a
-data constructor it will return $\bot$. Finally, if the first element
-is indeed a function, it will apply it.
-\spj{Why not use $\dapp(fun, arg) = ...$ rather than all this stuff with angle brackets and pis. 
-That just adds clutter.}
-As a notational convention, we have used notation $\langle , \rangle$ to introduce pairs and $[\ldots]$ to 
-eliminate ($n$-ary) sums. 
-\spj{I don't understand the $[\ldots]$ notation.}
-The projections $\pi_1$ and $\pi_2$ are the obvious continuous projections from the 
-binary product space of $D_{\infty}$. We use notation $\inj{K}$ to denote the continuous map that injects some $n$-ary product of $D_{\infty}$ 
-corresponding to the arity of constructor $K$ into the sum $V_{\infty}$.
-We use notation $\inj{->}$ to denote the continuous injection of $(D_{\infty} =>_c D_{\infty})$ into $V_{\infty}$ and finally, 
-$\inj{bad}$ for the unit injection into $V_{\infty}$. We use ordinary application notation 
-$d(d')$ \spj{instead of $app(d,d')$?} when $d : D_\infty =>_c D_\infty$ and
-$d'$ is an element of $D_\infty$. \spj{Why inconsistent notation? Why not say $d':D_{\infty}$?}
-Indeed application, partial application, and currying are all definable in cpos of continuous functions, 
-so we will be using $\lambda$-calculus notation for our domain theory, as above. 
+That is, application applies the summand if the function $d$ comes
+from the appropriate component of $V_{\infty}$, propagates $\injBad$,
+and otherwise returns $\bot$.  Indeed application, partial
+application, and currying are all definable in cpos of continuous
+functions, so we will be using $\lambda$-calculus notation for our
+domain theory, as above.
 
 \subsection{Denotational semantics of expressions and programs}
 
@@ -202,35 +210,26 @@ $$
 \multicolumn{3}{l}{\interp{e}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\
   \interp{x}{\sigma}{\rho} & = & \rho(x) \\ 
   \interp{f\;[\taus]}{\sigma}{\rho} & = & \sigma(f) \\
-  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll{\ret{\inj{K}(\langle\interp{\ol{e}}{\sigma}{\rho}\rangle)}} \\ 
-  \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\langle \interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}\rangle) \\ 
-  \interp{@BAD@}{\sigma}{\rho} & = & \roll{\ret{\inj{bad}1}} \\[2mm] 
+  \interp{K\;[\taus]\;(\ol{e})}{\sigma}{\rho} & = & \roll{\ret{\injK{K}{\ol{\interp{e}{\sigma}{\rho}}}}} \\ 
+  \interp{e_1\;e_2}{\sigma}{\rho} & = & \dapp(\interp{e_1}{\sigma}{\rho}, \interp{e_2}{\sigma}{\rho}) \\ 
+  \interp{@BAD@}{\sigma}{\rho} & = & \roll{\ret{\injBad}} \\[2mm] 
 \hline \\
-\multicolumn{3}{l}{\interp{u}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\
-  \interp{e}{\sigma}{\rho} & = & \interp{e}{\sigma}{\rho} \\
+\multicolumn{3}{l}{\interp{u}{\cdot}{\cdot} : (\FVarCpo =>_c D_{\infty}) \times (\VarCpo =>_c D_{\infty}) =>_c D_{\infty}} \\[1mm]
+  \interp{e}{\sigma}{\rho} & = & \interp{e}{\sigma}{\rho} \\[1mm]
   \interp{@case@\;e\;@of@ \ol{ K\;\ys -> e_K}}{\sigma}{\rho} 
-          & = & \roll{\bind{g}{\unroll{\interp{e}{\sigma}{\rho}}}} \\ 
-  \text{ where } g  & = & \begin{array}[t]{ll} 
-                             [ & h_{K_1} \\
-                             , & \ldots \\
-                             , & h_{K_k} \\
-                             , & \bot \\ 
-                             , & \dlambda b @.@ \ret{b} \hspace{2pt} ] 
-                           \end{array} \\ 
-              h_{K} & =  & \dlambda d @.@ \unroll{\interp{e_K}{\sigma}{\rho, \ol{y |-> \pi_i(d)}}} \\ 
-                    &   &  \text{when } K \text{ is in the branches} \\
-              h_{K}  & = & \bot \\ 
-                    &   &  \text{otherwise}
+          & = & \unroll{\interp{e_K}{\sigma}{\rho, \ol{y |-> d}}} \\ 
+          & & \quad \text{if $\unroll{\interp{e}{\sigma}{\rho}} = \injK{K}{\ol{d}}$} \\
+          & & \quad \text{and $K$ is a @case@ branch} \\
+          & = & \injBad \quad \text{if}\; \unroll{\interp{e}{\sigma}{\rho}} = \injBad \\
+          & = & \bot \quad \text{otherwise}
 \end{array} \\
 \hline \\
 \begin{array}{rcl}
-\multicolumn{3}{l}{\dbrace{P} : (\FVarCpo =>_c D_{\infty}) =>_c (\FVarCpo =>_c D_{\infty})}  \\
-\dbrace{P}_{\sigma} f & = & 
-   \text{ if } (f\;\ol{a}\;\ol{x} = u) \in P \\
-&& \text{ then } \\
-&& \quad\quad \roll{\ret{\inj{->}(\dlambda d_1 @.@ \ldots  \\
-&& \quad\quad\quad \roll{\ret{\inj{->}(\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}})}}\ldots)}} \\
-&& \text{ else } \bot 
+\multicolumn{3}{l}{\dbrace{P} : (\FVarCpo =>_c D_{\infty}) =>_c (\FVarCpo =>_c D_{\infty})}  \\[1mm]
+\dbrace{P}_{\sigma} f & = & \roll{\ret{\injFun{\dlambda d_1 @.@ \ldots
+       \roll{\ret{\injFun{\dlambda d_n @.@ \interp{u}{\sigma}{\ol{x |-> d}}}}}\ldots}}} \\
+ && \quad \text{ if } (f\;\ol{a}\;\ol{x} = u) \in P \\
+          & = & \bot \quad \text{otherwise}
 \end{array}
 \end{array}
 $$
@@ -247,23 +246,20 @@ cpo $\FVarCpo$. We define, {\em semantic term environments} to be the cpo $(\Var
 and {\em semantic function environments} to be the cpo $(\FVarCpo =>_c D_{\infty})$. 
 
 Figure~\ref{f:denot} defines the denotational semantics of expressions
-$\dbrace{e}$ as a continuous map from these two environments to $D_{\infty}$.  
-A small technical remark: we write
-the definition with pattern matching notation
-$\langle \sigma,\rho \rangle$ (instead of using $\pi_1$ for projecting
-out $\sigma$ and $\pi_2$ for projecting out $\rho$) but that is fine,
-since $\times$ is not a lifted construction.
+$\dbrace{e}$ as a continuous map from these two environments to $D_{\infty}$,
+which is entirely straightforward.
 
-The semantics of right-hand sides $u$ is defined similarly.
-A case expression is really translated into a denotational case expression, with the following intuition: For every
-constructor that appears in the branches $\ol{K\;\ys -> e_K}$ we eliminate it and return the denotation of the right-hand
-side, for the rest of the constructors we simply return $\bot$. Importantly we do {\em not} return $\inj{bad}$ in this 
-latter case, as all the missing cases can only be constructors of different datatypes than the 
-datatype that $K$ belongs to, because all @case@ expressions are complete (Section~\ref{s:syntax}). 
-As a consequence, returning the ``benign'' value $\bot$ is the right thing to do if we are 
-to completely ignore type errors
-in our denotational semantics. \spj{Have we mentioned that we are going to ``ignore'' 
-type errors?  Why is $\bot$ ``benign''?}
+The semantics of right-hand sides $u$ is defined similarly.  The 
+semantics of a @case@ expression is the semantics of the matching branch,
+if one exists. Otherise, like application, it propagates $\injBad$.
+In all other cases we return $\bot$, not $\injBad$; 
+all the missing cases can only be constructors
+of different datatypes than the datatype that $K$ belongs to, because
+all @case@ expressions are complete (Section~\ref{s:syntax}).  As a
+consequence, returning the ``benign'' value $\bot$ is the right thing
+to do if we are to completely ignore type errors in our denotational
+semantics. \spj{Have we mentioned that we are going to ``ignore'' type
+errors?  Why is $\bot$ ``benign''?}
 
 Finally, Figure~\ref{f:denot} gives the semantics of a program $P$, which should
 be read recalling its syntax in Figure~\ref{fig:syntax}.
@@ -273,7 +269,8 @@ cpo $\FVarCpo =>_c D_{\infty}$.
 \begin{definition}
 We will refer to the limit of the $\dbrace{P}$ as $\dbrace{P}^{\infty}$ in what follows. 
 Moreover, to reduce notational overhead below, for a program with no free variables we 
-will use notation $\dbrace{e}$ to mean $\interp{e}{\dbrace{P}^\infty}{\cdot}$.
+will use notation $\dbrace{e}$ to mean $\interp{e}{\dbrace{P}^\infty}{\cdot}$, and
+$\dbrace{e}_\rho$ to mean $\interp{e}{\dbrace{P}^\infty}{\rho}$
 \end{definition}
 
 Types do not matter at all for our denotational semantics.
