@@ -6,12 +6,10 @@ The desugared Haskell program is expressed in GHC's intermediate language
 call Core, an explicitly-typed variant of System F.  It is straightforward
 to translate this into our language $\cal L$.
 
-\subsection{Using the tool}
+\subsection{Expressing contracts in Haskell}
 
-How does the user express contracts? We use HOAS and let the user define
-contracts by primitive connectives, which can be extended by the user.
-The connectives are defined as a GADT, where @Contract t@ is a 
-a contract for a function of type @t@:
+How does the user express contracts?  We write contracts in Haskell
+itself, using higher-order abstract syntax and a GADT:
 \begin{code}
 data Contract t where
   (:->) :: Contract a -> (a -> Contract b) ->
@@ -20,11 +18,14 @@ data Contract t where
   CF    :: Contract a
   (:&:) :: Contract a -> Contract a -> Contract a
 \end{code}
-
+A value of type @Contract t@ is a 
+a contract for a function of type @t@.
 The connectives are @:->@ for dependent contract function space, @CF@
 for crash-freedom, @Pred@ for predication, and
 @:&:@ for conjunction. 
-A useful derived connective is non-dependent function space:
+One advantage of writing contracts as Haskell terms is that
+we can use Haskell itself to build new contract combinators.
+For example, a useful derived connective is non-dependent function space:
 \par {\small
 \begin{code}
 (-->) :: Contract a -> Contract b -> Contract (a->b)
@@ -69,11 +70,12 @@ f . g = \x -> f (g x)
 c_head :: Statement
 c_head = head ::: CF :&: Pred (not . null) --> CF
 \end{code}
-Upon saving this file to, say, @Head.hs@ and running @halo Head@, 
-@halo@ translates the contract (and the supporting definitions) into
+If we put this definition in a file @Head.hs@, together with the supporting
+definitions of @head@, @not@, and @null@, 
+then we can run @halo Head.hs@. 
+The @halo@ program translates the contract (and the supporting definitions) into
 FOL, generates a TPTP file and invokes a theorem prover.
-In fact @c_head@ 
-is verified by all theorem provers we tried.
+And indeed @c_head@ is verified by all theorem provers we tried.
 
 \subsection{Practical considerations}
 

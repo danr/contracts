@@ -580,11 +580,9 @@ We have developed a formal semantics for expressions as well as contracts, so it
 see how we can use this semantics to show that our translation to first-order logic is sound 
 with respect to this semantics. 
 
-Our plan about how to do this is to give an interpretation (in the FOL sense of the term) to our 
-translated FOL terms, using the carrier set of $D_\infty$ as our model. 
-We need to give an interpretation of the functions and constants in our 
-first-order signature as functions operating on elements of $D_\infty$ (they do not need themselves
-be continuous or injectable into $D_\infty$). Happily this is straightforward to do:
+Our plan is to give an interpretation (in the FOL sense of the term) to our 
+translated FOL terms, using the carrier set $D_\infty$ as our model. 
+Happily this is straightforward to do:
 \[\begin{array}{rcl}
    \linterp{f(\ol{t})} & = & \dapp(\dbrace{f},\ol{\linterp{t}}) \\ 
    \linterp{app(t_1,t_2)}     & = & \dapp(\linterp{t_1}, \linterp{t_2}) \\

@@ -329,8 +329,8 @@ we discuss in Section~\ref{s:cf-fol}.
 \ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
   \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u}
-    & =     & \formula{\forall \ol{x} @.@ \utrans{\sigma}{u}{f(\ol{x})}} \\
-    & \land & \formula{\forall \ol{x} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+    & =     & \formula{\forall \ol{x} @.@\, \utrans{\sigma}{u}{f(\ol{x})}} \\
+    & \land & \formula{\forall \ol{x} @.@\, f(\ol{x}) = app(f_{ptr},\xs)} \\
 \end{array}
 \\ \\
 \ruleform{\utrans{\Sigma}{u}{s} = \formula{\phi}} \\ \\
@@ -429,12 +429,12 @@ a FOL theorem prover. \spj{Dimitrios, can you forward-ref a theorem that states 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
 The function $\ptrans{}{P}$ translates a program to a conjunction of formulae,
-one for each definition $d$, while $\dtrans{}{d}$ in turn translates
-a definition $d$.
-The first formula in $\dtrans{}{}$'s right-hand side invokes the translation
-$\utrans{}{u}{f(\ol{x})}$ for the right hand side $u$, passing in the term $f(\ol{x})$,
-and quantifying over the $\ol{x}$.  We will deal with the second formula shortly.
-
+one for each definition $d$, using $\dtrans{}{d}$ to translate
+each definition.
+The first clause in $\cal D$s right-hand side uses $\cal U$ to 
+translate the right hand side $u$, and quantifies over the $\ol{x}$.  
+We will deal with the second clause of $\cal D$
+in Section~\ref{s:hof}.
 
 Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}),
 the formula $\utrans{}{e}{f(\ol{x})}$
@@ -445,23 +445,23 @@ $f$'s right hand side. Notice that we erase type arguments in the translation
 since they do not affect the semantics.
 
 Lastly $\etrans{}{}{e}$ deals with expressions.  We will deal with
-functions and application next
+functions and application shortly
 (Section~\ref{s:hof}), but the other equations for $\etrans{}{}{e}$
 are straightforward.  Notice that $\etrans{}{}{@BAD@} = bad$, and recall
 that @BAD@ is the $\cal L$-term used for an inexhaustive @case@ or a call
 to @error@.  It follows from our guiding principle
 that for any $e$, if
-$$ \etrans{}{}{e} =_F bad $$
+$$ \etrans{}{}{e} = bad $$
 in the logic, then the source program $e$
 must be semantically equivalent to @BAD@, meaning that it definitely
-crashes by calling @error@, or having an inexhaustive @case@.
+crashes.
 
 \spj{We ought to say a bit more about $unr$ somewhere}
 
 \subsection{Translating higher-order functions} \label{s:hof}
 
 If $\cal L$ was
-a first-order language the translation of function calls would be easy:
+a first-order language, the translation of function calls would be easy:
 $$
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]\;\ol{e}} = \formula{f(\ol{\etrans{}{}{e}})} \\
 $$
@@ -494,7 +494,7 @@ This translation of higher-order functions to first-order logic may be
 easy, but it is not complete. In particular, in first-order logic we
 can only reason about functions with a concrete first-order
 representation (i.e. the functions that we already have and their
-(partial) applications) but, for example, lambda expressions cannot be
+partial applications) but, for example, lambda expressions cannot be
 created during proof time. Luckily, the class of properties we reason
 about (contracts) never require us to do so.
 
@@ -576,14 +576,14 @@ because it can crash if evaluated in the context @fst (BAD, True)@.  Of course,
 the context itself should not be the source of the crash; for example @(True,False)@ is
 crash-free even though @BAD (True,False)@ will crash.
 
-We use the FOL term $\lcf{t}$ to assert that $t$ is crash-free. The axioms for $\lcf{}$
+We use the FOL term $\lcf{t}$ to assert that $t$ is crash-free. The axioms for $\lcfZ$
 are given in Figure~\ref{fig:prelude}.  \textsc{AxCfC} says that a data constructor application
 is crash-free if and only iff its arguments are crash-free.  \textsc{AxCfBU} says that
 $unr$ is crash-free, and that $bad$ is not.  That turns out to be all that we need.
 
 \subsection{Summary}
 
-That completes our formally-described --- but only informally-justified --- translation
+That completes our formally-described --- but so far only informally-justified --- translation
 from a $\cal L$ program and a set of contract claims, into first-order logic.
 To a first approximation, we can now turn the whole formula over to a FOL prover,
 and hope that it proves the assertion.
