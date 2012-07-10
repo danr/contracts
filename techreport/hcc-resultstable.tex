@@ -6,87 +6,112 @@
 \begin{figure}
 
 \begin{center}
-\begin{unsrestab}
+\begin{restab}
 
- & \multicolumn{4}{c | }{Equinox}
- & \multicolumn{4}{c | }{Z3}
- & \multicolumn{4}{c  }{Vampire}
+ Description
+ & \multicolumn{2}{c}{e-nox}
+ & \multicolumn{2}{c}{Z3}
+ & \multicolumn{2}{c}{vamp}
+ & \multicolumn{2}{c}{E}
  \\
-
-Description
- & \multicolumn{2}{c}{min} & \multicolumn{2}{c |}{w/o}
- & \multicolumn{2}{c}{min} & \multicolumn{2}{c |}{w/o}
- & \multicolumn{2}{c}{min} & \multicolumn{2}{c }{w/o}
-  \\
 
 \hline
 
-@ack@ CF          & 1&61  & \tol & 0&04 & 0&02 & 0&47 & 0&14 \\
-@any@ morphism    & 10&40 & \tol & 0&07 & 0&04 & \tot & \tot \\
-@foldr1@ CF       & 2&50  & \tol & 0&04 & 0&01 & 1&20 & 1&16 \\
-@filter@ @all@    & 3&24  & \tol & 0&05 & 0&04 & \tot & \tot \\
-@concatMap@ CF    & 0&87  & \tol & 0&04 & 0&04 & 0&38 & 4&65 \\
-@invariant@ CF    & 23&37 & \tol & 0&08 & \tol & \tot & \tot \\
-@map@ invariant   & 22&82 & \tol & 0&17 & \tol & \tot & \tot \\
-@neg@ invariant   & \tot  & \tol & 0&83 & \tol & \tot & \tot \\
-@(++)@ inv. @all@ & \tot  & \tol & 0&08 & \tol & 2&70 & \tot \\
-acc @exp@ CF      & 0&54  & \tol & 0&06 & 0&04 & 2&27 & 3&44 \\
-@iterate@ CF      & 0&42  & 5&82 & 0&03 & 0&00 & 0&18 & 0&00 \\
-@iterTree@ CF     & 1&85  & \tol & 0&03 & 0&00 & 2&90 & 0&01 \\
-@repeat@ CF       & 0&10  & 0&05 & 0&03 & 0&00 & 0&01 & 0&00 \\
-@risersBy@        & 26&18 & \tol & \tot & \tol & 7&80 & 0&82 \\
-@shrink@          & 5&64  & \tol & 0&05 & 0&05 & 2&04 & \tot \\
-@withMany@        & 21&51 & \tol & 0&05 & 0&01 & 3&96 & \tot \\
-\end{unsrestab}
+ack CF                       & \tol & 0&03 & 0&04 & \tot \\
+app CF                       & \tol & 0&03 & \tol & 0&45 \\
+any CF                       & \tol & 0&00 & \tol & 0&04 \\
+app any morphism             & \tol & 0&04 & \tol & \tot \\
+filter all                   & \tol & 0&04 & \tol & \tot \\
+all CF                       & \tol & 0&00 & \tol & 0&04 \\
+filter all only pred         & \tol & 0&03 & \tol & \tot \\
+foldr1 CF                    & \tol & 0&00 & \tol & \tot \\
+head contract                & \tol & 0&00 & 0&01 & 0&00 \\
+iterTree CF                  & \tol & 0&00 & 0&01 & 0&02 \\
+iterate CF                   & \tol & 0&00 & 0&00 & 0&01 \\
+lefts CF                     & \tol & 0&00 & \tol & 0&01 \\
+repeat CF                    & 0&05 & 0&00 & 0&00 & 0&00 \\
+id four rec true             & 0&06 & 0&02 & 0&01 & 0&00 \\
+loop CF                      & 0&00 & 0&00 & 0&00 & 0&01 \\
+loop isnt zero               & 0&01 & 0&00 & 0&00 & 0&01 \\
+loop zero                    & 0&00 & 0&00 & 0&00 & 0&00 \\
+recursive true and CF        & 0&10 & 0&00 & 0&19 & 0&00 \\
+recursive true CF            & 0&05 & 0&00 & 0&00 & 0&01 \\
+map ret invariant wo all CF  & \tol & \tol & \tol & \tot \\
+neg retains invariant        & \tol & \tol & \tol & \tot \\
+invariant CF                 & \tol & \tol & \tol & \tot \\
+and CF                       & 0&01 & 0&00 & 0&00 & 0&00 \\
+append CF                    & \tol & 0&03 & \tol & 0&38 \\
+append retains invariant     & \tol & \tol & \tol & \tot \\
+concatMap CF                 & \tol & 0&02 & \tol & \tot \\
+not CF                       & 0&00 & 0&00 & 0&00 & 0&00 \\
+concatMap retains invariant  & \tol & \tol & \tol & \tot \\
+or CF                        & 0&01 & 0&00 & 0&00 & 0&00 \\
+flattenAnd CF                & \tol & 0&03 & 0&06 & 0&07 \\
+flattenAnd retains invariant & \tol & \tol & \tol & \tot \\
+map retains invariant        & \tol & \tol & \tol & \tot \\
+neg retains invariant        & \tol & \tol & \tol & \tot \\
+append CF                    & \tol & 0&03 & \tol & 0&37 \\
+double CF                    & 0&21 & 0&03 & \tol & 0&01 \\
+even CF                      & \tol & 0&00 & 0&00 & 0&00 \\
+half CF                      & \tol & 0&00 & \tol & 0&09 \\
+ind CF                       & 0&11 & 0&00 & 0&28 & 0&00 \\
+length CF                    & 0&86 & 0&00 & \tol & 0&01 \\
+plus CF                      & \tol & 0&00 & \tol & 0&10 \\
+mult CF                      & \tol & 0&04 & \tol & \tot \\
+mul CF                       & \tol & 0&03 & \tol & \tot \\
+fac CF                       & \tol & 0&02 & \tol & \tot \\
+exp CF                       & \tol & 0&03 & \tol & \tot \\
+exp accum CF                 & \tol & 0&04 & \tol & 0&11 \\
+qfac CF                      & \tol & 0&02 & \tol & \tot \\
+rev CF                       & \tol & 0&02 & \tol & \tot \\
+recursive true and CF        & 0&10 & 0&00 & 0&18 & 0&00 \\
+risersBy nonEmpty            & \tol & \tol & \tol & \tot \\
+le CF                        & \tol & 0&00 & 0&20 & \tot \\
+risers                       & \tol & \tol & \tol & \tot \\
+risersBy                     & \tol & \tol & \tol & \tot \\
+shrink                       & \tol & 0&04 & \tol & \tot \\
+fromJust contr               & 0&06 & 0&00 & 0&00 & 0&01 \\
+\begin{comment}
+bad unjuggle id              & 0&01 & 0&00 & 0&00 & 0&00 \\
+bad unjuggle not             & 0&01 & 0&00 & 0&00 & 0&00 \\
+const boom                   & 0&01 & 0&00 & 0&00 & 0&00 \\
+const CF                     & 0&01 & 0&00 & 0&00 & 0&00 \\
+const CF eq                  & 0&02 & 0&00 & 0&00 & 0&00 \\
+false CF                     & 0&00 & 0&00 & 0&00 & 0&00 \\
+false CF not                 & 0&00 & 0&00 & 0&00 & 0&00 \\
+false not                    & 0&00 & 0&00 & 0&00 & 0&00 \\
+id CF                        & 0&00 & 0&00 & 0&00 & 0&00 \\
+id eq                        & 0&02 & 0&00 & 0&00 & 0&01 \\
+juggle id                    & 0&01 & 0&00 & 0&00 & 0&01 \\
+juggle id CF                 & 0&00 & 0&00 & 0&00 & 0&00 \\
+juggle not                   & 0&01 & 0&00 & 0&00 & 0&00 \\
+juggle not CF                & 0&00 & 0&00 & 0&00 & 0&00 \\
+not CF                       & 0&01 & 0&00 & 0&00 & 0&00 \\
+not uneq                     & 0&03 & 0&00 & 0&00 & 0&00 \\
+true CF                      & 0&00 & 0&00 & 0&00 & 0&00 \\
+and CF                       & 0&01 & 0&00 & 0&00 & 0&00 \\
+true CF id                   & 0&00 & 0&00 & 0&00 & 0&00 \\
+true id                      & 0&00 & 0&00 & 0&00 & 0&00 \\
+unjuggle CF id               & 0&01 & 0&00 & 0&00 & 0&00 \\
+unjuggle CF not              & 0&01 & 0&00 & 0&01 & 0&00 \\
+unjuggle id                  & 0&00 & 0&00 & 0&00 & 0&00 \\
+unjuggle not                 & 0&00 & 0&00 & 0&00 & 0&01 \\
+\end{comment}
+withMany CF                  & \tol & 0&00 & \tol & \tot \\
+ind contr CF                 & \tol & 0&00 & \tol & 0&05 \\
+invariant CF                 & \tol & 0&00 & \tol & 0&02 \\
+ind contr retain             & \tol & \tol & \tol & \tot
+\end{restab}
 \end{center}
 
 \caption{
   Theorem prover running time in seconds on some of the problems in the test suite
-  on contracts that \emph{do} hold.
-  Paradox had only timeouts and is not listed.
+  on contracts that hold.
+  \dr{I will change to some more enlightening descriptions on these,
+      also we should probably trim this to about half the size
+      (It's not very interesting without min, either)}
   }
   \label{fig:unsres}
 
 \end{figure}
 
-\begin{figure}
-\begin{center}
-\begin{satrestab}
-
- & \multicolumn{2}{c | }{Paradox}
- & \multicolumn{2}{c | }{Equinox}
- & \multicolumn{2}{c  }{Z3}
- \\
-
-Description
- & \multicolumn{2}{c |}{min}
- & \multicolumn{2}{c |}{min}
- & \multicolumn{2}{c }{min}
-  \\
-
-\hline
-
-@any@ morphism w/o @any@ CF    & 2&52 & \tol  & \tot \\
-@foldr1@ w/o nonempty precond. & 0&25 & 0&33  & \tot \\
-@foldr1@ with nonempty, w/o CF & 0&47 & 1&45  & \tot \\
-@concatMap@ CF w/o @(++)@ CF   & 0&09 & \tol  & \tot \\
-@concatMap@ invariant weak     & 0&61 & \tol  & \tot \\
-@neg@ invariant missing @map@  & 0&63 & \tol  & \tot \\
-acc @exp@ CF w/o @(*)@ CF      & 0&15 & \tol  & \tot \\
-@risersBy@ wrong precond.      & 7&07 & 9&14  & \tot \\
-@risersBy@ wrong postcond.     & 3&14 & 19&70 & \tot \\
-@shrink@ too lazy              & \tol & 7&16  & \tot \\
-@head@ CF unconditionally      & 0&04 & 0&12  & 0&06 \\
-@head@ CF with wrong precond.  & 0&37 & 0&44  & \tot \\
-
-\end{satrestab}
-\end{center}
-\caption{Theorem prover running time in seconds on some of the problems in the test suite
-  on contracts that \emph{does not} hold.
-  Without using min, all prover timed out on these examples.
-  Vampire had only timeouts and is not listed.
-  }
-  \label{fig:satres}
-\end{figure}
-
-% Z3 actually kills this :p
