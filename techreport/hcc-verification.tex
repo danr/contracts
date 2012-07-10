@@ -1,27 +1,27 @@
-We have established in the previous section the soundness of our translation, so it is time 
+Having established the soundness of our translation, it is time 
 we see in this section how we can use this sound translation to verify a program. 
 The following theorem is then true:
 
 \begin{theorem}[Soundness]\label{thm:prover-soundness}
 Assume that $e$ and $\Ct$ contain only function symbols from $P$ and no free term variables.
-Let $\Th = \Th_\infty\;\land\;\Th_\lcfZ\;\land\;\ptrans{}{P}$. 
-If $\Th \land \neg\ctrans{\Sigma}{P}{e \in \Ct}$ is unsatisfiable 
+Let $\Th_{all} = \Th\;\land\;\land\;\ptrans{}{P}$. 
+If $\Th_{all} \land \neg\ctrans{\Sigma}{P}{e \in \Ct}$ is unsatisfiable 
 then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ and 
 consequently $\dbrace{\Ct}(\dbrace{e})$.
 \end{theorem}
 \begin{proof}
 If there is no model for this formula then its negation must be valid (true in all models), that 
-is $ \neg \Th \lor \ctrans{\Sigma}{P}{e \in \Ct}$ is valid. By completeness
-of first-order logic $\Th |- \ctrans{\Sigma}{P}{e \in \Ct}$. This means 
-that all models of $\Th$ validate $\ctrans{\Sigma}{P}{f \in \Ct}$. In particular, 
-for the denotational model we have that $\langle D_\infty,{\cal I}\rangle \models \Th$ 
+is $ \neg \Th_{all} \lor \ctrans{\Sigma}{P}{e \in \Ct}$ is valid. By completeness
+of first-order logic $\Th_{all} |- \ctrans{\Sigma}{P}{e \in \Ct}$. This means 
+that all models of $\Th_{all}$ validate $\ctrans{\Sigma}{P}{f \in \Ct}$. In particular, 
+for the denotational model we have that $\langle D_\infty,{\cal I}\rangle \models \Th_{all}$ 
 and hence $\langle D_\infty,{\cal I} \rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$. 
 Theorem~\ref{thm:den-contr-satisfaction} finishes the proof.
 \end{proof}
 
 Hence, to verify a program $e$ satisfies a contract $\Ct$ we need to do the following:
 \begin{itemize}
-  \item Generate formulae for the theory $\Th_\infty\;\land\;\Th_\lcfZ\;\land\;\ptrans{}{P}$
+  \item Generate formulae for the theory $\Th\;\land\;\ptrans{}{P}$
   \item Generate the negation of a contract translation: $\neg\ctrans{\Sigma}{P}{e \in \Ct}$
   \item Ask a SAT solver for a model for the conjunction of the above formulae
 \end{itemize}

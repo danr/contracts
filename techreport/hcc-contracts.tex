@@ -273,6 +273,8 @@ will use notation $\dbrace{e}$ to mean $\interp{e}{\dbrace{P}^\infty}{\cdot}$, a
 $\dbrace{e}_\rho$ to mean $\interp{e}{\dbrace{P}^\infty}{\rho}$
 \end{definition}
 
+% ------------------ omit this -------------------
+\begin{comment}
 Types do not matter at all for our denotational semantics.
 \begin{lemma}[Type irrelevance]
 It is the case that $\interp{u}{\sigma}{\rho} = \interp{u[\ol{\tau}/\as]}{\sigma}{\rho}$ 
@@ -288,18 +290,15 @@ and $\Sigma;\Delta |- e' : \tau'$ then
 and if $\Sigma;\Delta,x{:}\tau |- u : \tau$ then 
 \[ \interp{u}{\sigma}{\rho,x |-> \interp{e'}{\sigma}{\rho}} = \interp{u[e'/x]}{\sigma}{\rho} \]
 \end{lemma}
-Finally, soundness asserts that evaluation respects the denotational semantics.\footnote{Depending on their taste
-readers may prefer to read this statement as: denotational semantics respects evaluation.}
-\begin{lemma}[Denotational semantics soundness]
-Assume $\Sigma |- P$ and $u$ with no free term variables. If $P |- u \Downarrow v$ then $\dbrace{u} = \dbrace{v} $.
-\end{lemma} 
-Finally we are interested in proving the following theorem
-\begin{theorem}[Computational adequacy]\label{thm:adequacy}
-Assume that $\Sigma |- P$ and $e$ contains no free term variables.
-If $\unroll{\dbrace{e}} = \ret{d}$ for some element $d$ of $V_{\infty}$, then 
-there exists a $v$ such that $P |- e \Downarrow v$.
+\end{comment}
+% ------------------ omit this -------------------
+Although we have not presented a formal operational semantics, state the usual
+soundness and adequacy results:
+\begin{theorem}[Soundness and adequacy]
+Assume $\Sigma |- P$ and $u$ with no free term variables. Then (a) if $P |- u \Downarrow v$ then $\dbrace{u} = \dbrace{v} $; and (b) if $\unroll{\dbrace{e}} = \ret{d} \not= \bot$, then 
+$\exists v$ such that $P |- e \Downarrow v$.
 \end{theorem}
-
+\begin{comment}
 The proof of this theorem is also standard domain theory so we only sketch the 
 high-level road-map: The proof proceeds by defining a {\em logical relation} between 
 semantics and syntax, via the use of a bi-functor on admissible relations between elements 
@@ -307,7 +306,7 @@ of $D_\infty$ and closed expressions, and using minimal
 invariance~\cite{pitts-rel-domains} to show that this
 bi-functor has a fixpoint. Adequacy then follows from the {\em fundamental theorem} of this 
 logical relation, which asserts that every expression is related to its denotation.
-
+\end{comment}
 %% To do this we define a {\em logical relation} first between semantics 
 %% and syntax. Let $Rel \subseteq D_\infty \times Expr$ be the space of 
 %% {\em admissible} and {\em equality-respecting} relations between 

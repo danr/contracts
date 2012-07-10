@@ -1,49 +1,17 @@
-\dr{This is obviously chaotic, but I think we might want to keep some parts}
-The implementation of the contracts checker has two components:
-
-
-\begin{itemize}
-    \item \textbf{Halo}, the Haskell to Logic translator, which takes
-       GHC Core as input and translates function and data type
-       definitions to first order logic as described in previous sections.
-
-     \item \textbf{hcc}, the Haskell Contracts Checker, the user front
-        end. Before giving halo the program to translate to FOL, hcc
-        takes contracts, inputed in the Haskell source file as function
-        definitions, identified by their type, and represents those in
-        its own data type. Then we generate a theory accompanied with a
-        conjecture for each contract, so the users can try them with
-        their installed first order theorem provers.
-\end{itemize}
-
-Our tool is in under major development, but it already works off
-actual Haskell programs.
-
-\subsection{Why GHC Core}
-
-The core language introduced in previous section \dr{which?} is very
-similar to GHC Core so it is natural place to start. But what
-differences do we have? Our language
-\dr{does it have a name? $\mathcal{H}$?} is quite simplistic and does not allow local lambdas
-or lets, and not case-expressions except at the top of a function
-definition, so we lift all these definitions to the top, and introduce
-a new function for each local lambda, let and case.  Since we are
-doing an untyped translation, we remove all type information that is
-available in this core language.
-Rather than starting from scratch, using the GHC API gives us
-desugaring, type inference and even optimisations!
-
-We also do some optimisations for theorem provers, i.e. we try to
-clausify as much as possible (theorem provers typically work with
-CNF), and instead of writing $x = K(xs) \rightarrow f(x) = e$, we
-simply write $f(K(xs)) = e$.
+Our prototype contract checker is called \textbf{Halo}.
+It uses GHC to parse, typecheck, and desugar a Haskell program, 
+translates it into first order logic (exactly as in Section~\ref{ssect:trans-fol}), and
+invokes a FOL theorem prover (Equinox, Z3, Vampire, etc) on the FOL formula.
+The desugared Haskell program is expressed in GHC's intermediate language
+call Core, an explicitly-typed variant of System F.  It is straightforward
+to translate this into our language $\cal L$.
 
 \subsection{Using the tool}
 
-How does the user input contracts? We use HOAS and let the user define
+How does the user express contracts? We use HOAS and let the user define
 contracts by primitive connectives, which can be extended by the user.
-The connectives are defined as a GADT:
-
+The connectives are defined as a GADT, where @Contract t@ is a 
+a contract for a function of type @t@:
 \begin{code}
 data Contract t where
   (:->) :: Contract a -> (a -> Contract b) ->
@@ -54,16 +22,15 @@ data Contract t where
 \end{code}
 
 The connectives are @:->@ for dependent contract function space, @CF@
-for crash-freedom (no catchable bottoms), @Pred@ for predication, and
-@:&:@ for conjunction. A notable difference from the notation in
-\cite{xu+:contracts}, the user of our library explicitly writes @CF@.
+for crash-freedom, @Pred@ for predication, and
+@:&:@ for conjunction. 
 A useful derived connective is non-dependent function space:
-
+\par {\small
 \begin{code}
 (-->) :: Contract a -> Contract b -> Contract (a->b)
 c1 --> c2 = c1 :-> \_ -> c2
 \end{code}
-
+} \par
 %As one would expect, @:->@ and @-->@ are right-associve.  We can
 %create contract combinators that are always satisfied, and never
 %satisfied:
@@ -76,26 +43,20 @@ c1 --> c2 = c1 :-> \_ -> c2
 %never = Pred (error "never!")
 %\end{code}
 
-A contract is always associated to a function, so we wrap a contract
-together with its function to a @Statement@:
+A contract is always associated with a function, so we wrap a contract
+together with its function in a @Statement@:
 
 \begin{code}
 data Statement where
     (:::) :: a -> Contract a -> Statement
 \end{code}
-
-This allows us to wrap a function with a contract.  We also see how
-GADTs can ensure that our contracts are well-typed.  One intended use
-for our tool is to, if you have a function @f@ and it is partial, you
-can state under which preconditions it is total, then we will try to
-proves that it will not crash if you only give it arguments satisfying
-these conditions. An example in this fashion about the @head@ function
-is from the \cite{xu+:contracts}
-\dr{If we have little space we can move function definitions to the
-  appendix (applies to all definitions in this section of course)
-}:
-
-\begin{code}
+For example, in our previous notation we might write the following
+contract for @head@
+$$
+@head@ \in \CF \;\&\; \{@xs@ \mid @not (null xs)@ \} \rightarrow \CF
+$$
+Here is how we express the contract as a Haskell definition:
+\begin{comment}
 head (x:xs) = x
 head []     = error "empty list"
 
@@ -103,40 +64,48 @@ not True = False    null [] = True
 not False = True    null xs = False
 
 f . g = \x -> f (g x)
-
+\end{comment}
+\begin{code}
+c_head :: Statement
 c_head = head ::: CF :&: Pred (not . null) --> CF
 \end{code}
+Upon saving this file to, say, @Head.hs@ and running @halo Head@, 
+@halo@ translates the contract (and the supporting definitions) into
+FOL, generates a TPTP file and invokes a theorem prover.
+In fact @c_head@ 
+is verified by all theorem provers we tried.
 
-The @c_head@ definition is our statement expressing the contract
-\[
-@head@ \in @CF@ @&&@ \{@xs@ \mid @not (null xs)@ \} \rightarrow @CF@
-\].
+\subsection{Practical considerations}
 
-Upon saving this file to, say, @Head.hs@ and running @hcc Head@, a
-TPTP file named @Head.contract.tptp@ is generated. This can then be
-run with your favourite automated theorem prover. The above contract
-is easily verified by all theorem provers we test our tool with.
+To make the theorem prover work as fast as possible we trim the
+theories to include only what is needed to prove a
+property. Unnecessary function pointers, data types and definitions
+for the current goal are not generated.
 
-However, if we remove the precondition of crash-freedom to @head@,
-like this:
-
+When proving a series of contracts, it is natural to do so in dependency order.
+For example:
 \begin{code}
-broken_c_head = head ::: Pred (not . null) --> CF
-\end{code}
+  reverse :: [a] -> [a]
+  reverse [] = []
+  reverse (x:xs) = reverse xs ++ [x]
 
-a theorem prover capable of giving finite counter-models, like
-@paradox@, will give you a counter model, which, upon examination,
-will tell you that its input argument is indeed not an empty list, but
-it is @:@ of some bad arguments. Note that we do not get a counter
-example if we give @hcc@ the debug flag @--no-min@ that turns off the
-min predicate introduced earlier \dr{where?}. The reason is that if we
-do not use min, we only have infinite counter models because we need
-to have an injective, but non-surjective function for @(:)@
-\dr{cite monotonicity work}.
+  reverse_c :: Statement
+  reverse_c = reverse ::: CF --> CF
+\end{code}
+To prove this contract we must first prove that $@(++)@ \in \CF \rightarrow \CF$;
+then we can prove @reverse@'s contract assuming the one for @(++)@.
+At the moment we ask the programmer to specify which auxiliary contracts
+are useful, via a second constructor in the @Statement@ type:
+\begin{code}
+  reverse_c = reverse ::: CF --> CF
+              `Using` append_c
+\end{code}
 
 \subsection{Recursion}
 
-We prove properties using fixed point induction. For recursive
+We prove the contract for a recursive function 
+using fixed point induction (Section~\ref{s:induction}). 
+For recursive
 functions, the tool then gives three files, one without induction, one
 for the base case and step case. The typical situation is that the one
 without induction does not pass because it lacks the induction
@@ -172,52 +141,44 @@ Here is an example of a contract about @filter@,
 where the result depends on an earlier argument, the predicate @p@:
 
 \[
-@filter@ \in (@p@ : @CF@ \rightarrow @CF@) \rightarrow
-             @CF@ \rightarrow @CF@ @&&@ \{@ys@ \mid @all p ys@ \}
-\].
-
+@filter@ \in (@p@ : \CF \rightarrow \CF) \rightarrow
+             \CF \rightarrow \CF \;\&\; \{@ys@ \mid @all p ys@ \}
+\]
 This contract says that under good crash-free circumstances, the
 all elements in the resulting list from filtering a list with @p@
 satisfies @p@.
-
-When we write this in our current syntax, We use @(:->)@ to bind @p@.
-It is a little confusing since we then get two ``arrows'', one from
-@:->@, and one from the @->@ in the lambda.
-
+In our source-file syntax we use @(:->)@ to bind @p@.
 \begin{code}
+filter_all :: Statement
 filter_all = filter ::: (CF --> CF) :-> \p ->
                         CF --> (CF & Pred (all p))
 \end{code}
-
+It is a little confusing since we then get two ``arrows'', one from
+@:->@, and one from the @->@ in the lambda.
 The contract can then proved by using fixed point induction (and not without).
 
-\subsection{Higher-higher order functions}
+\subsection{Higher order functions}
 
 Our tool also deals with higher order functions containing
-higher-order functions. Consider this function @withMany@ from the
+very higher-order functions. Consider this (real) function @withMany@ from the
 @GHC@ component @Foreign.Util.Marshal@:
 %\footnote{\url{http://hackage.haskell.org/packages/archive/base/latest/doc/html/Foreign-Marshal-Utils.html#v:withMany}}:
 
 \begin{code}
--- Replicates a @withXXX@ combinator over a list of
--- objects, yielding a list of marshalled objects
---
 withMany :: (a -> (b -> res) -> res)
-         -- ^ withXXX combinator for one object
-         -> [a]
-         -- ^ storable objects
-         -> ([b] -> res)
-         -- ^ action on list of marshalled obj.s
-         -> res
+         -> [a] -> ([b] -> res) -> res
 withMany _       []     f = f []
 withMany withFoo (x:xs) f = withFoo x (\x' ->
       withMany withFoo xs (\xs' -> f (x':xs')))
-
 \end{code}
 
 For @withMany@, our tool proves
-@(CF --> (CF --> CF) --> CF)@ @--> CF --> (CF --> CF) --> CF@.
+$$
+@withMany@\! \in \! (\CF\! \rightarrow\! (\CF \rightarrow \CF) \rightarrow \CF) \rightarrow \CF \rightarrow (\CF \! \rightarrow \! \CF) \rightarrow \CF
+$$
 
+% ------------------------ Omit ----------------------------
+\begin{comment}
 \subsection{A small case-study about invariants}
 
 We consider a somewhat non-standard way of expressing propositional
@@ -307,12 +268,9 @@ contracts (for instance, with our tool!), but one can imagine a more
 sophisticated front-end which does this automatically.  Note that
 the assumption in @neg_contr@ is necessary. If we remove it, and
 use the min-translation, we a finitely counter satisfiable theory.
+\end{comment}
+% ------------------------ End of omit ----------------------------
 
-\subsection{Trimming}
-
-We trim the theories as much as possible to only include exactly what
-is needed to prove a property. Unnecessary function pointers, data
-types and definitions for the current goal are not generated.
 
 % \subsection{Example: shrink}
 %
@@ -345,4 +303,20 @@ obtained by mutating the correct contract so it fails, i.e.  by
 removing a necessary assumption or making the pre-conditions too weak
 or post-conditions too strong.
 
+
+\subsection{Contracts that do not hold}
+
+In practice, programmers will often propose contracts that do not hold.
+Unfortunately, in almost all such cases, all FOL provers will loop.
+The prover is trying to prove that a theory is unsatisfiable.  A resolution
+based prover (such as Vampire or eprover) will keep applying deduction rules, 
+trying to find a contradiction, but no such contradiction exists.  A
+model-based theorem prover will seek a finite counter-model to the theory, but
+again no such counter-model exists. \spj{Koen please fix the wording here!}
+
+It is obviouly unacceptable for the system to go into a loop if
+the programmer writes a bogus contract, and we have promising
+preliminary results based on so-called ``minimisation'', and 
+finite counter-model generators such as Paradox \cite{koen}, but we 
+leave this for (absolutely essential) future work.
 
