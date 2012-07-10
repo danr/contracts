@@ -1,16 +1,16 @@
 \RequirePackage{amsthm}
-\RequirePackage{amsfonts} 
-\RequirePackage{amssymb} 
+\RequirePackage{amsfonts}
+\RequirePackage{amssymb}
 \RequirePackage{enumerate}
 % \RequirePackage{xspace}
 \RequirePackage{float}
 \RequirePackage{url}
-\RequirePackage{color} 
+\RequirePackage{color}
 \RequirePackage[x11names]{xcolor}
 \RequirePackage{cancel}
 \RequirePackage[normalem]{ulem}
 \RequirePackage{latexsym}
-\RequirePackage{mdwlist} 
+\RequirePackage{mdwlist}
 \RequirePackage{textcomp} % for \sim
 
 % Local packages
@@ -32,7 +32,7 @@
 \newcommand{\reach}[2]{\widehat{#1}(#2)}
 \newcommand{\ftv}[2]{ftv^{#1}(#2)}
 
-\usepackage{color} 
+\usepackage{color}
 %% \newcommand{\color}[1]{}
 \newcommand{\kvar}{\chi}
 
@@ -57,7 +57,7 @@
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
 
-%% bibliography guidelines 
+%% bibliography guidelines
 \usepackage{natbib}
 \bibpunct();A{},
 \let\cite=\citep
@@ -79,12 +79,12 @@
 %% \setlength{\textfloatsep}{16pt plus 4pt minus 4pt}
 
 % Figures should be boxed
-%    *** Uncomment the next two lines to box the floats *** 
+%    *** Uncomment the next two lines to box the floats ***
 \floatstyle{boxed}
 \restylefloat{figure}
 
 % Keep footnotes on one page
-\interfootnotelinepenalty=10000 
+\interfootnotelinepenalty=10000
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Indentation
@@ -107,7 +107,7 @@
 \newcommand{\tval}{\textsf{tv}}
 \newcommand{\val}{\textsf{val}}
 \newcommand{\clift}[1]{\lfloor#1\rfloor}
-\newcommand{\lifting}[2]{[#1]{\uparrow}(#2)} 
+\newcommand{\lifting}[2]{[#1]{\uparrow}(#2)}
 \newcommand{\erase}[2]{\{#2\}_{#1}}
 \newcommand{\nth}[2]{\mathop{nth} #1\;#2}
 \newcommand{\inst}[2]{#1[#2]}
@@ -140,7 +140,7 @@
 
 \newcommand{\xs}{\ol{x}}
 
-\theoremstyle{plain} 
+\theoremstyle{plain}
 \newtheorem{definition}{Definition}[section]
 
 
@@ -201,3 +201,15 @@
 \newcommand{\kc}[1]{}
 \newcommand{\dr}[1]{}
 \fi
+
+
+% Results table
+% Need to put it somewhere before @ becomes active (\makeatactive)
+
+\newenvironment{unsrestab}
+{\begin{tabular}{l | r@{.}l r@{.}l | r@{.}l r@{.}l | r@{.}l r@{.}l  }}
+{\end{tabular}}
+
+\newenvironment{satrestab}
+{\begin{tabular}{l | r@{.}l | r@{.}l | r@{.}l }}
+{\end{tabular}}
