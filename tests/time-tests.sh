@@ -14,12 +14,6 @@ TIMEOUT=60
 # Kill whole testing process on Ctrl-C
 trap 'exit 1' INT
 
-# Remove all tptp files here
-rm -v *.tptp
-
-# Generate all contracts
-hcc $@ -d -i -b
-
 # Result is stored in .tmp
 # Time info is stored in .tmptime
 # Arguments
@@ -84,30 +78,45 @@ function run_z3 {
     res_parser $3 $4 z
 }
 
-for FILE in `find -iname '*.tptp'`
+for MINFLAG in `seq 0 1`
 do
-    # holds=0 if it should hold, 1 otherwise
-    holds=`echo $FILE | egrep '(unsat|thm|holds)'`
-    # We skip things that are not "big" when timing
-#    if [[ `echo $FILE | grep -v big` ]]; then
-#        continue
-#    fi
-    if [[ $holds ]]; then
-        # continue
-        printf "UNS %-50s\t" `basename $FILE .tptp`
-        good="unsat"
-        bad="sat"
-    else
-        # continue
-        printf "SAT %-50s\t" `basename $FILE .tptp`
-        good="sat"
-        bad="unsat"
-    fi
-    run_koentool paradox $TIMEOUT $FILE $good $bad p
-    run_koentool equinox $TIMEOUT $FILE $good $bad x
-    run_z3               $TIMEOUT $FILE $good $bad
-    run_vampire          $TIMEOUT $FILE $good $bad
-    run_eprover          $TIMEOUT $FILE $good $bad
-    echo
-done
 
+    # Remove all tptp files here
+    rm *.tptp
+
+    # Generate all contracts
+    if [[ $MINFLAG -eq 0 ]]; then
+        echo "=== WITH MIN ==="
+        hcc $@ -d -i -b > /dev/null
+    else
+        echo "=== WITHOUT MIN ==="
+        hcc $@ -d -i -b -m > /dev/null
+    fi
+
+    for FILE in `find -iname '*.tptp'`
+    do
+        # holds=0 if it should hold, 1 otherwise
+        holds=`echo $FILE | egrep '(unsat|thm|holds)'`
+        # We skip things that are not "big" when timing
+    #    if [[ `echo $FILE | grep -v big` ]]; then
+    #        continue
+    #    fi
+        if [[ $holds ]]; then
+            # continue
+            printf "UNS %-50s\t" `basename $FILE .tptp`
+            good="unsat"
+            bad="sat"
+        else
+            # continue
+            printf "SAT %-50s\t" `basename $FILE .tptp`
+            good="sat"
+            bad="unsat"
+        fi
+        run_koentool paradox $TIMEOUT $FILE $good $bad p
+        run_koentool equinox $TIMEOUT $FILE $good $bad x
+        run_z3               $TIMEOUT $FILE $good $bad
+        run_vampire          $TIMEOUT $FILE $good $bad
+        run_eprover          $TIMEOUT $FILE $good $bad
+        echo
+    done
+done
