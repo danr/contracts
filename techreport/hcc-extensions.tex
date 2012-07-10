@@ -14,61 +14,60 @@ A naive approach would be to perform induction over the list argument of @length
 in Haskell datatypes may be lazy infinite streams and ordinary induction is not necessarily 
 a valid proof principle. Fortunately, we can still appeal to {\em fixpoint induction}. The 
 fixpoint induction sheme that we use for @length@ above would be to {\em assume} that the 
-contract holds for the occurence of @length@ inside the body of its definition, and then 
-try to prove it for 
-
-
-
-
-Fixpoint induction can be used to prove {\em admissible predicates} over denotations, 
-that is, predicates for which if the predicate holds for all elements of a chain in
-the domain, then it holds for the limit of that chain. 
-
-
-
-
-
-Consider the following function: 
-
-
-Unfortunately in 
-Haskell naively using some induction scheme is not guaranteed to work, so extra care is needed. For
-instance consider the function:
+contract holds for the occurence some function @length_rec@ inside the body of its definition, 
+and then try to prove it for the function:
 \begin{code}
- bList Z = [True]
- bList (S x) = False : bList x
+length [] = Z 
+length (x:xs) = S (length_rec xs)
 \end{code}
-and a function @last :: List Bool -> Bool@ which returns the right-most element of a list.
-The interesting property of @bList@ is that @last (bList Z) = True@ and moreover, if 
-@last (bList y) = True@ we also get @last (bList (S y)) = True@, nevertheless it is 
-false that this property is true for {\em every} @x@, as the stream @s = S s@ is a 
-counterexample.
 
-Fortuanately, we can still perform {\em fixpoint induction} when we wish to prove a contract
-for a new function. 
+Formally, our induction scheme is:
+\begin{definition}[Induction sheme]\label{def:induction}
+To prove that $\dbrace{g} \in \dbrace{\Ct}$ for a function $g\;\as\;\ol{x:\tau} = e[g]$ (meaning $e$ contains
+some occurences of $g$) we perform the following steps:
+\begin{itemize*}
+  \item Generate function symbols $g^{\circ}$, $g^{\bullet}$, and formula $\ctrans{}{}{g^{\circ} \in \Ct}$.
+  \item Generate the theory formulas \[ \phi = \Th \land \ptrans{}{P \cup g^{\bullet}\;\as\;\ol{x:\tau}} = e[g^{\circ}] \] 
+  \item Prove that the query $\phi \land \ctrans{}{}{g^{\circ} \in \Ct} \land \neg \ctrans{}{}{g^{\bullet} \in \Ct}$
+        is unsatisfiable.
+\end{itemize*}
+%% If it is unsatisfiable then $\dbrace{f} \in \dbrace{\Ct}$.
+\end{definition}
 
-Fortunately, although induciton on data types 
-
-\dv{cite Dan's master thesis about datatype induction even for Haskell programs?}.
-\dv{Do we need an example or is this obvious? Simon?}
-
-Fortunately, we can still perform {\em fixpoint induction} whenever we would like to prove something 
-about a new function. Fixpoint induction is justified by the following principle below:
-
-\begin{lemma} Let $\Ct$ be a closed contract -- then $\dbrace{\Ct}$ is an 
-admissible predicate. Moreover $\bot \in \dbrace{\Ct}$. \end{lemma}
+Why is this approach sound? The crucial step here is the fact that contracts are admissible predicates.
+\begin{theorem}[Contract admissibility]
+If $d_i \in \dbrace{\Ct}$ for all elements of a chain $d_1 \sqcup \ldots$ then the limit of the chain 
+$\sqcup d \in \dbrace{\Ct}$. Moreover, $\bot \in \dbrace{\Ct}$.
+\end{theorem}
 \begin{proof}
-The fact that $\bot$ belongs in every contract can be proven easily by inspection.
-Admissibility follows from the fact that (i) the fixpoint $F_\lcfZ^{\infty}$ is admissible, 
-and (ii)~the base contracts are admissible since the denotations of Haskell functions 
-are continuous.
+For the $\CF$ case we get the result from Lemma~\ref{lem:cf-admissible}. 
+For the predicate case we get the result from the fact that the denotations of programs 
+are continuous in $D_{\infty}$. The arrow case follows from induction.
 \end{proof}
 
-In practical terms this means that, given a recursive function $f |-> \Lambda \as @.@ \ol{x{:}\tau} @.@ e[f]$, 
-we can prove that $\dbrace{\Ct}(\dbrace{f})$ if we can prove that 
-$ \dbrace{P}^{k}(f) \in \dbrace{\Ct}$ implies $\dbrace{P}^{k+1}(f) \in \dbrace{\Ct}$. Moreover, we have that 
-$ \dbrace{P}^{0}(f) \in \dbrace{\Ct}$ (corollary of the lemma above), and the induction step above can be 
-used to show that all the elements of the infinite chain whose limit is $\dbrace{f}$ are in the denotation of 
-the contract $\Ct$. Hence, by admissibility of contract denotations, the limit itself $\dbrace{f} \in \dbrace{\Ct}$. 
-We omit further details as they are simply tedious tidying up of definitions. This induction principle is the basis
-of our contract checking tool for recursive definitions.
+We can then prove the soundness of our induction scheme.
+\begin{theorem} The induction scheme in Definition~\ref{def:induction} is correct. \end{theorem}
+\begin{proof} We need to show that: 
+$\dbrace{P}^{\infty}(g) \in \dbrace{\Ct}$ and hence, by admissibility it is enough to find
+a chain whose limit is $\dbrace{P}^{\infty}(g)$ and such that every element is in $\dbrace{\Ct}$.
+Let us consider the chain $\dbrace{P}^{k}(g)$ so that $\dbrace{P}^0(g) = \bot$ and 
+$\dbrace{P}^{k+1}(g) = \dbrace{P}_{(\dbrace{P}^{k})}(g)$ whose limit is $\dbrace{P}^{\infty}(g)$. We 
+know that $\bot \in \dbrace{\Ct}$ so, by using contract admissiblity, all we need to show is
+that if $\dbrace{P}^{k}(g) \in \dbrace{\Ct}$ then $\dbrace{P}^{k+1}(g) \in \dbrace{\Ct}$. 
+
+To show this, we can assume a model where the denotational interpretatino ${\cal I}$ has been 
+extended so that ${\cal I}(g^{\circ}) = \dbrace{P}^{k}(g)$ and ${\cal I}(g^{\bullet}) = \dbrace{P}^{k+1}(g)$.
+By proving that the formula 
+\[ \phi \land \ctrans{}{}{g^{\circ} \in \Ct} \land \neg \ctrans{}{}{g^{\bullet} \in \Ct} \] 
+is unsatisfiable, since $\langle D_{\infty},{\cal I}\rangle \models \phi$ and 
+$\langle D_{\infty},{\cal I}\rangle \models \ctrans{}{}{g^{\circ} \in \Ct}$, we learn 
+that $\langle D_{\infty},{\cal I}\rangle \models \ctrans{}{}{g^{\bullet} \in \Ct}$, 
+and hence $\dbrace{P}^{k+1}(g) \in \dbrace{\Ct}$.
+\end{proof} 
+
+In many practical cases a straightforward generalization of our lemma above for mutually recursive definitions
+is required and indeed our tool performs mutual fixpoint induction. We leave it as future work to develop
+more advanced techniques such as strengthening of induction hypotheses or trying more sophisticated induction 
+schemes~\cite{dan's master thesis??} \dv{Check!} 
+
+
