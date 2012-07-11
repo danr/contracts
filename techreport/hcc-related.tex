@@ -4,37 +4,39 @@ Furthermore, our approach of directly translating the denotational semantics of
 programs does not appear to be well-explored in the literature.
 
 Catch~\cite{Mitchell:2008:PBE:1411286.1411293} is one of the very few tools that
-have been evaluated at scale, and address the verification of lazy Haskell
-programs. Using static analysis, Catch can detect pattern match failures, and hence
-prove that a program cannot crash. Some specification which describes the set of
-constructors that are expected as arguments to each function might be
-necessary for the analysis to succeed. Our aim with this work is to achieve similar and
-moreover be in a position to also assert functional correctness specification.
+address the verification of lazy Haskell, and have been evaluated on real programs.
+Using static analysis, Catch can detect pattern match failures, and hence
+prove that a program cannot crash. Some annotations that describes the set of
+constructors that are expected as arguments to each function may be
+necessary for the analysis to succeed. 
+Our aim in this paper is to achieve similar goals, but 
+moreover to be in a position to assert functional correctness.
 
-Liquid Types~\cite{Rondon:2008:LT:1375581.1375602} has been an influential
-approach to call-by-value functional program verification. In Liquid Types,
-contracts are written as refinements in a fixed language of predicates (which may
+Liquid Types~\cite{Rondon:2008:LT:1375581.1375602} is an influential
+approach to call-by-value functional program verification. 
+Contracts are written as refinements in a fixed language of predicates (which may
 include recursive predicates) and the extracted conditions are discharged using an
 SMT-solver. Because the language of predicates is fixed, predicate abstraction can
 very effectively {\em infer} precise refinements, even for recursive functions, and
 hence the annotation burden is very low. In our case, since the language of predicates
-is the very same programming language with the same semantics {\em by design}, inference
-of function specifications is harder. The other important deviation is that liquid types
-requires all {\em uses} of a function to satisfy its precondition whereas in the semantics
+is, {\em by design}, the very same programming language with the same semantics, inference
+of function specifications is harder. The other important difference is that liquid types
+requires all {\em uses} of a function to satisfy its precondition, whereas in the semantics
 that we have chosen, bad uses are allowed but the programmer gets no guarantees back.
 \dv{Todo: Andrey Rybalchenko ``sausage factory''}
 
-Rather different to Liquid Types, allowing refinements to be written
-in the very same programming language that programs are written, is the
-Dminor~\cite{Bierman+:subtyping} approach. Contrary to our case however, in Dminor
-the expressions that refine type must be pure, that is, terminating and having a unique
-denotation (e.g. not depending on the store)\dr{what is the store?}. Driven from a typing relation that includes
+Rather different to Liquid Types, Dminor~\cite{Bierman+:subtyping} allows 
+refinements to be written in the very same programming language that programs are written.
+Contrary to our case however, in Dminor
+the expressions that refine types must be pure --- that is, terminating --- and have a unique
+denotation (e.g. not depending on the store)\dr{what is the store?}. 
+Driven from a typing relation that includes
 logic entailment judgements, verification conditions are extracted and discharged automatically using Z3.
 Similar in spirit, other dependent type systems such
-as Fstar~\cite{fstar} extract verification conditions which can be discharged
+as Fstar~\cite{fstar} also extract verification conditions that are discharged
 using automated tools
 or interactive theorem provers. Hybrid type systems such as Sage~\cite{Knowles+:sage}
-will also attempt to prove as many of the goals statically and defer the rest as runtime
+attempt to prove as many of the goals statically, and defer the rest as runtime
 goals.
 
 Boogie~\cite{boogie} is a verification back end which supports procedures as well as
