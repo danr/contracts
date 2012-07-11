@@ -20,7 +20,7 @@ have been proposed to address this problem, each offering different degrees of
 expressiveness or automation. 
 Another line of work aiming to address this problem, studied by many researchers
 as well~\cite{Findler:2002:CHF:581478.581484,Blume:2006:SCM:1166013.1166016,Knowles+:sage,Siek06gradualtyping,Wadler:2009:WPC:1532974.1532976}, allows programmers to annotate 
-functions with {\em contracts}, which are forms of behavioral specifications.
+functions with {\em contracts}, which are forms of behavioural specifications.
 For instance, we might write the following contract for 
 @reverse@: 
 \[ @reverse@ \in (xs : \CF) -> \{ ys \mid @null@\;xs\; @<=>@\; @null@\;ys \}  \] 
@@ -54,7 +54,7 @@ With that in mind, we make the following new contributions:
         It turns out that lazy programs (as opposed to
         strict programs!) have a very natural translation into first-order logic.
         (Section~\ref{ssect:trans-fol}) 
-  \item We give a translation of contracts to FOL formulae, and an axiomatization of 
+  \item We give a translation of contracts to FOL formulae, and an axiomatisation of 
         the language semantics in FOL. 
         (Section~\ref{s:contracts-fol})
   \item We show that if we can prove the formula that arises from a contract translation 
@@ -76,7 +76,7 @@ Section~\ref{sect:implementation}.
 
 To our knowledge no-one has previously presented a translation of lazy higher-order programs to 
 first-order logic in a provably sound way with respect to a denotational
-semantics. Furthemore, our approach to static contract checking is 
+semantics. Furthermore, our approach to static contract checking is 
 distinctly different to previous work: instead of wrapping and 
 symbolic execution~\cite{xu+:contracts,Xu:2012:HCC:2103746.2103767}, 
 we harness purity and laziness to directly use the denotational semantics

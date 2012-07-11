@@ -251,7 +251,7 @@ and otherwise returns $\bot$.  %% Indeed application, partial
 
 The semantics of right-hand sides $\dbrace{u}$ is defined similarly.  The
 semantics of a @case@ expression is the semantics of the matching branch,
-if one exists. Otherise, like application, it propagates $\injBad$.
+if one exists. Otherwise, like application, it propagates $\injBad$.
 In all other cases we return $\bot$, not $\injBad$;
 all the missing cases can only be constructors
 of different datatypes than the datatype that $K$ belongs to, because
@@ -642,7 +642,7 @@ What does the last result tell us about the actual execution of the program $e$?
 paper we have elided a discussion about the operational semantics but we discuss this
 in further detail in Section~\ref{sect:discussion}.
 
-\paragraph{Completeness of axiomatization}
+\paragraph{Completeness of axiomatisation}
 
 The $D_\infty$ domain has a complex structure and there are many more facts that
 hold about elements of $D_\infty$ that are not reflected in any of our axioms in $\Th$.
@@ -658,7 +658,7 @@ For instance, here are some admissible axioms that are valid:
 \end{array}\]
 These axioms assert that partial applications cannot be equated to
 any constructor, $\bot$ nor $\injBad$. If the reader is worried that without a
-complete formalization of all equalities of $D_\infty$ it is impossible to prove any
+complete formalisation of all equalities of $D_\infty$ it is impossible to prove any
 programs correct, we would like to reassure them that that is not the case as we
 shall see in the next section.
 

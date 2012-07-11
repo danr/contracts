@@ -422,7 +422,7 @@ We are primarily interested in reasoning about equality, so we might
 hope for this informal guiding principle:
 
 \begin{quote}
-If we can prove\footnote{From an appropriate axiomatization of the semantics of 
+If we can prove\footnote{From an appropriate axiomatisation of the semantics of 
 programs.} in FOL that $\etrans{}{}{e_1} = \etrans{}{}{e_2}$ then
 $e_1$ and $e_2$ are semantically equivalent.
 \end{quote}
@@ -431,7 +431,7 @@ where $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL, and then using
 a FOL theorem prover. The formal statement of this property is Corollary~\ref{cor:guiding-principle}
 \spj{Dimitrios, can you forward-ref a theorem that states this?}
-\kc{This is only going to hold from right to left} \dv{Added statemnet.}
+\kc{This is only going to hold from right to left} \dv{Added statement.}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
@@ -597,7 +597,7 @@ $unr$ is crash-free, and that $bad$ is not.  That turns out to be all that we ne
 That completes our formally-described --- but only informally-justified --- translation
 from a $\theLang$ program and a set of contract claims, into first-order logic.
 To a first approximation, we can now hand the generated axioms from the program and
-our axiomatization to an FOL theorem prover and ask it to use them to prove the 
+our axiomatisation to an FOL theorem prover and ask it to use them to prove the 
 translation of the contract claims. 
 
 
