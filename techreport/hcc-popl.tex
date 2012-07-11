@@ -102,14 +102,14 @@
 Despite the benefits of strong types and purity for reasoning about
 programs, many bugs remain in well-typed and purely functional
 code.  Functional programmers often have to introduce assertions to 
-ensure that their code is crash-free.  In this work we allow programmers to express
-assertions as contracts, whose validity we can check statically. Our main
-contribution is a novel translation to first-order logic 
+ensure that their code is crash-free.  In this work we allow programmers 
+to express assertions as contracts, whose validity we can check statically. 
+Our main contribution is a novel translation to first-order logic 
 of both Haskell programs, and contracts written in Haskell,
-all justified by denotational semantics.
+all justified by denotational semantics. This translation enables us prove 
+that functions satisfy their contracts using an off-the-shelf first-order logic
+theorem prover.
 \end{abstract}
-
-
 
 \section{Introduction}\label{s:intro}
   \input{hcc-introduction}
@@ -144,7 +144,8 @@ all justified by denotational semantics.
   \input{hcc-future}
 
 \paragraph{Acknowledgements}
-Thanks to Richard Eisenberg for some helpful feedback.
+Thanks to Richard Eisenberg for helpful feedback and Nathan Collins 
+for early work on a prototype of our translation.
 
 \bibliographystyle{plainnat}
 \bibliography{hcc-popl}

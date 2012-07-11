@@ -595,10 +595,10 @@ from a $\theLang$ program and a set of contract claims, into first-order logic.
 To a first approximation, we can now turn the whole formula over to a FOL prover,
 and hope that it proves the assertion.
 
-Note that the laziness of our programming language helped in keeping the translation simple. Whenever we use universal quantification in the logic, we really mean any value, including $\bottom$. Very rarely do we have to add a condition that
-a value is not equal to $\bottom$. Only when a function is explicitly strict in a particular argument (by doing pattern matching) do we have to do this. Also, function application in the language corresponds directly to term construction in the logic.
+Note that the laziness of our programming language helped in keeping the translation simple. Whenever we use universal quantification in the logic, we really mean any value, including $\bot$. Very rarely do we have to add a condition that
+a value is not equal to $\bot$. Only when a function is explicitly strict in a particular argument (by doing pattern matching) do we have to do this. Also, function application in the language corresponds directly to term construction in the logic.
 
-To deal with a (pure) strict language, we would have two choices: Either (1) we explicitly make each function strict in all its arguments, by adding extra axioms for each function definition that express what happens when you apply the function to $\bottom$, and by adding extra conditions to all the other function axioms that exclude $\bottom$; or (2) we use a monadic translation (or some variant thereof), basically turning each application site into a definedness check of the arguments. Neither method leads to a simple first-order theory that is easy to reason about by automatic provers.
+To deal with a (pure) strict language, we would have two choices: Either (1) we explicitly make each function strict in all its arguments, by adding extra axioms for each function definition that express what happens when you apply the function to $\bot$, and by adding extra conditions to all the other function axioms that exclude $\bot$; or (2) we use a monadic translation (or some variant thereof), basically turning each application site into a definedness check of the arguments. Neither method leads to a simple first-order theory that is easy to reason about by automatic provers.
 
 \spj{What else should we say here.  Something about recursion?  About multiple functions?}
 
