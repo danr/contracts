@@ -1,11 +1,13 @@
 To formalise the ideas behind our implementation, we define a
-tiny source language $\cal L$:
+tiny source language $\theLang$:
 a polymorphic, higher-order, call-by-name $\lambda$-calculus with
 algebraic datatypes, pattern matching, and recursion.
 Our actual implementation treats all of Haskell, by using GHC as a front
-end to translate Haskell into language $\cal L$.
+end to translate Haskell into language $\theLang$.
 
-\subsection{Syntax of $\cal L$} \label{s:syntax}
+\kc{I think we should add an example here, of a Haskell program and its translation into FOL. Suggestion: map.}
+
+\subsection{Syntax of $\theLang$} \label{s:syntax}
 
 \begin{figure}
 \[\begin{array}{l}
@@ -58,10 +60,10 @@ e  & ::=  & x            & \text{Variables} \\
 %%             & \multicolumn{3}{l}{\text{when}\; (f |-> \Lambda\ol{a} @.@ \lambda\oln{x{:}\tau}{n} @.@ u) \in D}
 \end{array}
 \end{array}\]
-\caption{Syntax of $\cal L$ and its contracts}\label{fig:syntax}
+\caption{Syntax of $\theLang$ and its contracts}\label{fig:syntax}
 \end{figure}
 
-Figure~\ref{fig:syntax} presents the syntax of $\cal L$.  A program
+Figure~\ref{fig:syntax} presents the syntax of $\theLang$.  A program
 $P$ consists of a set of recursive function definitions $d_1 \ldots
 d_n$. Each definition has a left hand side that binds its type-variable and
 term-variable parameters;
@@ -77,7 +79,7 @@ omitted $\ol{x}$ has a size which is implied by the context or is not
 interesting.
 
 A program \emph{crashes} if it evaluates the special value @BAD@.
-For example, we assume that the standard Haskell function @error@ 
+For example, we assume that the standard Haskell function @error@
 simply invokes @BAD@, thus:
 \begin{code}
   error :: String -> a
@@ -96,14 +98,14 @@ and verification amounts to proving that a program cannot invoke @BAD@.
 Our language embodies several convenient syntactic constraints:
 (i)~$\lambda$ abstractions occur only at the top-level,
 (ii)~@case@-expressions can only immediately follow a function
-definition, and (iii) constructors are fully applied.  
+definition, and (iii) constructors are fully applied.
 Any Haskell program can be transformed into this restricted
 form using lambda-lifting, @case@-lifting, and eta-expansion respectively,
 and our working prototype does just this.
 However this simpler language is instead extremely
 convenient for the translation of programs to first-order logic.
 
-$\cal L$ is an explicitly-typed language, and we assume the existence
+$\theLang$ is an explicitly-typed language, and we assume the existence
 of a typing relation $\Sigma |- P$, which checks that a program
 conforms to the definitions in the signature $\Sigma$. A signature
 $\Sigma$ (Figure~\ref{fig:syntax}) records the declared data types,
@@ -122,13 +124,13 @@ have arbitrary $\lambda$-abstractions, values can only be partial function appli
 $f^\ar[\ol{\tau}]\;\oln{e}{m < \ar}$, data constructor applications $K[\tau](\ol{e})$,
 and the error term @BAD@.
 
-The operational semantics of $\cal L$ is entirely standard, and we do not give it here.
+The operational semantics of $\theLang$ is entirely standard, and we do not give it here.
 We write $P |- u \Downarrow v$ to mean ``In program P, right-hand side $u$ evaluates to
-value $v$'', 
+value $v$'',
 
 % -------------------- Omitted section on operational semantics ------------
-% \subsection{Operational semantics of $\cal L$}
-% 
+% \subsection{Operational semantics of $\theLang$}
+%
 % \spj{Why do we give an operational as well as denotational semantics?}
 % The big-step operational semantics of our language is given in
 % Figure~\ref{fig:opsem}, which contains no surprises. One interesting
@@ -193,7 +195,7 @@ value $v$'',
 % %% D |- f[\ol{\tau}]\;\oln{e}{m} \Downarrow @BAD@
 % \endprooftree
 % \end{array}\]
-% \caption{Operational semantics of $\cal L$}\label{fig:opsem}
+% \caption{Operational semantics of $\theLang$}\label{fig:opsem}
 % \end{figure}
 % %% We can state some standard properties of the typing and evaluation relation.
 % %% \begin{lemma}[Subject reduction]
@@ -242,33 +244,33 @@ includes other constructs as well, but the constructs we give here are enough to
 many programs and exhibit the interesting theoretical and practical problems.
 
 We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', and similarly
-for functions $f$.  We will say what contracts mean formally in 
+for functions $f$.  We will say what contracts mean formally in
 Section~\ref{s:den-sem-contracts}.  However, here is their informal meaning:
 \begin{itemize}
-\item $e \in \{x | e'\}$ if $e$ diverges or $e[e'/x]$ evaluates to @True@ or diverges.
-Notice that $e'$ is an arbitrary expression 
+\item $e \in \{x | e'\}$ means that $e$ does not evaluate to a value
+  or $e[e'/x]$ evaluates to @True@ or does not evaluate to a value.
+Notice that $e'$ is an arbitrary expression
 (in our implementation, arbitrary Haskell expressions),
 rather than being restricted to some well behaved meta-language.  This
 is great for the programmer because the language and its library
 functions is familiar, but it poses a challenge for verification
 because these expressions in contracts may themselves diverge or
 crash.
-\item $e \in (x:\Ct_1) \rightarrow \Ct_2$ if whenever $e'$ satisfies $\Ct_1$, it
+\item $e \in (x:\Ct_1) \rightarrow \Ct_2$ implies that, whenever $e'$ satisfies $\Ct_1$, it
 is the case that $(e\,e')$ satisfies $\Ct_2[e'/x]$.
-\item $e \in \Ct_1 \& \Ct_2$ if $e$ satisfies both $\Ct_1$ and $\Ct_2$.
-\item $e \in \CF$ if $e$ is \emph{crash free}, meaning that $e$ does not
+\item $e \in \Ct_1 \& \Ct_2$ means that $e$ satisfies both $\Ct_1$ and $\Ct_2$.
+\item $e \in \CF$ means that $e$ is \emph{crash free}, that is $e$ does not
 crash regardless of what context it is plugged into (see Section~\ref{s:cf-fol}).
 \end{itemize}
 
 % -----------------------------------------------------------------
-\section{Translating $\cal L$ to first-order logic} \label{ssect:trans-fol}
+\section{Translating $\theLang$ to first-order logic} \label{ssect:trans-fol}
 
 Our goal is to answer the question ``does expression $e$ satisfy
 contract $C$?''.  Our plan is to translate both the expression and the
-contract into first-order logic (FOL), and get a standard FOL prover
-to do the heavy lifting.
-In this section we formalise our new translation, and describe how we use it to
-verify contracts.
+contract into appropriate first-order logic (FOL) formulae, and get a standard 
+FOL prover to do the heavy lifting. In this section we formalise our new translation, 
+and describe how we use it to verify contracts.
 
 \subsection{The FOL language}
 
@@ -306,7 +308,7 @@ $f(\ol{t})$, saturated constructor applications $K(\ol{t})$, and variables. They
 also include, for each data constructor $K^\ar$ in the signature
 $\Sigma$ with arity $\ar$ a set of {\em selector functions}
 $\sel{K}{i}(t)$ for $i \in 1 \ldots \ar$.  The terms $app(t,s)$ and
-$f_{ptr}$ concern the higher-order aspects of $\cal L$ 
+$f_{ptr}$ concern the higher-order aspects of $\theLang$
 (namely un-saturated applications), which we
 discuss in Section~\ref{s:hof}.  Finally we introduce two new
 syntactic constructs $\unr$ and $\bad$. As an abbreviation we often use
@@ -317,7 +319,7 @@ A formula $\phi$ in Figure~\ref{fig:fol-image} is just a first-order logic
 formula, augmented with a predicate $\lcf{t}$ for crash-freedom, which
 we discuss in Section~\ref{s:cf-fol}.
 
-\subsection{Translation of expressions to FOL}
+\subsection{Translation of expressions to FOL}\label{ssect:trans-exprs}
 
 % ---------------------------------------------------
 \begin{figure}\small
@@ -345,7 +347,7 @@ we discuss in Section~\ref{s:cf-fol}.
     = & \formula{(t = \bad => s = bad)} \\
     \land & \formula{(\forall \ol{y} @.@ t = K_1(\ol{y}) => s = \etrans{\Sigma}{\Gamma}{e'_1})\;\land \ldots}  \\
     \land & \formula{(t{\neq}\bad\;\land\;
-                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots) => s{=}\unr} \\
+                 t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})\;\land\;\ldots => s=\unr)} \\
     \mbox{where} & t  =  \etrans{\Sigma}{\Gamma}{e}
  \end{array}
 }
@@ -357,7 +359,7 @@ we discuss in Section~\ref{s:cf-fol}.
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]} & = & \formula{f_{ptr}} \\
 \etrans{\Sigma}{\Gamma}{K[\ol{\tau}](\ol{e})} & = & \formula{K(\ol{\etrans{\Sigma}{\Gamma}{e}})} \\
 \etrans{\Sigma}{\Gamma}{e_1\;e_2} & = & \formula{app(\etrans{\Sigma}{\Gamma}{e_1},
-                                                     \etrans{\Sigma}{\Gamma}{e_1})} \\
+                                                     \etrans{\Sigma}{\Gamma}{e_2})} \\
 \etrans{\Sigma}{\Gamma}{@BAD@} & = & \formula{\bad}
 \end{array}
 \\ \\
@@ -420,7 +422,8 @@ We are primarily interested in reasoning about equality, so we might
 hope for this informal guiding principle:
 
 \begin{quote}
-If we can prove in FOL that $\etrans{}{}{e_1} = \etrans{}{}{e_2}$ then  
+If we can prove\footnote{From an appropriate axiomatization of the semantics of 
+programs.} in FOL that $\etrans{}{}{e_1} = \etrans{}{}{e_2}$ then
 $e_1$ and $e_2$ are semantically equivalent.
 \end{quote}
 
@@ -441,45 +444,48 @@ in Section~\ref{s:hof}.
 Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}),
 the formula $\utrans{}{e}{f(\ol{x})}$
 simply asserts the equality $f(\ol{x}) = \etrans{}{}{e}$.
-That is, we use a new constant $f$ in the logic for each function definition in the
+That is, we use a new function $f$ in the logic for each function definition in the
 program, and assert that any application of $f$ is equal to (the logical translation of)
 $f$'s right hand side. Notice that we erase type arguments in the translation
-since they do not affect the semantics.
+since they do not affect the semantics. You might think that the translation 
+$f(\ol{x}) = \etrans{}{}{e}$ is entirely obvious but, surprisingly, it is only correct 
+because we are in a call-by-name setting. The same equation is problematic in a 
+call-by-value setting -- an issue 
+we return to towards the end of Section~\ref{s:soundness}.
 
 Lastly $\etrans{}{}{e}$ deals with expressions.  We will deal with
 functions and application shortly
 (Section~\ref{s:hof}), but the other equations for $\etrans{}{}{e}$
 are straightforward.  Notice that $\etrans{}{}{@BAD@} = bad$, and recall
-that @BAD@ is the $\cal L$-term used for an inexhaustive @case@ or a call
+that @BAD@ is the $\theLang$-term used for an inexhaustive @case@ or a call
 to @error@.  It follows from our guiding principle
-that for any $e$, if
-$$ \etrans{}{}{e} = bad $$
-in the logic, then the source program $e$
+that for any $e$, if we manage to prove in FOL that $ \etrans{}{}{e} = bad $, 
+then the source program $e$
 must be semantically equivalent to @BAD@, meaning that it definitely
 crashes.
 
 \subsection{Translating higher-order functions} \label{s:hof}
 
-If $\cal L$ was
+If $\theLang$ was
 a first-order language, the translation of function calls would be easy:
 $$
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]\;\ol{e}} = \formula{f(\ol{\etrans{}{}{e}})} \\
 $$
 At first it might be surprising that we can also translate a \emph{higher-order} language
-$\cal L$ into first order logic, but in fact it is easy to do so, as
+$\theLang$ into first order logic, but in fact it is easy to do so, as
 Figure~\ref{fig:etrans} shows.  We introduce into the logic
-(a) a single new constant $app$, and (b) a nullary constant $f_{ptr}$ for each function $f$
+(a) a single new function $app$, and (b) a nullary constant $f_{ptr}$ for each function $f$
 (see Figure~\ref{fig:fol-image}).
-Then, the equations for $\etrans{}{}{e}$ translate application in $\cal L$ to
-a use of $app$ in FOL, and any mention of function $f$ in $\cal L$ to a use
+Then, the equations for $\etrans{}{}{e}$ translate application in $\theLang$ to
+a use of $app$ in FOL, and any mention of function $f$ in $\theLang$ to a use
 of $f_{ptr}$ in the logic.  For example:
 $$
 \etrans{}{}{@map f xs@} = app( app( @map@_{ptr}, @f@_{ptr}), @xs@)
 $$
-assuming that @map@ and @f@ are top-level functions in the $\cal L$-program, and
+assuming that @map@ and @f@ are top-level functions in the $\theLang$-program, and
 @xs@ is a local variable.  Once enough $app$ applications stack up, so that
-$@map@_{ptr}$ is applied to two arguments, can invoke @map@ directly in the logic,
-an idea we expression with the following axiom:
+$@map@_{ptr}$ is applied to two arguments, we can invoke the @map@ function directly 
+in the logic, an idea we express with the following axiom:
 $$
 \forall x y.\;app(app(@map@_{ptr}, x), y) = @map@(x,y)
 $$
@@ -512,7 +518,7 @@ right-hand side, $e'_i$, after quantifying the variables $\ol{y}$ bound by the @
 \item Otherwise the result is $unr$.
 The bit before the implication $\Rightarrow$ is just the
 negation of the previous preconditions; the formula
-  $t{\neq}K_1(\oln{{\sel{K_1}{i}}(t)}{})$
+  $t{\neq}K_1(\oln{{\sel{K}{1}}(t)}{})$
 is the clumsy FOL way to say ``$t$ is not built with constructor $K_1$''.
 \end{itemize}
 Why do we need the last clause? Consider the function @not@:
@@ -552,7 +558,8 @@ Now that we know how to translate \emph{programs} to first order
 logic, we turn our attention to translating \emph{contracts}.  We do
 not translate a contract \emph{per se}; rather we translate the claim
 $e \in \Ct$.  Once we have translated $e \in \Ct$ to a first-order logic
-formula, we can ask the prover to prove it; and, if successful, we can
+formula, we can ask a prover to prove it using axioms from the translation of
+the program, or axioms from Figure~\ref{fig:data-cons}. If successful, we can
 claim that indeed $e$ does satisfy $C$.  Of course that needs proof,
 which we address in Section~\ref{s:soundness}.
 
@@ -565,9 +572,9 @@ into universal quantification and implication; and the claim that $e$ is
 crash-free turns into a use of the special term $\lcf{t}$ in the logic.
 We discuss crash-freedom in Section~\ref{s:cf-fol}.
 
-The first equation, for predicate contracts $e \in \{(x{:}\tau) \mid e' \}$,
+The first equation, for predicate contracts $e \in \{x \mid e' \}$,
 is sightly more complicated.
-The first clause $t=unr$, together with the axioms for $unr$ in Figure~\ref{}, ensures
+The first clause $t=unr$, together with the axioms for $unr$ in Figure~\ref{fig:prelude}, ensures
 that $unr$ satisfies every contract.
 The second and third say that the contract holds if $e'$ diverges or is semantically
 equal to @True@.  The choices embodied in this rule were discussed at length
@@ -589,8 +596,9 @@ $unr$ is crash-free, and that $bad$ is not.  That turns out to be all that we ne
 \subsection{Summary}
 
 That completes our formally-described --- but so far only informally-justified --- translation
-from a $\cal L$ program and a set of contract claims, into first-order logic.
-To a first approximation, we can now turn the whole formula over to a FOL prover,
-and hope that it proves the assertion.
+from a $\theLang$ program and a set of contract claims, into first-order logic.
+To a first approximation, we can now hand the generated axioms from the program and
+our axiomatization to an FOL theorem prover and ask it to use them to prove the 
+translation of the contract claims. 
 
 

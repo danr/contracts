@@ -1,4 +1,51 @@
+\paragraph{Contracts that do not hold}
+\label{ssect:countersat}
 
+In practice, programmers will often propose contracts that do not hold. Our tool 
+will generate the necessary formulae and search for a countermodel. When such a model 
+exists, it will include tables for the function symbols in the formula. Recall that
+functions in FOL are total over the domain of the terms in the model. This means that function 
+tables may be {\em infinite} if the terms in the model are infinite. Several (very useful!) 
+axioms such as the discrimination axioms \textsc{AxDisjC} may in fact force the models to be 
+infinite. For instance consider the following devinitions:
+\begin{code}
+  length [] = Z
+  length (x:xs) = S (length xs)
+
+  isZero Z = True
+  isZero _ = False
+\end{code}
+Suppose that we would like to check that 
+   \[ @length@ \in \CF -> \{ x \mid @isZero@\;x\} \]
+which is false.  A satisfiability-based checker 
+will simply diverge trying to construct a counter model for the negation of the above query; we 
+have confirmed that this is indeed the behaviour of several tools (Z3, Equinox, Eprover).
+Indeed the table for @length@ is infinite since @[]@ is always disjoint from @Cons x xs@ for 
+any @x@ and @xs@. Even if there is a finitely-representable infinite model, 
+the theorem prover may search forever in the ``wrong corner'' of the model for a 
+counterexample. 
+
+From a practical point of view this is unfortunate; it is not
+acceptable for the checker to loop when the programmer writes an
+erroneous contract.
+Tantalisingly, there exists a very simple 
+counterexample, e.g. @[Z]@, and that single small
+example is all the programmer needs to see the falsity of the contract.
+
+Addressin this problem a challenging (but essential) 
+direction for future work, and we are currently 
+working on a modification of our theory that admits the denotational model, but 
+also permits {\em finite models} generated from counterexample traces.
+%% These ideas are reminiscent to the techniques that the Nitpick \dv{IS this right?} tool
+%% uses for generating finite counterexamples in Isabelle. \dv{Someone please check!}.
+If the theory can guarantee the existence of a finite model in case of a counterexample,
+a finite model checker such as Paradox~\cite{paradox} will be able find it.
+
+%% It is obviouly unacceptable for the system to go into a loop if
+%% the programmer writes a bogus contract, and we have promising
+%% preliminary results based on so-called ``minimisation'', and
+%% finite counter-model generators such as Paradox \cite{koen}, but we
+%% leave this for (absolutely essential) future work.
 
 \paragraph{A tighter correspondence to operational semantics?}
 
@@ -11,13 +58,13 @@ $P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Dow
 
 Hence, the operational and the denotational semantics of base predicate contracts coincide.
 It is interesting to see whether our shift to denotational semantics -- at least compared
-to previous work on checking Haskell contracts~\cite{xu} -- has any other consequences? Does
-the above correspondence break for higher-order contracts?
+to previous work on checking Haskell contracts~\cite{xu+:contracts} -- has any other consequences? 
+Does the above correspondence break for higher-order contracts?
 
 The answer is that this precise correspondence indeed breaks. 
 Recall that the operational definition of contract satisfaction for a contract $\Ct_1 -> \Ct_2$ is the following: 
 \[\begin{array}{l} 
-   e \in (x{:}\Ct_1) -> \Ct_2 \text{iff} \\
+   e \in (x{:}\Ct_1) -> \Ct_2 \text{ iff} \\
    \text{for all } e' \text{ such that } (e' \in \Ct_1) \text{ it is } e\;e' \in \Ct_2[e'/x]
 \end{array}\] 
 The denotational one requires that for all denotations $d'$ such that
@@ -73,8 +120,39 @@ that the formal clutter from syntactic manipulation of terms could be worse than
 denotational approach. 
 
 
-\paragraph{Higher-order axioms}
+\paragraph{Polymorphic crash-freedom}
 
-\dv{Talk about variations on app and cf for higher-order functions}
+Observe that our axiomatization of crash-freedom in Figure~\ref{fig:prelude} 
+includes only axioms for data constructors. In fact, our denotational interpretation
+$\Fcf^{\infty}$ allows more axioms, such as:
+\[\begin{array}{l}
+    \forall x y @.@ \lcf{x} \land \lcf{y} => \lcf{app(x,y)}
+\end{array}\] 
+This axiom is useful if we wish to give directly a $\CF$ contract to a value of 
+arrow type. For instance, instead of specifying that @map@ satisfies the contract
+$(\CF -> \CF) -> \CF -> \CF$ one may want to say that it satisfies the contract
+$\CF -> \CF -> \CF$. With the latter contract we need the previous axiom to be 
+able to apply the function argument of @map@ to a crash-free value and get a 
+crash-free result. 
+
+In some situations, the following axiom might be beneficial as well:
+\[\begin{array}{l}
+    (\forall \xs @.@ \lcf{f(\xs)}) => \lcf{f_{ptr}}
+\end{array}\]
+If the result of applying a function to any possible argument is crash-free then 
+so is the function pointer. This allows us to go in the inverse direction as before, 
+and pass a function pointer to a function that expects a $\CF$ argument. However notice
+that this last axiom introduces a quantified assumption, which might lead to significant
+efficiency problem.
+
+On a final note, observe that the variation of the latter axiom for the 
+$app(\cdot,\cdot)$ function
+\[\begin{array}{l}
+   (\forall x @.@ \lcf{app(y,x)}) => \lcf{y}
+\end{array}\]
+is {\em not} valid in the denotational model. For instance consider the
+value $\injK{K}{\injBad}$ for $y$. The left-hand side is going to always 
+be true, as the application will yield $\bot$, but $y$ is not crash-free 
+itself.
 
 

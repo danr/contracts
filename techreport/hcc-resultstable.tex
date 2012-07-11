@@ -9,108 +9,64 @@
 \begin{restab}
 
  Description
- & \multicolumn{2}{c}{e-nox}
- & \multicolumn{2}{c}{Z3}
- & \multicolumn{2}{c}{vamp}
+ & \multicolumn{2}{c | }{equinox}
+ & \multicolumn{2}{c | }{Z3}
+ & \multicolumn{2}{c | }{vampire}
  & \multicolumn{2}{c}{E}
  \\
 
 \hline
 
-ack CF                       & \tol & 0&03 & 0&04 & \tot \\
-app CF                       & \tol & 0&03 & \tol & 0&45 \\
-any CF                       & \tol & 0&00 & \tol & 0&04 \\
-app any morphism             & \tol & 0&04 & \tol & \tot \\
-filter all                   & \tol & 0&04 & \tol & \tot \\
-all CF                       & \tol & 0&00 & \tol & 0&04 \\
-filter all only pred         & \tol & 0&03 & \tol & \tot \\
-foldr1 CF                    & \tol & 0&00 & \tol & \tot \\
-head contract                & \tol & 0&00 & 0&01 & 0&00 \\
-iterTree CF                  & \tol & 0&00 & 0&01 & 0&02 \\
-iterate CF                   & \tol & 0&00 & 0&00 & 0&01 \\
-lefts CF                     & \tol & 0&00 & \tol & 0&01 \\
-repeat CF                    & 0&05 & 0&00 & 0&00 & 0&00 \\
-id four rec true             & 0&06 & 0&02 & 0&01 & 0&00 \\
-loop CF                      & 0&00 & 0&00 & 0&00 & 0&01 \\
-loop isnt zero               & 0&01 & 0&00 & 0&00 & 0&01 \\
-loop zero                    & 0&00 & 0&00 & 0&00 & 0&00 \\
-recursive true and CF        & 0&10 & 0&00 & 0&19 & 0&00 \\
-recursive true CF            & 0&05 & 0&00 & 0&00 & 0&01 \\
-map ret invariant wo all CF  & \tol & \tol & \tol & \tot \\
-neg retains invariant        & \tol & \tol & \tol & \tot \\
-invariant CF                 & \tol & \tol & \tol & \tot \\
-and CF                       & 0&01 & 0&00 & 0&00 & 0&00 \\
-append CF                    & \tol & 0&03 & \tol & 0&38 \\
-append retains invariant     & \tol & \tol & \tol & \tot \\
-concatMap CF                 & \tol & 0&02 & \tol & \tot \\
-not CF                       & 0&00 & 0&00 & 0&00 & 0&00 \\
-concatMap retains invariant  & \tol & \tol & \tol & \tot \\
-or CF                        & 0&01 & 0&00 & 0&00 & 0&00 \\
-flattenAnd CF                & \tol & 0&03 & 0&06 & 0&07 \\
-flattenAnd retains invariant & \tol & \tol & \tol & \tot \\
-map retains invariant        & \tol & \tol & \tol & \tot \\
-neg retains invariant        & \tol & \tol & \tol & \tot \\
-append CF                    & \tol & 0&03 & \tol & 0&37 \\
-double CF                    & 0&21 & 0&03 & \tol & 0&01 \\
-even CF                      & \tol & 0&00 & 0&00 & 0&00 \\
-half CF                      & \tol & 0&00 & \tol & 0&09 \\
-ind CF                       & 0&11 & 0&00 & 0&28 & 0&00 \\
-length CF                    & 0&86 & 0&00 & \tol & 0&01 \\
-plus CF                      & \tol & 0&00 & \tol & 0&10 \\
-mult CF                      & \tol & 0&04 & \tol & \tot \\
-mul CF                       & \tol & 0&03 & \tol & \tot \\
-fac CF                       & \tol & 0&02 & \tol & \tot \\
-exp CF                       & \tol & 0&03 & \tol & \tot \\
-exp accum CF                 & \tol & 0&04 & \tol & 0&11 \\
-qfac CF                      & \tol & 0&02 & \tol & \tot \\
-rev CF                       & \tol & 0&02 & \tol & \tot \\
-recursive true and CF        & 0&10 & 0&00 & 0&18 & 0&00 \\
-risersBy nonEmpty            & \tol & \tol & \tol & \tot \\
-le CF                        & \tol & 0&00 & 0&20 & \tot \\
-risers                       & \tol & \tol & \tol & \tot \\
-risersBy                     & \tol & \tol & \tol & \tot \\
-shrink                       & \tol & 0&04 & \tol & \tot \\
-fromJust contr               & 0&06 & 0&00 & 0&00 & 0&01 \\
-\begin{comment}
-bad unjuggle id              & 0&01 & 0&00 & 0&00 & 0&00 \\
-bad unjuggle not             & 0&01 & 0&00 & 0&00 & 0&00 \\
-const boom                   & 0&01 & 0&00 & 0&00 & 0&00 \\
-const CF                     & 0&01 & 0&00 & 0&00 & 0&00 \\
-const CF eq                  & 0&02 & 0&00 & 0&00 & 0&00 \\
-false CF                     & 0&00 & 0&00 & 0&00 & 0&00 \\
-false CF not                 & 0&00 & 0&00 & 0&00 & 0&00 \\
-false not                    & 0&00 & 0&00 & 0&00 & 0&00 \\
-id CF                        & 0&00 & 0&00 & 0&00 & 0&00 \\
-id eq                        & 0&02 & 0&00 & 0&00 & 0&01 \\
-juggle id                    & 0&01 & 0&00 & 0&00 & 0&01 \\
-juggle id CF                 & 0&00 & 0&00 & 0&00 & 0&00 \\
-juggle not                   & 0&01 & 0&00 & 0&00 & 0&00 \\
-juggle not CF                & 0&00 & 0&00 & 0&00 & 0&00 \\
-not CF                       & 0&01 & 0&00 & 0&00 & 0&00 \\
-not uneq                     & 0&03 & 0&00 & 0&00 & 0&00 \\
-true CF                      & 0&00 & 0&00 & 0&00 & 0&00 \\
-and CF                       & 0&01 & 0&00 & 0&00 & 0&00 \\
-true CF id                   & 0&00 & 0&00 & 0&00 & 0&00 \\
-true id                      & 0&00 & 0&00 & 0&00 & 0&00 \\
-unjuggle CF id               & 0&01 & 0&00 & 0&00 & 0&00 \\
-unjuggle CF not              & 0&01 & 0&00 & 0&01 & 0&00 \\
-unjuggle id                  & 0&00 & 0&00 & 0&00 & 0&00 \\
-unjuggle not                 & 0&00 & 0&00 & 0&00 & 0&01 \\
-\end{comment}
-withMany CF                  & \tol & 0&00 & \tol & \tot \\
-ind contr CF                 & \tol & 0&00 & \tol & 0&05 \\
-invariant CF                 & \tol & 0&00 & \tol & 0&02 \\
-ind contr retain             & \tol & \tol & \tol & \tot
+@ack@ $\CF$               &  \tol   & 0&04  &  0&03  &  \tot \\
+@all@ $\CF$               &  \tol   & 0&00  &  3&36  &  0&04 \\
+@(++)@ $\CF$              &  \tol   & 0&03  &  3&30  &  0&38 \\
+@concatMap@ $\CF$         &  \tol   & 0&03  &  6&60  &  \tot \\
+@length@ $\CF$            &  0&87   & 0&00  &  0&80  &  0&01 \\
+
+@(+)@ $\CF$               & 44&33   & 0&00  &  3&32  &  0&10 \\
+@(*)@ $\CF$               &  6&44   & 0&03  &  3&36  &  \tot \\
+@factorial@ $\CF$         &  6&69   & 0&02  &  4&18  & 31&04 \\
+@exp@ $\CF$               &  \tol   & 0&03  &  3&36  &  \tot \\
+@(*)@ accum $\CF$         &  \tol   & 0&03  &  3&32  &  \tot \\
+@exp@ accum $\CF$         &  \tol   & 0&04  &  4&20  &  0&12 \\
+@factorial@ accum $\CF$   &  \tol   & 0&03  &  3&32  &  \tot \\
+
+@reverse@ $\CF$           & 13&40   & 0&03  & 28&77  &  \tot \\
+
+% Nats examples
+%@double@ $\CF$           &  0&20   & 0&02  &  1&39  &  0&01 \\
+%@even@ $\CF$             & 17&47   & 0&00  &  0&01  &  0&00 \\
+%@half@ $\CF$             & 39&03   & 0&00  &  3&90  &  0&08 \\
+
+@(++)@/@any@ morphism     &  \tol   & 0&03  &  \tol  &  \tot \\
+@filter@ satisfies @all@  &  \tol   & 0&03  &  \tol  &  \tot \\
+
+%@filter@ @all@ only pred &  \tol   & 0&02  &  \tol  &  \tot \\
+
+%iterTree $\CF$           &  \tol   & 0&00  &  0&02  &  0&01 \\
+%lefts $\CF$              &  4&88   & 0&00  &  3&31  &  0&02 \\
+
+@iterate@ $\CF$           &  5&54   & 0&00  &  0&00  &  0&00 \\
+@repeat@ $\CF$            &  0&06   & 0&00  &  0&00  &  0&01 \\
+
+@foldr1@                  &  \tol   & 0&01  &  1&04  & 24&78 \\
+@head@                    & 18&62   & 0&00  &  0&00  &  0&01 \\
+@fromJust@                &  0&05   & 0&00  &  0&00  &  0&00 \\
+
+% risers                  &  \tol   & \tol  &  \tol  &  \tot \\
+@risersBy@                &  \tol   & \tol  &  1&53  &  \tot \\
+% @risersBy@ (@nonEmpty@) &  \tol   & 8&63  &  1&20  &  \tot \\
+% This just looks stupid. Better get some inlining going
+
+@shrink@                  &  \tol   & 0&04  &  \tol  &  \tot \\
+@withMany@ $\CF$          &  \tol   & 0&00  &  \tol  &  \tot \\
+
 \end{restab}
 \end{center}
 
 \caption{
-  \dr{NB: This is using only 1s timeout, a 60s timeout is running and coming up}
   Theorem prover running time in seconds on some of the problems in the test suite
   on contracts that hold.
-  \dr{I will change to some more enlightening descriptions on these,
-      and trim this to about half the size
-  }
   \label{fig:unsres}
 }
 

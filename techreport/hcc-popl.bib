@@ -112,19 +112,378 @@
 }
 
 
-@inproceedings{catch,
-  author    = {Neil Mitchell and
-               Colin Runciman},
-  title     = {A static checker for safe pattern matching in Haskell},
-  booktitle = {Trends in Functional Programming},
+
+
+@inproceedings{Rondon:2008:LT:1375581.1375602,
+ author = {Rondon, Patrick M. and Kawaguci, Ming and Jhala, Ranjit},
+ title = {Liquid types},
+ booktitle = {Proceedings of the 2008 ACM SIGPLAN conference on Programming language design and implementation},
+ series = {PLDI '08},
+ year = {2008},
+ isbn = {978-1-59593-860-2},
+ location = {Tucson, AZ, USA},
+ pages = {159--169},
+ numpages = {11},
+ url = {http://doi.acm.org/10.1145/1375581.1375602},
+ doi = {10.1145/1375581.1375602},
+ acmid = {1375602},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {dependent types, hindley-milner, predicate abstraction, type inference},
+} 
+
+@inproceedings{Mitchell:2008:PBE:1411286.1411293,
+ author = {Mitchell, Neil and Runciman, Colin},
+ title = {Not all patterns, but enough: an automatic verifier for partial but sufficient pattern matching},
+ booktitle = {Proceedings of the first ACM SIGPLAN symposium on Haskell},
+ series = {Haskell '08},
+ year = {2008},
+ isbn = {978-1-60558-064-7},
+ location = {Victoria, BC, Canada},
+ pages = {49--60},
+ numpages = {12},
+ url = {http://doi.acm.org/10.1145/1411286.1411293},
+ doi = {10.1145/1411286.1411293},
+ acmid = {1411293},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {automatic verification, functional programming, haskell, pattern-match errors, preconditions},
+} 
+
+
+
+
+
+@inproceedings{Bierman+:subtyping,
+ author = {Bierman, Gavin M. and Gordon, Andrew D. and Hri\c{t}cu, C\u{a}t\u{a}lin and Langworthy, David},
+ title = {Semantic subtyping with an SMT solver},
+ booktitle = {Proceedings of the 15th ACM SIGPLAN international conference on Functional programming},
+ series = {ICFP '10},
+ year = {2010},
+ isbn = {978-1-60558-794-3},
+ location = {Baltimore, Maryland, USA},
+ pages = {105--116},
+ numpages = {12},
+ url = {http://doi.acm.org/10.1145/1863543.1863560},
+ doi = {10.1145/1863543.1863560},
+ acmid = {1863560},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {data processing, satisfiability modulo theories, semantic subtyping, type systems},
+} 
+
+
+
+@inproceedings{Leino:2012:AIS:2189257.2189278,
+ author = {Leino, K. Rustan M.},
+ title = {Automating induction with an SMT solver},
+ booktitle = {Proceedings of the 13th international conference on Verification, Model Checking, and Abstract Interpretation},
+ series = {VMCAI'12},
+ year = {2012},
+ isbn = {978-3-642-27939-3},
+ location = {Philadelphia, PA},
+ pages = {315--331},
+ numpages = {17},
+ url = {http://dx.doi.org/10.1007/978-3-642-27940-9_21},
+ doi = {10.1007/978-3-642-27940-9_21},
+ acmid = {2189278},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
+
+
+@inproceedings{boogie,
+  author    = {Michael Barnett and
+               Bor-Yuh Evan Chang and
+               Robert DeLine and
+               Bart Jacobs and
+               K. Rustan M. Leino},
+  title     = {Boogie: A Modular Reusable Verifier for Object-Oriented
+               Programs},
+  booktitle = {Formal methods for Components and Objects},
   year      = {2005},
-  pages     = {15-30},
-  crossref  = {DBLP:conf/sfp/2005},
+  pages     = {364-387},
+  ee        = {http://dx.doi.org/10.1007/11804192_17},
+  bibsource = {DBLP, http://dblp.uni-trier.de}
+}
+
+@inproceedings{fstar,
+  author    = {Nikhil Swamy and
+               Juan Chen and
+               C{\'e}dric Fournet and
+               Pierre-Yves Strub and
+               Karthikeyan Bhargavan and
+               Jean Yang},
+  title     = {Secure distributed programming with value-dependent types},
+  booktitle = {International Conference on Functional Programming},
+  year      = {2011},
+  pages     = {266-278},
+  ee        = {http://doi.acm.org/10.1145/2034773.2034811},
   bibsource = {DBLP, http://dblp.uni-trier.de}
 }
 
 
+@article{Knowles+:sage,
+ author = {Knowles, Kenneth and Flanagan, Cormac},
+ title = {Hybrid type checking},
+ journal = {ACM Trans. Program. Lang. Syst.},
+ issue_date = {January 2010},
+ volume = {32},
+ number = {2},
+ month = feb,
+ year = {2010},
+ issn = {0164-0925},
+ pages = {6:1--6:34},
+ articleno = {6},
+ numpages = {34},
+ url = {http://doi.acm.org/10.1145/1667048.1667051},
+ doi = {10.1145/1667048.1667051},
+ acmid = {1667051},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {Type systems, contracts, dynamic checking, static checking},
+} 
+
+@inproceedings{Suter:2011:SMR:2041552.2041575,
+ author = {Suter, Philippe and K\"{o}ksal, Ali Sinan and Kuncak, Viktor},
+ title = {Satisfiability modulo recursive programs},
+ booktitle = {Proceedings of the 18th international conference on Static analysis},
+ series = {SAS'11},
+ year = {2011},
+ isbn = {978-3-642-23701-0},
+ location = {Venice, Italy},
+ pages = {298--315},
+ numpages = {18},
+ url = {http://dl.acm.org/citation.cfm?id=2041552.2041575},
+ acmid = {2041575},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
+
+%Andreas Abel, Thierry Coquand and Ulf Norell. Connecting a Logical Framework to a First-Order Logic Prover . In the proceedings of the 5th International Workshop on Frontiers of Combining Systems, FroCoS 2005. Copyright © Springer-Verlag. 
+
+@InProceedings{AgdaFOL,
+  author = 	 {Andreas Abel and Thierry Coquand and Ulf Norell},
+  title = 	 {Connecting a Logical Framework to a First-Order Logic Prover},
+  booktitle = {5th International Workshop on Frontiers of Combining Systems (FroCoS)},
+  year = 	 {2005},
+  series = 	 {LNCS},
+  publisher = {Springer Verlag}
+}
+
+%Extending Sledgehammer with SMT solvers 
+%J. C. B., Sascha Böhme, and Lawrence C. Paulson. Extended version of CADE-23 paper. 
+
+@InProceedings{Sledgehammer,
+  author = 	 {Jasmin Blanchette and Sascha B{\"o}hme and Lawrence Paulson},
+  title = 	 {Extending {Sledgehammer} with {SMT} solvers},
+  booktitle = {Conference on Automated Deduction (CADE)},
+  year = 	 {2011},
+  series = 	 {LNCS},
+  publisher = {Springer Verlag}
+}
+
+@InProceedings{TypeTheoryFOL,
+  author = 	 {Ana Bove and Peter Dybjer and Andr\'es Sicard-Ram\'{i}rez},
+  title = 	 {Combining Interactive and Automatic Reasoning
+                  in First Order Theories of Functional Programs},
+  booktitle = {15th International Conference on {F}oundations of 
+                  {S}oftware {S}cience and {C}omputational {S}tructures, 
+                  {FoSSaCS} 2012},
+  pages = 	 {104--118},
+  year = 	 {2012},
+  editor = 	 {Lars Birkedal},
+  volume = 	 {7213},
+  series = 	 {LNCS},
+  month = 	 {March}
+}
+
+@inproceedings{ paradox
+  , title       = { New Techniques that Improve {MACE}-style Model Finding }
+  , author      = { Koen Claessen
+                and Niklas S{\"o}rensson }
+  , booktitle   = { Proc.\ of Workshop on Model Computation (MODEL) }
+  , year        = { 2003 }
+}
+
+@inproceedings{Hinze:2006:TCF:2100071.2100093,
+ author = {Hinze, Ralf and Jeuring, Johan and L\"{o}h, Andres},
+ title = {Typed contracts for functional programming},
+ booktitle = {Proceedings of the 8th international conference on Functional and Logic Programming},
+ series = {FLOPS'06},
+ year = {2006},
+ isbn = {3-540-33438-6, 978-3-540-33438-5},
+ location = {Fuji-Susono, Japan},
+ pages = {208--225},
+ numpages = {18},
+ url = {http://dx.doi.org/10.1007/11737414_15},
+ doi = {10.1007/11737414_15},
+ acmid = {2100093},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
+
+
+@inproceedings{Xu:2012:HCC:2103746.2103767,
+ author = {Xu, Dana N.},
+ title = {Hybrid contract checking via symbolic simplification},
+ booktitle = {Proceedings of the ACM SIGPLAN 2012 workshop on Partial evaluation and program manipulation},
+ series = {PEPM '12},
+ year = {2012},
+ isbn = {978-1-4503-1118-2},
+ location = {Philadelphia, Pennsylvania, USA},
+ pages = {107--116},
+ numpages = {10},
+ url = {http://doi.acm.org/10.1145/2103746.2103767},
+ doi = {10.1145/2103746.2103767},
+ acmid = {2103767},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {contract checking, contract semantics, dynamic, hybrid, static, symbolic simplification},
+} 
+
+
+@article{Xi:2007:DMA:1230756.1230759,
+ author = {Xi, Hongwei},
+ title = {Dependent ML An approach to practical programming with dependent types},
+ journal = {J. Funct. Program.},
+ issue_date = {March 2007},
+ volume = {17},
+ number = {2},
+ month = mar,
+ year = {2007},
+ issn = {0956-7968},
+ pages = {215--286},
+ numpages = {72},
+ url = {http://dx.doi.org/10.1017/S0956796806006216},
+ doi = {10.1017/S0956796806006216},
+ acmid = {1230759},
+ publisher = {Cambridge University Press},
+ address = {New York, NY, USA},
+} 
+
+@phdthesis{norell:thesis,
+	Author = {Ulf Norell},
+	Date-Added = {2009-07-22 15:34:31 +0200},
+	Date-Modified = {2009-07-22 15:34:31 +0200},
+	School = {Chalmers University of Technology},
+	Title = {Towards a practical programming language based on dependent type theory},
+	Year = {2007}}
+
+
+@inproceedings{Findler:2002:CHF:581478.581484,
+ author = {Findler, Robert Bruce and Felleisen, Matthias},
+ title = {Contracts for higher-order functions},
+ booktitle = {Proceedings of the seventh ACM SIGPLAN international conference on Functional programming},
+ series = {ICFP '02},
+ year = {2002},
+ isbn = {1-58113-487-8},
+ location = {Pittsburgh, PA, USA},
+ pages = {48--59},
+ numpages = {12},
+ url = {http://doi.acm.org/10.1145/581478.581484},
+ doi = {10.1145/581478.581484},
+ acmid = {581484},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {behavioral specifications, contracts, higher-order functions, predicate typing, solfware reliability},
+} 
+
+@INPROCEEDINGS{Siek06gradualtyping,
+    author = {Jeremy G. Siek and Walid Taha},
+    title = {Gradual Typing for Functional Languages},
+    booktitle = {IN SCHEME AND FUNCTIONAL PROGRAMMING WORKSHOP},
+    year = {2006},
+    pages = {81--92},
+    publisher = {}
+}
+
+
+@inproceedings{Wadler:2009:WPC:1532974.1532976,
+ author = {Wadler, Philip and Findler, Robert Bruce},
+ title = {Well-Typed Programs Can't Be Blamed},
+ booktitle = {Proceedings of the 18th European Symposium on Programming Languages and Systems: Held as Part of the Joint European Conferences on Theory and Practice of Software, ETAPS 2009},
+ series = {ESOP '09},
+ year = {2009},
+ isbn = {978-3-642-00589-3},
+ location = {York, UK},
+ pages = {1--16},
+ numpages = {16},
+ url = {http://dx.doi.org/10.1007/978-3-642-00590-9_1},
+ doi = {10.1007/978-3-642-00590-9_1},
+ acmid = {1532976},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
+
+@article{Blume:2006:SCM:1166013.1166016,
+ author = {Blume, Matthias and McAllester, David},
+ title = {Sound and complete models of contracts},
+ journal = {J. Funct. Program.},
+ issue_date = {July 2006},
+ volume = {16},
+ number = {4-5},
+ month = jul,
+ year = {2006},
+ issn = {0956-7968},
+ pages = {375--414},
+ numpages = {40},
+ url = {http://dx.doi.org/10.1017/S0956796806005971},
+ doi = {10.1017/S0956796806005971},
+ acmid = {1166016},
+ publisher = {Cambridge University Press},
+ address = {New York, NY, USA},
+} 
+
+@inproceedings{z3citation,
+ author = {De Moura, Leonardo and Bj{\o}rner, Nikolaj},
+ title = {Z3: an efficient SMT solver},
+ booktitle = {Proceedings of the Theory and practice of software, 14th international conference on Tools and algorithms for the construction and analysis of systems},
+ series = {TACAS'08/ETAPS'08},
+ year = {2008},
+ isbn = {3-540-78799-2, 978-3-540-78799-0},
+ location = {Budapest, Hungary},
+ pages = {337--340},
+ numpages = {4},
+ url = {http://dl.acm.org/citation.cfm?id=1792734.1792766},
+ acmid = {1792766},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
+
+@inproceedings{vampire,
+ author = {Hoder, Kry\v{s}tof and Kov\'{a}cs, Laura and Voronkov, Andrei},
+ title = {Interpolation and symbol elimination in vampire},
+ booktitle = {Proceedings of the 5th international conference on Automated Reasoning},
+ series = {IJCAR'10},
+ year = {2010},
+ isbn = {3-642-14202-8, 978-3-642-14202-4},
+ location = {Edinburgh, UK},
+ pages = {188--195},
+ numpages = {8},
+ url = {http://dx.doi.org/10.1007/978-3-642-14203-1_16},
+ doi = {10.1007/978-3-642-14203-1_16},
+ acmid = {2176691},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
 
 
 
-
+@inproceedings{Sulzmann:2007:SFT:1190315.1190324,
+ author = {Sulzmann, Martin and Chakravarty, Manuel M. T. and Jones, Simon Peyton and Donnelly, Kevin},
+ title = {System F with type equality coercions},
+ booktitle = {Proceedings of the 2007 ACM SIGPLAN international workshop on Types in languages design and implementation},
+ series = {TLDI '07},
+ year = {2007},
+ isbn = {1-59593-393-X},
+ location = {Nice, Nice, France},
+ pages = {53--66},
+ numpages = {14},
+ url = {http://doi.acm.org/10.1145/1190315.1190324},
+ doi = {10.1145/1190315.1190324},
+ acmid = {1190324},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {advanced type features, typed intermediate language},
+} 

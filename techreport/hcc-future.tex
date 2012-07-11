@@ -2,15 +2,22 @@
 % SMT 2.0
 % Printing countermodels
 % (Typeclasses)
-For the implementation, we would like to add support for primitive
-data types, such as @Integer@. There exists theorem provers, such as
-@T-SPASS@, that can deal with the @tff@ extension of typed first order
-arithmetic problems of TPTP. Another way is to also generate theories
-in the SMT 2.0 format, understood by Z3, which has support for
-integer arithmetic and more.
-As mentioned in Section~\ref{ssect:countersat} we have ideas how to
-generate finite counter examples for contracts that do not hold,
-and it would be interesting to see if triggers in SMT 2.0 could be used.
+
+There are several avenues for future work. 
+In terms of our implementation, we would like 
+to add support for primitive data types, such as @Integer@. There exists
+theorem provers, such as @T-SPASS@, that can deal with the @tff@ extension 
+of typed first order arithmetic problems of TPTP. Another way is to also 
+generate theories in the SMT 2.0 format, understood by Z3, which has support 
+for integer arithmetic and more. As mentioned in Section~\ref{ssect:countersat} 
+we have ideas how to generate finite counter examples for contracts that do not 
+hold, and how they should be presented to the user. It would also be interesting 
+to see if triggers in SMT 2.0 could also be used to that extent. Another important 
+direction that we are investigating are ways to split our big verification goals
+into smaller ones that can be proven significantly faster. Finally, we would like
+to investigate whether we can automatically strengthen contracts to be used as 
+induction hypotheses in inductive proofs, deriving information from failed attempts.
+
 %A way of presenting countermodels given by @paradox@ in an easily
 %understandable way for the user would be helpful.
 % quote Reasoning with Triggers?

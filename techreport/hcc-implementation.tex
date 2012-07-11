@@ -3,17 +3,22 @@ It uses GHC to parse, typecheck, and desugar a Haskell program,
 translates it into first order logic (exactly as in Section~\ref{ssect:trans-fol}), and
 invokes a FOL theorem prover (Equinox, Z3, Vampire, etc) on the FOL formula.
 The desugared Haskell program is expressed in GHC's intermediate language
-call Core, an explicitly-typed variant of System F.  It is straightforward
-to translate this into our language $\cal L$.
+called Core~\cite{Sulzmann:2007:SFT:1190315.1190324}, an explicitly-typed 
+variant of System F.  It is straightforward
+to translate this into our language $\theLang$.
 
 \subsection{Expressing contracts in Haskell}
 
 How does the user express contracts?  We write contracts in Haskell
-itself, using higher-order abstract syntax and a GADT:
+itself, using higher-order abstract syntax and a GADT, in 
+a manner reminiscent 
+of the work on {\em typed contracts} for functional 
+programming~\cite{Hinze:2006:TCF:2100071.2100093}:
 \begin{code}
 data Contract t where
-  (:->) :: Contract a -> (a -> Contract b) ->
-           Contract (a -> b)
+  (:->) :: Contract a 
+        -> (a -> Contract b)
+        -> Contract (a -> b)
   Pred  :: (a -> Bool) -> Contract a
   CF    :: Contract a
   (:&:) :: Contract a -> Contract a -> Contract a
@@ -46,7 +51,6 @@ c1 --> c2 = c1 :-> \_ -> c2
 
 A contract is always associated with a function, so we wrap a contract
 together with its function in a @Statement@:
-
 \begin{code}
 data Statement where
     (:::) :: a -> Contract a -> Statement
@@ -78,7 +82,7 @@ FOL, generates a TPTP file and invokes a theorem prover.
 And indeed @c_head@ is verified by all theorem provers we tried.
 
 We apply fixpoint induction on contracts for recursive functions, as
-described in Section~\ref{s:induction}.
+described in Section~\ref{sect:induction}.
 
 % ------------------------ Omit ----------------------------
 \begin{comment}
@@ -87,15 +91,16 @@ described in Section~\ref{s:induction}.
 We prove the contract for a recursive function
 using fixed point induction (Section~\ref{s:induction}).
 For recursive
-functions, the tool then gives three files, one without induction, one
-for the base case and step case. The typical situation is that the one
-without induction does not pass because it lacks the induction
-hypothesis, the base case always succeeds because that is what we
-established our theory on: we need this to be admissible. Indeed, this
-one does not need to be checked but it can serve as a good sanity
-check of the tool. The step case can pass or fail, depending on if the
+functions, the tool then gives three TPTP files, one that can be used to try to 
+prove the contract without induction, one for the base case and step case. The
+typical situation is that the one without induction is not provable, because it 
+lacks the appropriate induction hypothesis. The base case always succeeds 
+(because $\bot$ satisfies every contract as we have seen in Section~\ref{s:induction})
+so it really onle serves as a sanity check of the tool. 
+The induction step case may pass or fail, depending on if the
 contract really holds, and if the induction hypothesis is strong
-enough, and if we assume the right contracts.
+enough, and if we have assumed the right contracts for functions that may be used
+in the body of the function that we are working on.
 
 One example of a recursive function in the Prelude is @foldr1@.
 
@@ -108,12 +113,10 @@ foldr1 _ []     =  error "foldr1: empty list"
 
 We can state that if @foldr1@ is applied to a crash free function, and
 a non-empty list, then the result should be crash free as a contract:
-
 \begin{code}
-c_foldr = foldr1 ::: (CF --> CF --> CF) -->
-                 CF :&: Pred (not . null) --> CF
+c_foldr = foldr1 ::: (CF --> CF --> CF) 
+                 --> CF :&: Pred (not . null) --> CF
 \end{code}
-
 Our tool proves this contract, but only when recursion is used.
 \end{comment}
 % ------------------------ End Omit ----------------------------
@@ -142,7 +145,7 @@ At the moment we ask the programmer to specify which auxiliary contracts
 are useful, via a second constructor in the @Statement@ type:
 \begin{code}
   reverse_cf = reverse ::: CF --> CF
-                 `Using` append_cf
+                       `Using` append_cf
 \end{code}
 
 
@@ -160,8 +163,9 @@ satisfies @p@.
 In our source-file syntax we use @(:->)@ to bind @p@.
 \begin{code}
 filter_all :: Statement
-filter_all = filter ::: (CF --> CF) :-> \p ->
-                        CF --> (CF & Pred (all p))
+filter_all = 
+  filter ::: (CF --> CF) :-> \p ->
+                CF --> (CF :&: Pred (all p))
 \end{code}
 It is a little confusing since we get two ``arrows'', one from @:->@,
 and one from the @->@ in the lambda.  This contract is proved by
@@ -183,9 +187,10 @@ withMany withFoo (x:xs) f = withFoo x (\x' ->
 \end{code}
 
 For @withMany@, our tool proves
-$$
-@withMany@\! \in \! (\CF\! \rightarrow\! (\CF \rightarrow \CF) \rightarrow \CF) \rightarrow \CF \rightarrow (\CF \! \rightarrow \! \CF) \rightarrow \CF
-$$
+
+\[ @withMany@ \in \begin{array}[t]{l} (\CF -> (\CF -> \CF) -> \CF) -> \\
+                                      \quad\quad (\CF -> (\CF -> \CF) -> \CF)
+                  \end{array}\] 
 
 % ------------------------ Omit ----------------------------
 \begin{comment}
@@ -304,46 +309,33 @@ use the min-translation, we a finitely counter satisfiable theory.
 
 \input{hcc-resultstable}
 
-We have made some initial experimental results, shown in
-Figure~\ref{fig:unsres}. 
+We have made some initial experimental results, a small fragment of which can be 
+viewed in Figure~\ref{fig:unsres}. Our full testuite and tables can be downloaded from
+\url{https://github.com/danr/contracts/blob/master/tests/BigTestResults.md}.
+\dv{Is this right? How many examples did we evaluate on? 10? 20? 300? is it imporant?}
 The test cases include:
 \begin{itemize}
-  \item Crash freeness of standard Haskell functions, given
-        appropriate preconditions (@(++)@,@foldr1@,@concatMap@,@iterate@),
+  \item Crash freeness of standard functions
+    (@(++)@, @foldr1@, @iterate@, @concatMap@).
 
   \item CF of functions with a bit more involving recursive patterns
         (Ackermann's function, functions with accumulators),
 
-  \item A library for predicate logic terms with some smart constructors
-        retaining an invariant,
+%  \item A library for predicate logic terms with some smart constructors
+%        retaining an invariant,
+%
+%        % \dr{Everything failed from this without min so I just skip it}
 
-  \item Partial functions (@head@,@fromJust@),
+  \item Partial functions given appropriate preconditions
+        (@foldr1@, @head@, @fromJust@),
 
-  \item The @risers@ example from \citep{catch},
+  \item The @risers@ example from Catch~\citep{Mitchell:2008:PBE:1411286.1411293},
 
-  \item Some properties of functions, such that
-        $@any p xs || any p ys@ = @any p (xs ++ ys)@$
-        and the example with @filter@ and @any@ above.
+  \item Some properties, such as the example above with @filter@ and @all@,
+        and also $@any p xs || any p ys@ = @any p (xs ++ ys)@$.
 \end{itemize}
 
 We tried four theorem provers, Equinox, Z3, Vampire and E, and gave
-them 60s for each problem. For our problems, Z3 seems to be the most
-successful tool.
-
-\subsection{Contracts that do not hold}
-\label{ssect:countersat}
-
-In practice, programmers will often propose contracts that do not hold.
-Unfortunately, in almost all such cases, all FOL provers will loop.
-The prover is trying to prove that a theory is unsatisfiable.  A resolution
-based prover (such as Vampire or eprover) will keep applying deduction rules,
-trying to find a contradiction, but no such contradiction exists.  A
-model-based theorem prover will seek a finite counter-model to the theory, but
-again no such counter-model exists. \spj{Koen please fix the wording here!}
-
-It is obviously unacceptable for the system to go into a loop if
-the programmer writes a bogus contract, and we have promising
-preliminary results based on so-called ``minimisation'', and
-finite counter-model generators such as Paradox \cite{koen}, but we
-leave this for (absolutely essential) future work.
+them 60 seconds for each problem. For our problems, Z3 seems to be the most
+successful theorem prover.
 
