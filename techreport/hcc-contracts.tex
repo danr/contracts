@@ -295,7 +295,7 @@ and if $\Sigma;\Delta,x{:}\tau |- u : \tau$ then
 Although we have not presented a formal operational semantics, we state the usual
 soundness and adequacy results:
 \begin{theorem}[Soundness and adequacy]\label{thm:adequacy}
-Assume $\Sigma |- P$ and $u$ with no free term variables. Then (a) if $P |- u \Downarrow v$ then $\dbrace{u} = \dbrace{v} $; and (b) if $\unroll{\dbrace{e}} = \ret{d} \not= \bot$, then
+Assume $\Sigma |- P$ and $u$ with no free term variables. Then (i)~if $P |- u \Downarrow v$ then $\dbrace{u} = \dbrace{v} $; and (ii)~if $\unroll{\dbrace{e}} \neq \bot$, then
 $\exists v$ such that $P |- e \Downarrow v$.
 \end{theorem}
 \begin{comment}
