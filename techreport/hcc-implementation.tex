@@ -3,28 +3,30 @@ It uses GHC to parse, typecheck, and desugar a Haskell program,
 translates it into first order logic (exactly as in Section~\ref{ssect:trans-fol}), and
 invokes a FOL theorem prover (Equinox, Z3, Vampire, etc) on the FOL formula.
 The desugared Haskell program is expressed in GHC's intermediate language
-call Core, an explicitly-typed variant of System F.  It is straightforward
+called Core~\cite{fc-paper}, an explicitly-typed variant of System F.  It is straightforward
 to translate this into our language $\theLang$.
 
 \subsection{Using the tool}
 
 How does the user express contracts? We use HOAS and let the user
-define contracts by primitive connectives.  The connectives are
-defined in a GADT, where @Contract t@ is a a contract for a function
-of type @t@:
+define contracts with a library of contract combinators, reminiscent 
+of the work on {\em typed contracts} for functional 
+programming~\cite{Hinze:2006:TCF:2100071.2100093}.
+The contract combinators are defined in a generalized algebraic 
+datatype @Contract t@, which represents a contract for a function of type @t@:
 \begin{code}
 data Contract t where
-  (:->) :: Contract a -> (a -> Contract b) ->
-           Contract (a -> b)
+  (:->) :: Contract a 
+        -> (a -> Contract b)
+        -> Contract (a -> b)
   Pred  :: (a -> Bool) -> Contract a
   CF    :: Contract a
   (:&:) :: Contract a -> Contract a -> Contract a
 \end{code}
-
-The connectives are @:->@ for dependent contract function space, @CF@
+The combinators are: @:->@ for dependent contract function space, @CF@
 for crash-freedom, @Pred@ for predication, and
-@:&:@ for conjunction.
-A useful derived connective is non-dependent function space:
+@:&:@ for conjunction. A useful derived contract is for the 
+non-dependent function space:
 \par {\small
 \begin{code}
 (-->) :: Contract a -> Contract b -> Contract (a -> b)
@@ -45,7 +47,6 @@ c1 --> c2 = c1 :-> \_ -> c2
 
 A contract is always associated with a function, so we wrap a contract
 together with its function in a @Statement@:
-
 \begin{code}
 data Statement where
     (:::) :: a -> Contract a -> Statement
@@ -84,15 +85,16 @@ described in Section~\ref{s:induction}.
 We prove the contract for a recursive function
 using fixed point induction (Section~\ref{s:induction}).
 For recursive
-functions, the tool then gives three files, one without induction, one
-for the base case and step case. The typical situation is that the one
-without induction does not pass because it lacks the induction
-hypothesis, the base case always succeeds because that is what we
-established our theory on: we need this to be admissible. Indeed, this
-one does not need to be checked but it can serve as a good sanity
-check of the tool. The step case can pass or fail, depending on if the
+functions, the tool then gives three TPTP files, one that can be used to try to 
+prove the contract without induction, one for the base case and step case. The
+typical situation is that the one without induction is not provable, because it 
+lacks the appropriate induction hypothesis. The base case always succeeds 
+(because $\bot$ satisfies every contract as we have seen in Section~\ref{s:induction})
+so it really onle serves as a sanity check of the tool. 
+The induction step case may pass or fail, depending on if the
 contract really holds, and if the induction hypothesis is strong
-enough, and if we assume the right contracts.
+enough, and if we have assumed the right contracts for functions that may be used
+in the body of the function that we are working on.
 
 One example of a recursive function in the Prelude is @foldr1@.
 
@@ -105,12 +107,10 @@ foldr1 _ []     =  error "foldr1: empty list"
 
 We can state that if @foldr1@ is applied to a crash free function, and
 a non-empty list, then the result should be crash free as a contract:
-
 \begin{code}
-c_foldr = foldr1 ::: (CF --> CF --> CF) -->
-                 CF :&: Pred (not . null) --> CF
+c_foldr = foldr1 ::: (CF --> CF --> CF) 
+                 --> CF :&: Pred (not . null) --> CF
 \end{code}
-
 Our tool proves this contract, but only when recursion is used.
 \end{comment}
 % ------------------------ End Omit ----------------------------
@@ -139,7 +139,7 @@ At the moment we ask the programmer to specify which auxiliary contracts
 are useful, via a second constructor in the @Statement@ type:
 \begin{code}
   reverse_cf = reverse ::: CF --> CF
-                 `Using` append_cf
+                       `Using` append_cf
 \end{code}
 
 
@@ -157,8 +157,9 @@ satisfies @p@.
 In our source-file syntax we use @(:->)@ to bind @p@.
 \begin{code}
 filter_all :: Statement
-filter_all = filter ::: (CF --> CF) :-> \p ->
-                        CF --> (CF & Pred (all p))
+filter_all = 
+  filter ::: (CF --> CF) :-> \p ->
+                CF --> (CF :&: Pred (all p))
 \end{code}
 It is a little confusing since we get two ``arrows'', one from @:->@,
 and one from the @->@ in the lambda.  This contract is proved by
@@ -180,9 +181,10 @@ withMany withFoo (x:xs) f = withFoo x (\x' ->
 \end{code}
 
 For @withMany@, our tool proves
-$$
-@withMany@\! \in \! (\CF\! \rightarrow\! (\CF \rightarrow \CF) \rightarrow \CF) \rightarrow \CF \rightarrow (\CF \! \rightarrow \! \CF) \rightarrow \CF
-$$
+
+\[ @withMany@ \in \begin{array}[t]{l} (\CF -> (\CF -> \CF) -> \CF) -> \\
+                                      \quad\quad (\CF -> (\CF -> \CF) -> \CF)
+                  \end{array}\] 
 
 % ------------------------ Omit ----------------------------
 \begin{comment}
@@ -301,10 +303,12 @@ use the min-translation, we a finitely counter satisfiable theory.
 
 \input{hcc-resultstable}
 
-We have made some initial experimental results which can be viewed in
-Figrue~\ref{fig:unsres}. ``Trivial'' contracts used for sanity
-checking of the tool are not listed. Here are some parts of what is covered:
-
+We have made some initial experimental results, a small fragment of which can be 
+viewed in Figure~\ref{fig:unsres}. Our full testuite and tables can be downloaded from
+\url{www.github.com/danr/contracts}.
+\dv{Is this right? How many examples did we evaluate on? 10? 20? 300? is it imporant?}
+``Trivial'' contracts used for sanity checking of the tool are not listed. 
+Here are some parts of what is covered:
 \begin{itemize}
   \item Crash freeness of standard functions
     (@(++)@, @foldr1@, @iterate@, @concatMap@).
@@ -320,7 +324,7 @@ checking of the tool are not listed. Here are some parts of what is covered:
   \item Partial functions given appropriate preconditions
         (@foldr1@, @head@, @fromJust@),
 
-  \item The @risers@ example from \citep{catch},
+  \item The @risers@ example from Catch~\citep{Mitchell:2008:PBE:1411286.1411293},
 
   \item Some properties, such as the example above with @filter@ and @all@,
         and also $@any p xs || any p ys@ = @any p (xs ++ ys)@$.
