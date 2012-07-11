@@ -1,11 +1,10 @@
 There are very few practical tools for the automatic
 verification of {\em lazy and higher-order} functional programs.
-Furthermore, our approach of translating directly the denotational semantics of
-programs is not something that appears to be well-explored in the literature.
-Below we present some related work on the verification of functional programs.
+Furthermore, our approach of directly translating the denotational semantics of
+programs does not appear to be well-explored in the literature.
 
 Catch~\cite{Mitchell:2008:PBE:1411286.1411293} is one of the very few tools that
-have been evaluated in large scale and address the verification of lazy Haskell
+have been evaluated at scale, and address the verification of lazy Haskell
 programs. Using static analysis, Catch can detect pattern match failures, and hence
 prove that a program cannot crash. Some specification which describes the set of
 constructors that are expected as arguments to each function might be required.
