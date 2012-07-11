@@ -14,29 +14,39 @@ sense), but @g@ can crash (when applied to the empty list), whereas @f@ cannot.
 To distinguish the two we need reasoning that goes well beyond 
 that typically embodied in a standard type system.
 
-One response to this challenge is to beef up the type system
-path that leads to dependently typed programming.  Another alternative,
-studied by many researchers~\cite{contracts-literature}, is to allow 
-the programmer to annotate a function with one or more
-\emph{contracts}, in addition to its normal type.
-For example, we might write the following contract for @reverse@:
-\begin{code}
-  reverse ::: xs:CF -> { ys | null xs <=> null ys }
-\end{code}
-This asserts that if @reverse@ is applied to a crash-free (@CF@) argument list @xs@
-then the result @ys@ will be empty (@null@) if and only if @xs@ is empty.
-Notice that @null@ and @<=>@ are just ordinary Haskell functions, perhaps
+Many variations of {\em dependent type systems}~\cite{norell:thesis,Xi:2007:DMA:1230756.1230759,fstar} or 
+{\em refinement type systems}~\cite{Rondon:2008:LT:1375581.1375602,Knowles+:sage}
+have been proposed to address this problem, each offering different degrees of 
+expressiveness or automation. 
+Another line of work aiming to address this problem, studied by many researchers
+as well~\cite{Findler:2002:CHF:581478.581484,Blume:2006:SCM:1166013.1166016,Knowles+:sage,Siek06gradualtyping,Wadler:2009:WPC:1532974.1532976}, allows programmers to annotate 
+functions with {\em contracts}, which are forms of behavioral specifications.
+For instance, we might write the following contract for 
+@reverse@: 
+\[ @reverse@ \in (xs : \CF) -> \{ ys \mid @null@\;xs\; @<=>@\; @null@\;ys \}  \] 
+%% \begin{code}
+%%   reverse ::: xs:CF -> { ys | null xs <=> null ys }
+%% \end{code}
+This contract annotation asserts that if @reverse@ is applied to a 
+crash-free (@CF@) argument list @xs@ then the result @ys@ will be empty (@null@) 
+if and only if @xs@ is empty. What is a crash-free argument? 
+Since we are using lazy semantics, a list could possibly contain cons-cells that yield 
+errors only when evaluated, and the @CF@ precondition asserts that the input list 
+is not one of those.
+
+Notice also that @null@ and @<=>@ are just ordinary Haskell functions, perhaps
 written by the programmer, even though they appear inside contracts.
 With this in hand we might hope to prove that @f@ satisfies the contract
-\begin{code}
-  f ::: CF -> CF
-\end{code}
+\[ @f@ \in \CF -> \CF \] 
 But how do we verify that @reverse@ and @f@ satisfy the claimed
-contracts? Contracts are often tested dynamically~\cite{finder-felliesen}, but 
+contracts? Contracts are often tested dynamically, but 
 our plan here is different: we want to verify contracts \emph{statically} 
-and \emph{automatically}. It should be clear that there is a good deal of logical reasoning to do,
-and a now-popular approach is to hand off the task to a theorem
-prover, a SMT solver or first-order logic prover.
+and \emph{automatically}. 
+
+It should be clear that there is a good deal of logical reasoning to do,
+and a now-popular approach is to hand off the task to an off-the-shelf theorem
+prover such as Z3~\cite{z3citation} or Vampire~\cite{vampire}, or search for 
+counterexamples with a finite model finder~\cite{paradox}.
 With that in mind, we make the following new contributions:
 
 \begin{itemize}
@@ -59,20 +69,24 @@ With that in mind, we make the following new contributions:
 We consider this work to be the first step towards practical contract checking 
 for Haskell programs, that lays out the theoretical foundations for further engineering 
 and experimentation. Nevertheless, we have already implemented a prototype for Haskell 
-programs, that uses GHC as a front-end. We have evaluated the practicality of our approach 
-on many examples, including lazy and higher-order programs, and we report this initial 
-evaluation in Section~\ref{sect:implementation}.
+programs that uses GHC as a front-end. We have evaluated the practicality of our approach 
+on many examples, including lazy and higher-order programs, and goals that require 
+induction. We report this initial encouraging evaluation in 
+Section~\ref{sect:implementation}. 
 
 To our knowledge no-one has considered the translation of lazy higher-order programs to 
-first-order logic before in a provably sound way with respect to the denotational
+first-order logic previously in a provably sound way with respect to the denotational
 semantics of programs. Furthemore, our approach to static contract checking is 
-distinctively different to previous work: instead of wrapping and 
+distinctly different to previous work: instead of wrapping and 
 symbolic execution~\cite{xu+:contracts,Xu:2012:HCC:2103746.2103767}, 
 we harness purity and laziness to directly use the denotational semantics
-of programs and contracts and discharge the obligations with a SAT-solver.
-We discuss similarities and differences compared to related work in Section~\ref{sect:related}.
+of programs and contracts and discharge the obligations with a SAT-solver, side-stepping
+the wrapping process. Instead of verification condition generation by pushing
+pre- and post- conditions through a program, we directly ask a theorem prover to prove 
+a contract for the FOL encoding of a program. 
+We further discuss similarities and differences compared to related work in Section~\ref{sect:related}.
 
-
+%% \newpage 
 %%   \item The translation
 %% For this paper we focus on the translation, but to substantiate the practicality 
         
