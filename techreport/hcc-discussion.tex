@@ -2,12 +2,12 @@
 \label{ssect:countersat}
 
 In practice, programmers will often propose contracts that do not hold. Our tool 
-will generate the necessary formulae and search for a countermodel. When such a model 
+will generate the necessary formulae and search for a counter-model. When such a model 
 exists, it will include tables for the function symbols in the formula. Recall that
 functions in FOL are total over the domain of the terms in the model. This means that function 
 tables may be {\em infinite} if the terms in the model are infinite. Several (very useful!) 
 axioms such as the discrimination axioms \textsc{AxDisjC} may in fact force the models to be 
-infinite. For instance consider the following devinitions:
+infinite. For instance consider the following definitions:
 \begin{code}
   length [] = Z
   length (x:xs) = S (length xs)
@@ -32,7 +32,7 @@ Tantalisingly, there exists a very simple
 counterexample, e.g. @[Z]@, and that single small
 example is all the programmer needs to see the falsity of the contract.
 
-Addressin this problem a challenging (but essential) 
+Addressing this problem a challenging (but essential) 
 direction for future work, and we are currently 
 working on a modification of our theory that admits the denotational model, but 
 also permits {\em finite models} generated from counterexample traces.
@@ -122,7 +122,7 @@ denotational approach.
 
 \paragraph{Polymorphic crash-freedom}
 
-Observe that our axiomatization of crash-freedom in Figure~\ref{fig:prelude} 
+Observe that our axiomatisation of crash-freedom in Figure~\ref{fig:prelude} 
 includes only axioms for data constructors. In fact, our denotational interpretation
 $\Fcf^{\infty}$ allows more axioms, such as:
 \[\begin{array}{l}

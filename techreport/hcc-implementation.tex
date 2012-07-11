@@ -96,7 +96,7 @@ prove the contract without induction, one for the base case and step case. The
 typical situation is that the one without induction is not provable, because it 
 lacks the appropriate induction hypothesis. The base case always succeeds 
 (because $\bot$ satisfies every contract as we have seen in Section~\ref{s:induction})
-so it really onle serves as a sanity check of the tool. 
+so it really only serves as a sanity check of the tool. 
 The induction step case may pass or fail, depending on if the
 contract really holds, and if the induction hypothesis is strong
 enough, and if we have assumed the right contracts for functions that may be used
@@ -207,7 +207,7 @@ data Formula = And [Formula]
              | Lit Bool
 \end{code}
 
-One invariant that we are particularily interested in is that we
+One invariant that we are particularly interested in is that we
 should never have two consecutive negations, and that the lists of
 @And@ and @Or@ are of length $\ge$ 2. We can express that as an ordinary
 Haskell predicate:
@@ -310,12 +310,12 @@ use the min-translation, we a finitely counter satisfiable theory.
 \input{hcc-resultstable}
 
 We have made some initial experimental results, a small fragment of which can be 
-viewed in Figure~\ref{fig:unsres}. Our full testuite and tables can be downloaded from
+viewed in Figure~\ref{fig:unsres}. Our full testsuite and tables can be downloaded from
 \url{https://github.com/danr/contracts/blob/master/tests/BigTestResults.md}.
-\dv{Is this right? How many examples did we evaluate on? 10? 20? 300? is it imporant?}
+\dv{Is this right? How many examples did we evaluate on? 10? 20? 300? is it important?}
 The test cases include:
 \begin{itemize}
-  \item Crash freeness of standard functions
+  \item Crash-freedom of standard functions
     (@(++)@, @foldr1@, @iterate@, @concatMap@).
 
   \item CF of functions with a bit more involving recursive patterns
