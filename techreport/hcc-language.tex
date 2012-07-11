@@ -100,9 +100,9 @@ Our language embodies several convenient syntactic constraints:
 (ii)~@case@-expressions can only immediately follow a function
 definition, and (iii) constructors are fully applied.
 Any Haskell program can be transformed into this restricted
-form using lambda-lifting, @case@-lifting, and eta-expansion respectively,
+form by lambda-lifting, @case@-lifting, and eta-expansion respectively,
 and our working prototype does just this.
-However this simpler language is instead extremely
+However this simpler language is extremely
 convenient for the translation of programs to first-order logic.
 
 $\theLang$ is an explicitly-typed language, and we assume the existence
@@ -115,7 +115,7 @@ $\Sigma;\Delta |- u : \tau$, where $\Delta$ is a typing environment,
 also in Figure~\ref{fig:syntax}.  We do not give the details of the
 typing relation since it is standard.
 Our technical development and analysis in the following sections
-assume that programs have been checked for type errors.
+assume that the program has been checked for type errors.
 The typing judgement should check that all pattern matches are
 exhaustive; as mentioned above, missing cases should return @BAD@.
 
@@ -125,7 +125,7 @@ $f^\ar[\ol{\tau}]\;\oln{e}{m < \ar}$, data constructor applications $K[\tau](\ol
 and the error term @BAD@.
 
 The operational semantics of $\theLang$ is entirely standard, and we do not give it here.
-We write $P |- u \Downarrow v$ to mean ``In program P, right-hand side $u$ evaluates to
+We write $P |- u \Downarrow v$ to mean ``in program P, right-hand side $u$ evaluates to
 value $v$'',
 
 % -------------------- Omitted section on operational semantics ------------
@@ -256,10 +256,10 @@ is great for the programmer because the language and its library
 functions is familiar, but it poses a challenge for verification
 because these expressions in contracts may themselves diverge or
 crash.
-\item $e \in (x:\Ct_1) \rightarrow \Ct_2$ implies that, whenever $e'$ satisfies $\Ct_1$, it
+\item $e \in (x:\Ct_1) \rightarrow \Ct_2$ means that whenever $e'$ satisfies $\Ct_1$, it
 is the case that $(e\,e')$ satisfies $\Ct_2[e'/x]$.
 \item $e \in \Ct_1 \& \Ct_2$ means that $e$ satisfies both $\Ct_1$ and $\Ct_2$.
-\item $e \in \CF$ means that $e$ is \emph{crash free}, that is $e$ does not
+\item $e \in \CF$ means that $e$ is \emph{crash free}; that is $e$ does not
 crash regardless of what context it is plugged into (see Section~\ref{s:cf-fol}).
 \end{itemize}
 
@@ -267,9 +267,9 @@ crash regardless of what context it is plugged into (see Section~\ref{s:cf-fol})
 \section{Translating $\theLang$ to first-order logic} \label{ssect:trans-fol}
 
 Our goal is to answer the question ``does expression $e$ satisfy
-contract $C$?''.  Our plan is to translate both the expression and the
-contract into appropriate first-order logic (FOL) formulae, and get a standard 
-FOL prover to do the heavy lifting. In this section we formalise our new translation, 
+contract $C$?''.  Our plan is to translate the expression and the
+contract into a first-order logic (FOL) term and formula respectively, and get a standard 
+FOL prover to do the heavy lifting. In this section we formalise our translation, 
 and describe how we use it to verify contracts.
 
 \subsection{The FOL language}
