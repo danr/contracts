@@ -3,7 +3,7 @@ that if the FOL prover says ``Yes!  This FOL formula is provable'', then
 the corresponding $\theLang$ program indeed satisfies the claimed contract?
 
 To prove this claim we take a denotational approach.
-Most of what follows is an adaptation of folklore techniques to
+Most of what follows is an adaptation of well-known techniques to
 our setting and there are no surprises --- we refer the reader
 to~\cite{winskel} or~\cite{benton+:coq-domains} for a short and modern
 exposition of the standard methodology.
@@ -661,6 +661,35 @@ any constructor, $\bot$ nor $\injBad$. If the reader is worried that without a
 complete formalization of all equalities of $D_\infty$ it is impossible to prove any
 programs correct, we would like to reassure them that that is not the case as we
 shall see in the next section.
+
+\paragraph{Lazy semantics simplifies the translation}
+We have mentioned previously (Section~\ref{ssect:trans-exprs}) that the 
+laziness of $\theLang$ helps in keeping the translation simple, and here we 
+explain why. 
+
+Whenever we use universal quantification in the logic, we really quantify over
+{\em any} denotation, including $\bot$ and $\injBad$. In a call-by-name language, 
+given a function @f x = e@, the axiom $\forall x @.@ f(x) = t$ (where $\etrans{}{}{e} = t$) 
+is true in the intended denotational model. However, in a call-by-value setting, $x$ 
+is allowed to be interpreted as $\bot$. That means that the unguarded axiom is 
+actually not true, but rather the following slightly annoying variation:
+\[  \forall x @.@ x \neq bad \land x \neq \unr => f(x) = t \]
+Alternatively, the axioms for the $app(\cdot,\cdot)$ combinator have to be modified
+to perform checks that the argument is not $\bot$ or $\injBad$ before actually 
+calling a function. 
+
+These complications lead to a more complex first-order theory in the call-by-value case; 
+notice that in a call-by-name case, guards for $\unr$ and $\bad$ only need be placed in
+functions that are strict in their argument, by performing pattern matching on it. 
+
+
+%% value, including $\bot$. Very rarely do we have to add a condition that
+%% a value is not equal to $\bot$. Only when a function is explicitly strict in a particular argument (by doing pattern matching) do we have to do this. Also, function application in the language corresponds directly to term construction in the logic.
+
+%% To deal with a (pure) strict language, we would have two choices: Either (1) we explicitly make each function strict in all its arguments, by adding extra axioms for each function definition that express what happens when you apply the function to $\bot$, and by adding extra conditions to all the other function axioms that exclude $\bot$; or (2) we use a monadic translation (or some variant thereof), basically turning each application site into a definedness check of the arguments. Neither method leads to a simple first-order theory that is easy to reason about by automatic provers.
+
+%% \spj{What else should we say here.  Something about recursion?  About multiple functions?}
+
 
 
 
