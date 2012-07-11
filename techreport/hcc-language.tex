@@ -245,7 +245,8 @@ We write $e \in C$ to mean ``the expression $e$ satisfies the contract $C$'', an
 for functions $f$.  We will say what contracts mean formally in
 Section~\ref{s:den-sem-contracts}.  However, here is their informal meaning:
 \begin{itemize}
-\item $e \in \{x | e'\}$ if $e$ diverges or $e[e'/x]$ evaluates to @True@ or diverges.
+\item $e \in \{x | e'\}$ means that $e$ does not evaluate to a value
+  or $e[e'/x]$ evaluates to @True@ or does not evaluate to a value.
 Notice that $e'$ is an arbitrary expression
 (in our implementation, arbitrary Haskell expressions),
 rather than being restricted to some well behaved meta-language.  This
@@ -253,10 +254,10 @@ is great for the programmer because the language and its library
 functions is familiar, but it poses a challenge for verification
 because these expressions in contracts may themselves diverge or
 crash.
-\item $e \in (x:\Ct_1) \rightarrow \Ct_2$ if whenever $e'$ satisfies $\Ct_1$, it
+\item $e \in (x:\Ct_1) \rightarrow \Ct_2$ implies that, whenever $e'$ satisfies $\Ct_1$, it
 is the case that $(e\,e')$ satisfies $\Ct_2[e'/x]$.
-\item $e \in \Ct_1 \& \Ct_2$ if $e$ satisfies both $\Ct_1$ and $\Ct_2$.
-\item $e \in \CF$ if $e$ is \emph{crash free}, meaning that $e$ does not
+\item $e \in \Ct_1 \& \Ct_2$ means that $e$ satisfies both $\Ct_1$ and $\Ct_2$.
+\item $e \in \CF$ means that $e$ is \emph{crash free}, that is $e$ does not
 crash regardless of what context it is plugged into (see Section~\ref{s:cf-fol}).
 \end{itemize}
 

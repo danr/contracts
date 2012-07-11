@@ -60,7 +60,7 @@ formalisation and verification.
 %% for any cpos $D, E, F$.
 
 Now we can define $D_{\infty}$ as the solution to this recursive domain equation
-$$D_{\infty} = F( D_{\infty}, D_{\infty})$$
+$$D_{\infty} \approx F( D_{\infty}, D_{\infty})$$
 We can show that $D_{\infty}$ exists using the
 standard {\em embedding-projection} pairs methodology. Moreover, we define the
 value domain $V_{\infty}$ thus:
@@ -244,10 +244,10 @@ of $\bindK$, $\rollK$, etc.
 That is, application applies the payload $d_f$
 if the function $d$ comes
 from the appropriate component of $V_{\infty}$, propagates $\injBad$,
-and otherwise returns $\bot$.  Indeed application, partial
-application, and currying are all definable in cpos of continuous
-functions, so we will be using $\lambda$-calculus notation for our
-domain theory, as above.
+and otherwise returns $\bot$.  %% Indeed application, partial
+%% application, and currying are all definable in cpos of continuous
+%% functions, so we will be using $\lambda$-calculus notation for our
+%% domain theory, as above.
 
 The semantics of right-hand sides $\dbrace{u}$ is defined similarly.  The
 semantics of a @case@ expression is the semantics of the matching branch,
