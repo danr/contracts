@@ -4,7 +4,7 @@ The following theorem is then true:
 
 \begin{theorem}[Soundness]\label{thm:prover-soundness}
 Assume that $e$ and $\Ct$ contain only function symbols from $P$ and no free term variables.
-Let $\Th_{all} = \Th\;\land\;\land\;\ptrans{}{P}$. 
+Let $\Th_{all} = \Th\;\land\;\ptrans{}{P}$. 
 If $\Th_{all} \land \neg\ctrans{\Sigma}{P}{e \in \Ct}$ is unsatisfiable 
 then $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{e \in \Ct}$ and 
 consequently $\dbrace{e} \in \dbrace{\Ct}$.
@@ -37,19 +37,19 @@ We may consider the following three variations of how to do this:
 
 \begin{itemize}
   \item Ask for the unsatisfiability of: 
-    \[  \Th_\infty \land \Th_\lcfZ \land \dtrans{}{P} \land \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
+    \[  \Th \land \ptrans{}{P} \land \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
         The soundness of this query follows from Theorem~\ref{thm:prover-soundness} above.
 
   \item Ask for the unsatisfiability of:
-    \[  \Th_\infty \land \Th_\lcfZ \land 
-        \dtrans{\Sigma}{P}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f} \land \neg \ctrans{\Sigma}{P}{h \in \Ct_h} \]
+    \[  \Th \land 
+        \ptrans{\Sigma}{P}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f} \land \neg \ctrans{\Sigma}{P}{h \in \Ct_h} \]
         This query adds the {\em already proven} contract for $f$ in the theory. If this formula
         is unsatisfiable, then its negation is valid, and we know that the denotational model is 
         a model of the theory {\em and} of $\ctrans{\Sigma}{P}{f \in \Ct_f}$ and hence it must also
         be a model of $\ctrans{\Sigma}{P}{h \in \Ct_h}$.
   \item Ask for the unsatisfiability of:
-    \[  \Th_\infty \land \Th_\lcfZ \land 
-        \dtrans{\Sigma}{P \setminus f}\land\ctrans{\Sigma}{P}{f \in \Ct_f}\land
+    \[  \Th \land 
+        \ptrans{\Sigma}{P \setminus f}\land\ctrans{\Sigma}{P}{f \in \Ct_f}\land
         \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
         This query removes the axioms associated with the definition of $f$ since we may only have 
         its signature and contract available. Via a similar reasoning as before, such an invocation 

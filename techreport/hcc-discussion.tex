@@ -35,9 +35,9 @@ the set of expressions that appear during the finite evaluation of a counterexam
 This is a challenging (but essential) directions for future work, and we are currently 
 working on a modification of our theory that admits the denotational model but 
 also permits {\em finite models} generated from counterexample traces.
-These ideas are reminiscent to the techniques that the Nitpick \dv{IS this right?} tool
-uses for generating finite counterexamples in Isabelle. \dv{Someone please check!}. If
-the theory can guarantee the existence of a finite model in case of a counterexample,
+%% These ideas are reminiscent to the techniques that the Nitpick \dv{IS this right?} tool
+%% uses for generating finite counterexamples in Isabelle. \dv{Someone please check!}.
+If the theory can guarantee the existence of a finite model in case of a counterexample,
 a finite model checker such as Paradox~\cite{paradox} will be able to return back one.
 
 %% It is obviouly unacceptable for the system to go into a loop if
@@ -57,13 +57,13 @@ $P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Dow
 
 Hence, the operational and the denotational semantics of base predicate contracts coincide.
 It is interesting to see whether our shift to denotational semantics -- at least compared
-to previous work on checking Haskell contracts~\cite{xu} -- has any other consequences? Does
-the above correspondence break for higher-order contracts?
+to previous work on checking Haskell contracts~\cite{xu+:contracts} -- has any other consequences? 
+Does the above correspondence break for higher-order contracts?
 
 The answer is that this precise correspondence indeed breaks. 
 Recall that the operational definition of contract satisfaction for a contract $\Ct_1 -> \Ct_2$ is the following: 
 \[\begin{array}{l} 
-   e \in (x{:}\Ct_1) -> \Ct_2 \text{iff} \\
+   e \in (x{:}\Ct_1) -> \Ct_2 \text{ iff} \\
    \text{for all } e' \text{ such that } (e' \in \Ct_1) \text{ it is } e\;e' \in \Ct_2[e'/x]
 \end{array}\] 
 The denotational one requires that for all denotations $d'$ such that
@@ -150,7 +150,7 @@ $app(\cdot,\cdot)$ function
    (\forall x @.@ \lcf{app(y,x)}) => \lcf{y}
 \end{array}\]
 is {\em not} valid in the denotational model. For instance consider the
-value $\injK{K}(\injBad)$ for $y$. The left-hand side is going to always 
+value $\injK{K}{\injBad}$ for $y$. The left-hand side is going to always 
 be true, as the application will yield $\bot$, but $y$ is not crash-free 
 itself.
 

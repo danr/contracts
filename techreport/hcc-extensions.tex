@@ -39,10 +39,9 @@ Why is this approach sound? The crucial step here is the fact that contracts are
 If $d_i \in \dbrace{\Ct}$ for all elements of a chain $d_1 \sqsubseteq d_2 \sqsubseteq \ldots$ then the limit of the chain 
 $\sqcup d_i \in \dbrace{\Ct}$. Moreover, $\bot \in \dbrace{\Ct}$.
 \end{theorem}
-\begin{proof}
-For the $\CF$ case we get the result from Lemma~\ref{lem:cf-admissible}. 
+\begin{proof} By induction on the contract $\Ct$; for the $\CF$ case we get the result from Lemma~\ref{lem:cf-admissible}.
 For the predicate case we get the result from the fact that the denotations of programs 
-are continuous in $D_{\infty}$. The arrow case follows from induction.
+are continuous in $D_{\infty}$. The arrow case follows by induction.
 \end{proof}
 
 We can then prove the soundness of our induction scheme.
