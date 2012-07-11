@@ -1,16 +1,16 @@
 Haskell programmers enjoy the benefits of strong static types and purity: 
 static types eliminate many bugs early on in the development cycle, and purity 
 simplifies equational reasoning about programs. Despite these benefits, however, 
-bugs may still remain inside purely functional code and programs often
+bugs may still remain in purely functional code and programs often
 crash if applied to the wrong arguments. 
-
-Consider this Haskell definition:
+For example, consider these Haskell definitions:
 \begin{code}
   f xs = head (reverse (True : xs))
   g xs = head (reverse xs)
 \end{code}
 Both @f@ and @g@ are well typed (and hence do not ``go wrong'' in Milner's 
-sense), but @g@ can crash (when applied to the empty list), whereas @f@ cannot.
+sense), but @g@ will crash when applied to the empty list, whereas @f@
+cannot crash regardless of its arguments.
 To distinguish the two we need reasoning that goes well beyond 
 that typically embodied in a standard type system.
 
@@ -18,7 +18,7 @@ Many variations of {\em dependent type systems}~\cite{norell:thesis,Xi:2007:DMA:
 {\em refinement type systems}~\cite{Rondon:2008:LT:1375581.1375602,Knowles+:sage}
 have been proposed to address this problem, each offering different degrees of 
 expressiveness or automation. 
-Another line of work aiming to address this problem, studied by many researchers
+Another line of work aiming to address this challenge, studied by many researchers
 as well~\cite{Findler:2002:CHF:581478.581484,Blume:2006:SCM:1166013.1166016,Knowles+:sage,Siek06gradualtyping,Wadler:2009:WPC:1532974.1532976}, allows programmers to annotate 
 functions with {\em contracts}, which are forms of behavioural specifications.
 For instance, we might write the following contract for 
@@ -30,13 +30,14 @@ For instance, we might write the following contract for
 This contract annotation asserts that if @reverse@ is applied to a 
 crash-free (@CF@) argument list @xs@ then the result @ys@ will be empty (@null@) 
 if and only if @xs@ is empty. What is a crash-free argument? 
-Since we are using lazy semantics, a list could possibly contain cons-cells that yield 
-errors only when evaluated, and the @CF@ precondition asserts that the input list 
+Since we are using lazy semantics, a list could contain cons-cells that yield 
+errors when evaluated, and the @CF@ precondition asserts that the input list 
 is not one of those.
-
 Notice also that @null@ and @<=>@ are just ordinary Haskell functions, perhaps
 written by the programmer, even though they appear inside contracts.
-With this in hand we might hope to prove that @f@ satisfies the contract
+
+With this property of @reverse@ in hand, we might 
+hope to prove that @f@ satisfies the contract
 \[ @f@ \in \CF -> \CF \] 
 But how do we verify that @reverse@ and @f@ satisfy the claimed
 contracts? Contracts are often tested dynamically, but 
@@ -44,7 +45,7 @@ our plan here is different: we want to verify contracts \emph{statically}
 and \emph{automatically}. 
 
 It should be clear that there is a good deal of logical reasoning to do,
-and a now-popular approach is to hand off the task to an off-the-shelf theorem
+and a now-popular approach is to delegate the task to an off-the-shelf theorem
 prover such as Z3~\cite{z3citation} or Vampire~\cite{vampire}, or search for 
 counterexamples with a finite model finder~\cite{paradox}.
 With that in mind, we make the following new contributions:
@@ -52,7 +53,7 @@ With that in mind, we make the following new contributions:
 \begin{itemize}
   \item We give a translation of Haskell programs to first-order logic (FOL) theories. 
         It turns out that lazy programs (as opposed to
-        strict programs!) have a very natural translation into first-order logic
+        strict ones!) have a very natural translation into first-order logic
         (Section~\ref{ssect:trans-fol}).
   \item We give a translation of contracts to FOL formulae, and an axiomatisation of 
         the language semantics in FOL 
@@ -63,25 +64,26 @@ With that in mind, we make the following new contributions:
         uses the novel idea of employing the denotational 
         semantics as a first-order model (Section~\ref{ssect:denot}).
   \item We show how to use this translation in practice for static contract checking with
-        a SAT-solver (Section~\ref{sect:soundness}), 
+        a FOL theorem prover (Section~\ref{sect:soundness}), 
         and how to prove goals by induction (Section~\ref{sect:extensions}).
 \end{itemize}
 
-We consider this work to be the first step towards practical contract checking 
-for Haskell programs, that lays out the theoretical foundations for further engineering 
+This work is a first step towards practical contract checking 
+for Haskell programs, laying out the theoretical foundations for further engineering 
 and experimentation. Nevertheless, we have already implemented a prototype for Haskell 
 programs that uses GHC as a front-end. We have evaluated the practicality of our approach 
 on many examples, including lazy and higher-order programs, and goals that require 
 induction. We report this initial encouraging evaluation in 
 Section~\ref{sect:implementation}. 
 
-To our knowledge no-one has previously presented a translation of lazy higher-order programs to 
-first-order logic in a provably sound way with respect to a denotational
+To our knowledge no one has previously presented a translation of lazy higher-order programs to 
+first-order logic, in a provably sound way with respect to a denotational
 semantics. Furthermore, our approach to static contract checking is 
 distinctly different to previous work: instead of wrapping and 
 symbolic execution~\cite{xu+:contracts,Xu:2012:HCC:2103746.2103767}, 
 we harness purity and laziness to directly use the denotational semantics
-of programs and contracts and discharge the obligations with a SAT-solver, side-stepping
+of programs and contracts and discharge the obligations with a 
+FOL theorem prover, side-stepping
 the wrapping process. Instead of verification condition generation by pushing
 pre- and post- conditions through a program, we directly ask a theorem prover to prove 
 a contract for the FOL encoding of a program. 
