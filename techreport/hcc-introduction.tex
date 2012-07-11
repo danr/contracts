@@ -26,7 +26,7 @@ With this in hand we might hope to prove that @f@ satisfies the contract
   f ::: CF -> CF
 \end{code}
 But how do we verify that @reverse@ and @f@ satisfy the claimed
-contracts.  Contracts are often tested dynamically~\cite{finder-felliesen}, but 
+contracts? Contracts are often tested dynamically~\cite{finder-felliesen}, but 
 our plan here is different: we want to verify contracts \emph{statically} 
 and \emph{automatically}. It should be clear that there is a good deal of logical reasoning to do,
 and a now-popular approach is to hand off the task to a theorem
@@ -49,11 +49,11 @@ that if the FOL prover discharges a
 suitable theorem about the translated Haskell term and contract, 
 then indeed the original Haskell term satisfies that contract (Section~\ref{s:xxx}).
 
-\item It is one thing to make a sound translation, and quite another
-to produce FOL terms that the FOL prover can actually prove anything
-about --- a common experience is that it goes out to lunch instead.  We
-describe a number of techniques that dramatically improve
-theorem-proving times, moving them from infeasible to feasible (Section\ref{xxx}).
+%\item It is one thing to make a sound translation, and quite another
+%to produce FOL terms that the FOL prover can actually prove anything
+%about --- a common experience is that it goes out to lunch instead.  We
+%describe a number of techniques that dramatically improve
+%theorem-proving times, moving them from infeasible to feasible (Section\ref{xxx}).
 
 \item For this paper we focus on the
 translation, but we have also implemented a static contract checker
@@ -62,10 +62,13 @@ the practicality of this approach on many examples, including lazy and
 higher-order programs, as we describe in Section~\ref{xxx}.  \spj{I'd like
 to say something more substantial here.}
 \end{itemize}
+
 Our approach to static contract checking is distinctively different to
 previous work: instead of wrapping and symbolic execution we harness
-purity to \emph{directly encode the denotational semantics of programs
-and contracts in first-order logic}.  We discuss similarities and differences from
+purity and laziness to \emph{directly encode the denotational semantics of programs
+and contracts in first-order logic}. It turns that lazy programs (as opposed to
+strict programs) have a very natural translation into first-order logic.
+We discuss similarities and differences from
 related work in Section~\ref{s:related}.
 
 
