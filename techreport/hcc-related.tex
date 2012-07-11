@@ -1,11 +1,8 @@
-
-There is a very large body of related work on verification of pure and non-pure
-functional programs. Despite the fact that verifying pure programs should be easier than
-verifying impure ones, there are very few tools for the automatic verification of lazy, 
-higher-order, functional programs. Furthermore, our approach of translating directly the 
-denotational semantics of programs is not something that appears to be well-explored in 
-the literature. Below we present some related works on verification of functional 
-programs below.
+There are practically very few tools for the automatic 
+verification of {\em lazy and higher-order} functional programs.
+Furthermore, our approach of translating directly the denotational semantics of 
+programs is not something that appears to be well-explored in the literature. 
+Below we present some related work on the verification of functional programs. 
 
 Catch~\cite{Mitchell:2008:PBE:1411286.1411293} is one of the very few tools that 
 have been evaluated in large scale and address the verification of lazy Haskell 
@@ -33,7 +30,8 @@ in the very same programming language that programs are written, is the
 Dminor~\cite{Bierman+:subtyping} approach. Contrary to our case however, in Dminor
 the expressions that refine type must be pure, that is, terminating and having a unique
 denotation (e.g. not dependent on the store). Driven from a typing relation that includes
-logic entailment judgements, verification conditions are extracted and discharged automatically using Z3. Similar in spirit, other refinement type systems such 
+logic entailment judgements, verification conditions are extracted and discharged automatically using Z3. 
+Similar in spirit, other dependent type systems such 
 as Fstar~\cite{fstar} extract verification conditions which can be discharged 
 using automated tools 
 or interactive theorem provers. Hybrid type systems such as Sage~\cite{Knowles+:sage}
@@ -54,8 +52,9 @@ recursive functional programs which appears to be very efficient in practice: it
 by extending SMT with recursive programs and ``control literals'' that guide the pattern
 matching search for a counter-model, and is guaranteed to find a model if one exists 
 (whereas that is not the case in our system, as we discussed earlier). It does not include
-a $\CF$-analogous predicate and, due to call-by-value, no special treatment of $\unr$ seems
-necessary, which is most likely a huge win in terms of performance.
+a $\CF$-analogous predicate and is call-by-value, though no special treatment of the $\bot$ 
+value nor pattern match failures seem to be in the scope of that project, which, unsurprisingly
+yields a very fast verification framework for partial functional correctness. 
 
 First-order logic has been used as a target for higher-order languages in other verification contexts as well.
 The interactive theorem prover Isabelle for many years has had the opportunity to use
