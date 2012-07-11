@@ -1,38 +1,41 @@
 \paragraph{Contracts that do not hold}
 \label{ssect:countersat}
 
-In practice, programmers will often propose contracts that do not hold. Our tool 
-will generate the necessary formulae and search for a counter-model. When such a model 
-exists, it will include tables for the function symbols in the formula. Recall that
-functions in FOL are total over the domain of the terms in the model. This means that function 
-tables may be {\em infinite} if the terms in the model are infinite. Several (very useful!) 
-axioms such as the discrimination axioms \textsc{AxDisjC} may in fact force the models to be 
-infinite. For instance consider the following definitions:
+In practice, programmers will often propose contracts that do not hold. 
+For example, consider the following definitions:
 \begin{code}
-  length [] = Z
+  length []     = Z
   length (x:xs) = S (length xs)
 
   isZero Z = True
   isZero _ = False
 \end{code}
-Suppose that we would like to check that 
+Suppose that we would like to check the (false) contract:
    \[ @length@ \in \CF -> \{ x \mid @isZero@\;x\} \]
-which is false.  A satisfiability-based checker 
-will simply diverge trying to construct a counter model for the negation of the above query; we 
-have confirmed that this is indeed the behaviour of several tools (Z3, Equinox, Eprover).
-Indeed the table for @length@ is infinite since @[]@ is always disjoint from @Cons x xs@ for 
-any @x@ and @xs@. Even if there is a finitely-representable infinite model, 
-the theorem prover may search forever in the ``wrong corner'' of the model for a 
-counterexample. 
+\emph{A satisfiability-based checker 
+will simply diverge} trying to construct a counter model for the
+negation of the above query; we have confirmed that this is indeed the
+behaviour of several tools (Z3, Equinox, Eprover).  Why?  When a
+counter-model exists, it will include tables for the function symbols
+in the formula. Recall that functions in FOL are total over the domain
+of the terms in the model. This means that function tables may be {\em
+infinite} if the terms in the model are infinite. Several (very
+useful!)  axioms such as the discrimination axioms \textsc{AxDisjC}
+may in fact force the models to be infinite.
+
+In our example, the table for @length@ is indeed infinite since @[]@ is
+always disjoint from @Cons x xs@ for any @x@ and @xs@. Even if there
+is a finitely-representable infinite model, the theorem prover may
+search forever in the ``wrong corner'' of the model for a
+counterexample.
 
 From a practical point of view this is unfortunate; it is not
 acceptable for the checker to loop when the programmer writes an
-erroneous contract.
-Tantalisingly, there exists a very simple 
-counterexample, e.g. @[Z]@, and that single small
-example is all the programmer needs to see the falsity of the contract.
+erroneous contract.  Tantalisingly, there exists a very simple
+counterexample, e.g. @[Z]@, and that single small example is all the
+programmer needs to see the falsity of the contract.
 
-Addressing this problem a challenging (but essential) 
+Addressing this problem is a challenging (but essential) 
 direction for future work, and we are currently 
 working on a modification of our theory that admits the denotational model, but 
 also permits {\em finite models} generated from counterexample traces.
@@ -49,72 +52,83 @@ a finite model checker such as Paradox~\cite{paradox} will be able find it.
 
 \paragraph{A tighter correspondence to operational semantics?}
 
+Earlier work gave a declarative specfication of contracts using
+\emph{operational semantics} \cite{xu+:contracts}.  In this paper we have
+instead used a \emph{denotational semantics} for contracts (Figure~\ref{f:den-sem-contracts}).
+It is natural to ask whether or not the two semantics are identical.
+
 From computational adequacy, Theorem~\ref{thm:adequacy} we can easily state
 the following theorem: 
 \begin{corollary} Assume that $e$ and $\Ct$ contain no term variables and 
 assume that $\ctrans{}{\cdot}{e \in \{x \mid e_p\}} = \formula{\phi}$. It is the case 
 that $\langle D_\infty,{\cal I}\rangle \models \phi$ if and only iff either
 $P \not|- e \Downarrow$ or $P \not|- e_p[e/x] \Downarrow$ or $P |- e_p[e/x] \Downarrow \True$. \end{corollary}
-
-Hence, the operational and the denotational semantics of base predicate contracts coincide.
-It is interesting to see whether our shift to denotational semantics -- at least compared
-to previous work on checking Haskell contracts~\cite{xu+:contracts} -- has any other consequences? 
-Does the above correspondence break for higher-order contracts?
-
-The answer is that this precise correspondence indeed breaks. 
-Recall that the operational definition of contract satisfaction for a contract $\Ct_1 -> \Ct_2$ is the following: 
+Hence, the operational and denotational semantics of \emph{predicate contracts} coincide.
+However, the correspondence is not precise for \emph{dependent function contracts}.
+Recall the operational definition of contract satisfaction for 
+a function contract:
 \[\begin{array}{l} 
    e \in (x{:}\Ct_1) -> \Ct_2 \text{ iff} \\
    \text{for all } e' \text{ such that } (e' \in \Ct_1) \text{ it is } e\;e' \in \Ct_2[e'/x]
 \end{array}\] 
-The denotational one requires that for all denotations $d'$ such that
-$d' \in \dbrace{\Ct_1}$ it is the case that 
+The denotational specification (Figure~\ref{f:den-sem-contracts}) 
+says that for all denotations $d'$ such that
+$d' \in \dbrace{\Ct_1}$, it is the case that 
 $\dapp(\dbrace{e},d') \in \dbrace{\Ct_2}_{x |->d'}$. 
  
-Alas there are {\em more} denotations than images of terms in $D_{\infty}$ and the correspondence breaks. Consider the program:
+Alas there are {\em more} denotations than images of terms in $D_{\infty}$,
+and that breaks the correspondence. Consider the program:
 \[\begin{array}{lcl}
 f_\omega = f_\omega \\
-f (b{:}Bool) (h{:}Bool->Bool->Bool) = \\ 
+f \; (h{:}Bool->Bool->Bool) \\ 
 \begin{array}{lll}
-  &     & \quad @if@\;(h\;True\;b)\;\&\&\;(h\;b\;True)\;\&\& \\ 
-  &     & \quad\qquad\qquad not\;(h\;False\;False)\;@then@ \\
-  &     & \quad\quad @if@\;(h\;True\;f_\omega)\;\&\&\;(h\;f_\omega\;True)\;@then@\;@BAD@ \\
-  &     & \quad\quad @else@\;True \\
-  &     & \quad @else@\;True
+  & =   & @if@\;(h\;True\;True)\;\;\&\& \;\;not\;(h\;False\;False)\;@then@ \\
+  &     & \quad @if@\;(h\;True\;f_\omega)\;\&\&\;(h\;f_\omega\;True)\;@then@\;@BAD@ \\
+  &     & \quad @else@\;True \\
+  &     & @else@\;True
 \end{array}
 \end{array}\]
-Also consider now the candidate contract for $f$ below (and assume that we have managed to equate the denotational and the operational definitions of crash-freedom):
-\[ \CF -> (\CF -> \CF -> \CF) -> \CF \]
-Operationally we may assume a crash-free boolean as well as a function $h$ which is 
-$\CF -> \CF -> \CF$. The first conditional ensures that the function behaves like an ``or'' function or 
-diverges. However if we pass the first conditional, 
-the second conditional will always diverge and hence the contract will be satisfied. 
+Also consider now this candidate contract for $f$:
+\[ @f@ \in \CF -> (\CF -> \CF -> \CF) -> \CF \]
+Under the \emph{operational} definition of contract satisfaction, 
+@f@ indeed satisfies the contract.
+To reach @BAD@ we have to pass both conditionals.
+The first ensures that $h$ evaluates at least one of its
+arguments, while the second will diverge if either argument is evaluated.
+Hence @BAD@ cannot be reached, and the contract is satisfied. 
 
-However, denotationally it is possible to have a {\em monotone} function $por$ defined as follows (for convenience, 
-we are using pattern matching notation instead of our language of domain theory combinators):
+However, \emph{denotationally} it is possible to have the classic 
+parallel-or function, $por$, defined as 
+follows\footnote{For convenience, 
+we are using pattern matching notation instead of our 
+language of domain theory combinators}:
 \[\begin{array}{lcl}
   por\;\bot\;\bot & = & \bot \\ 
   por\;\bot\;True & = & True \\
   por\;True\;\bot & = & True \\ 
   por\;False\;False & = & False
 \end{array}\] 
-The rest of the equations (for @BAD@ arguments) are induced by monotonicity and we may pick whatever boolean value 
-we like when both arguments are @BAD@. 
+The rest of the equations (for @BAD@ arguments) are induced by
+monotonicity and we may pick whatever boolean value we like when both
+arguments are @BAD@.
 
-Now, this is denotationally a $\CF -> \CF -> \CF$ function, and it will pass the first conditional, but it will
-also pass the second conditional, yielding @BAD@. Hence denotationally the contract for $f$ {\em does not hold}.
-
+Now, this is denotationally a $\CF -> \CF -> \CF$ function, but it
+will pass \emph{both} conditionals, 
+yielding @BAD@. Hence $app(@f@,por) = \injBad$, and @f@'s contract does not hold.
 So we have a concrete case where an expression may satisfy its
-contract operationally but not denotationally, because there are more
-tests than programs in the denotational world. Due to contra-variance
-we expect that the other inclusion will fail too. This is not a catastrophic 
-problem for our reasoning principles about programs -- after all the two 
-definitions will mostly coincide and they will precisely coincide in the base case. 
-In the end of the day we will be interested on whether a program crashes or not and 
-if we have proven that it is crash-free denotationally, it is definitely crash-free in 
-any operationally reasonable term. 
+contract operationally but not denotationally, because of the usual
+loss of full abstraction: there are more tests than programs in the denotational world. 
+Due to contra-variance
+we expect that the other inclusion will fail too. 
 
-Finally, was it possible to define an operational model for our FOL theory that interpreted
+This is not a serious problem in practice.
+After all the two definitions mostly coincide, and
+they precisely coincide in the base case.  At the end of the day, we
+are interested in whether $@main@ \in \CF$, and we have proven that if
+is crash-free denotationally, it is definitely crash-free in any
+operationally-reasonable term.
+
+Finally, is it possible to define an operational model for our FOL theory that interpreted
 equality as contextual equivalence? Probably this could be made to work, although we believe
 that the formal clutter from syntactic manipulation of terms could be worse than the current
 denotational approach. 
@@ -145,14 +159,14 @@ and pass a function pointer to a function that expects a $\CF$ argument. However
 that this last axiom introduces a quantified assumption, which might lead to significant
 efficiency problem.
 
-On a final note, observe that the variation of the latter axiom for the 
-$app(\cdot,\cdot)$ function
+Ideally we would like to say that $\dbrace{\CF} = \dbrace{\CF \rightarrow \CF}$,
+but that is not quite true.  In particular, 
 \[\begin{array}{l}
    (\forall x @.@ \lcf{app(y,x)}) => \lcf{y}
 \end{array}\]
 is {\em not} valid in the denotational model. For instance consider the
 value $\injK{K}{\injBad}$ for $y$. The left-hand side is going to always 
-be true, as the application will yield $\bot$, but $y$ is not crash-free 
-itself.
+be true, because the application is ill-typed and will yield $\bot$, but $y$ 
+is not itself crash-free.
 
 

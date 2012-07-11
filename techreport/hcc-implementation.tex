@@ -5,7 +5,7 @@ invokes a FOL theorem prover (Equinox, Z3, Vampire, etc) on the FOL formula.
 The desugared Haskell program is expressed in GHC's intermediate language
 called Core~\cite{Sulzmann:2007:SFT:1190315.1190324}, an explicitly-typed 
 variant of System F.  It is straightforward
-to translate this into our language $\theLang$.
+to translate Core into our language $\theLang$.
 
 \subsection{Expressing contracts in Haskell}
 
@@ -34,7 +34,7 @@ For example, a useful derived connective is non-dependent function space:
 \par {\small
 \begin{code}
 (-->) :: Contract a -> Contract b -> Contract (a -> b)
-c1 --> c2 = c1 :-> \_ -> c2
+c1 --> c2 = c1 :-> (\_ -> c2)
 \end{code}
 } \par
 %As one would expect, @:->@ and @-->@ are right-associve.  We can
@@ -49,13 +49,13 @@ c1 --> c2 = c1 :-> \_ -> c2
 %never = Pred (error "never!")
 %\end{code}
 
-A contract is always associated with a function, so we wrap a contract
-together with its function in a @Statement@:
+A contract is always associated with a function, 
+so we pair the two in a @Statement@:
 \begin{code}
-data Statement where
-    (:::) :: a -> Contract a -> Statement
+  data Statement where
+      (:::) :: a -> Contract a -> Statement
 \end{code}
-For example, in our previous notation we might write the following
+In our previous mathematical notation we might write the following
 contract for @head@:
 $$
 @head@ \in \CF \;\&\; \{@xs@ \mid @not (null xs)@ \} \rightarrow \CF
@@ -77,11 +77,12 @@ c_head = head ::: CF :&: Pred (not . null) --> CF
 If we put this definition in a file @Head.hs@, together with the supporting
 definitions of @head@, @not@, and @null@, 
 then we can run @halo Head.hs@. 
-The @halo@ program translates the contract (and the supporting definitions) into
-FOL, generates a TPTP file and invokes a theorem prover.
+The @halo@ program translates the contract and the supporting function
+definitions into
+FOL, generates a TPTP file, and invokes a theorem prover.
 And indeed @c_head@ is verified by all theorem provers we tried.
 
-We apply fixpoint induction on contracts for recursive functions, as
+For recursive functions @halo@ uses fixpoint induction, as
 described in Section~\ref{sect:induction}.
 
 % ------------------------ Omit ----------------------------
@@ -141,7 +142,7 @@ For example:
 To prove this contract we must first prove that
 $@(++)@ \in \CF \rightarrow \CF \rightarrow \CF$;
 then we can prove @reverse@'s contract assuming the one for @(++)@.
-At the moment we ask the programmer to specify which auxiliary contracts
+At the moment, @halo@ asks the programmer to specify which auxiliary contracts
 are useful, via a second constructor in the @Statement@ type:
 \begin{code}
   reverse_cf = reverse ::: CF --> CF
@@ -151,15 +152,17 @@ are useful, via a second constructor in the @Statement@ type:
 
 \subsection{Dependent contracts}
 
-Here is an example of a contract about @filter@,
-where the result depends on an earlier argument, the predicate @p@:
+@halo@ can prove dependent contracts.
+For example:
 $$
 @filter@ \in (@p@ : \CF \rightarrow \CF) \rightarrow
              \CF \rightarrow \CF \;\&\; \{@ys@ \mid @all p ys@ \}
 $$
-This contract says that under good crash-free circumstances, the
-all elements in the resulting list from filtering a list with @p@
-satisfies @p@.
+This contract says that under suitable assumptions of crash-freedom,
+the result of @filter@ is both crash-free and satisfies @all p@.
+Here @all@ is a standard Haskell function, and @p@ is the functional
+argument itself.
+
 In our source-file syntax we use @(:->)@ to bind @p@.
 \begin{code}
 filter_all :: Statement
@@ -167,15 +170,15 @@ filter_all =
   filter ::: (CF --> CF) :-> \p ->
                 CF --> (CF :&: Pred (all p))
 \end{code}
-It is a little confusing since we get two ``arrows'', one from @:->@,
+The contract looks slightly confusing since it uses two ``arrows'', one from @:->@,
 and one from the @->@ in the lambda.  This contract is proved by
 applying fixed point induction.
 
 \subsection{Higher order functions}
 
-Our tool also deals with higher order functions containing
-very higher-order functions. Consider this (real) function @withMany@ from the
-@GHC@ component @Foreign.Util.Marshal@:
+Our tool also deals with (very) higher order functions.
+Consider this function @withMany@, taken from the
+library @Foreign.Util.Marshal@:
 %\footnote{\url{http://hackage.haskell.org/packages/archive/base/latest/doc/html/Foreign-Marshal-Utils.html#v:withMany}}:
 
 \begin{code}
@@ -309,7 +312,8 @@ use the min-translation, we a finitely counter satisfiable theory.
 
 \input{hcc-resultstable}
 
-We have made some initial experimental results, a small fragment of which can be 
+We have run @halo@ on a collection of mostly-small tests, 
+some of which can be 
 viewed in Figure~\ref{fig:unsres}. Our full testsuite and tables can be downloaded from
 \url{https://github.com/danr/contracts/blob/master/tests/BigTestResults.md}.
 \dv{Is this right? How many examples did we evaluate on? 10? 20? 300? is it important?}
@@ -318,8 +322,8 @@ The test cases include:
   \item Crash-freedom of standard functions
     (@(++)@, @foldr1@, @iterate@, @concatMap@).
 
-  \item CF of functions with a bit more involving recursive patterns
-        (Ackermann's function, functions with accumulators),
+  \item Crash-freedom of functions with more complex recursive patterns
+        (Ackermann's function, functions with accumulators).
 
 %  \item A library for predicate logic terms with some smart constructors
 %        retaining an invariant,
@@ -327,11 +331,11 @@ The test cases include:
 %        % \dr{Everything failed from this without min so I just skip it}
 
   \item Partial functions given appropriate preconditions
-        (@foldr1@, @head@, @fromJust@),
+        (@foldr1@, @head@, @fromJust@).
 
-  \item The @risers@ example from Catch~\citep{Mitchell:2008:PBE:1411286.1411293},
+  \item The @risers@ example from Catch~\citep{Mitchell:2008:PBE:1411286.1411293}.
 
-  \item Some properties, such as the example above with @filter@ and @all@,
+  \item Some non-trivial post-conditions, such as the example above with @filter@ and @all@,
         and also $@any p xs || any p ys@ = @any p (xs ++ ys)@$.
 \end{itemize}
 
