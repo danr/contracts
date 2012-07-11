@@ -1,4 +1,4 @@
-\documentclass[preprint,nocopyrightspace,draft]{sigplanconf}
+\documentclass[preprint,nocopyrightspace]{sigplanconf}
 
 \usepackage{hcc-techreport}
 
@@ -90,21 +90,23 @@
 \title{HALO: Haskell to Logic through Denotational Semantics}
 %% \subtitle{A new approach to static contract checking for higher-order lazy programs}
 
-\authorinfo{Dan Ros\'{e}n \\ Koen Claessen}
-           {Chalmers University}{}
 \authorinfo{Dimitrios Vytiniotis \\ Simon Peyton Jones}
            {Microsoft Research}{}
+
+\authorinfo{Dan Ros\'{e}n \\ Koen Claessen}
+           {Chalmers University}{}
 %% \authorinfo{Nathan Collins}
 %%            {Portland State University}{}
 \maketitle
 \makeatactive
 
 \begin{abstract}
-Despite the benefits of strong types and purity for reasoning about
-programs, many bugs remain in well-typed and purely functional
-code.  Functional programmers often have to introduce assertions to 
-ensure that their code is crash-free.  In this work we allow programmers 
-to express assertions as contracts, whose validity we can check statically. 
+Even well-typed programs can go wrong, by encountering a pattern-match
+failure, or simply returning the wrong answer.  An
+increasingly-popular response is to allow programmers to write
+\emph{contracts} that express semantic properties, such as
+crash-freedom or some useful post-condition. 
+We study the \emph{static verification} of such contracts.
 Our main contribution is a novel translation to first-order logic 
 of both Haskell programs, and contracts written in Haskell,
 all justified by denotational semantics. This translation enables us to prove 

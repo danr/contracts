@@ -331,8 +331,8 @@ we discuss in Section~\ref{s:cf-fol}.
 \ruleform{\dtrans{\Sigma}{d} = \formula{\phi}} \\ \\
 \begin{array}{rcl}
   \dtrans{\Sigma}{f \;\ol{a}\;\ol{(x{:}\tau)} = u}
-    & =     & \formula{\forall \ol{x} @.@ \utrans{\sigma}{u}{f(\ol{x})}} \\
-    & \land & \formula{\forall \ol{x} @.@ f(\ol{x}) = app(f_{ptr},\xs)} \\
+    & =     & \formula{\forall \ol{x} @.@\, \utrans{\sigma}{u}{f(\ol{x})}} \\
+    & \land & \formula{\forall \ol{x} @.@\, f(\ol{x}) = app(f_{ptr},\xs)} \\
 \end{array}
 \\ \\
 \ruleform{\utrans{\Sigma}{u}{s} = \formula{\phi}} \\ \\
@@ -430,18 +430,16 @@ $e_1$ and $e_2$ are semantically equivalent.
 where $\etrans{}{}{e}$ is the translation of $e$ to a FOL term. That is, we can
 reason about the equality of Haskell terms by translating them into FOL, and then using
 a FOL theorem prover. The formal statement of this property is Corollary~\ref{cor:guiding-principle}
-\spj{Dimitrios, can you forward-ref a theorem that states this?}
-\kc{This is only going to hold from right to left} \dv{Added statement.}
 
 The translation of programs, definitions, and expressions to FOL
 is given in Figure~\ref{fig:etrans}.
 The function $\ptrans{}{P}$ translates a program to a conjunction of formulae,
-one for each definition $d$, while $\dtrans{}{d}$ in turn translates
-a definition $d$.
-The first formula in $\dtrans{}{}$'s right-hand side invokes the translation
-$\utrans{}{u}{f(\ol{x})}$ for the right hand side $u$, passing in the term $f(\ol{x})$,
-and quantifying over the $\ol{x}$.  We will deal with the second formula shortly.
-
+one for each definition $d$, using $\dtrans{}{d}$ to translate
+each definition.
+The first clause in $\cal D$s right-hand side uses $\cal U$ to 
+translate the right hand side $u$, and quantifies over the $\ol{x}$.  
+We will deal with the second clause of $\cal D$
+in Section~\ref{s:hof}.
 
 Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}),
 the formula $\utrans{}{e}{f(\ol{x})}$
@@ -456,7 +454,7 @@ call-by-value setting -- an issue
 we return to towards the end of Section~\ref{s:soundness}.
 
 Lastly $\etrans{}{}{e}$ deals with expressions.  We will deal with
-functions and application next
+functions and application shortly
 (Section~\ref{s:hof}), but the other equations for $\etrans{}{}{e}$
 are straightforward.  Notice that $\etrans{}{}{@BAD@} = bad$, and recall
 that @BAD@ is the $\theLang$-term used for an inexhaustive @case@ or a call
@@ -464,14 +462,12 @@ to @error@.  It follows from our guiding principle
 that for any $e$, if we manage to prove in FOL that $ \etrans{}{}{e} = bad $, 
 then the source program $e$
 must be semantically equivalent to @BAD@, meaning that it definitely
-crashes by calling @error@, or having an inexhaustive @case@.
-
-\spj{We ought to say a bit more about $unr$ somewhere}
+crashes.
 
 \subsection{Translating higher-order functions} \label{s:hof}
 
 If $\theLang$ was
-a first-order language the translation of function calls would be easy:
+a first-order language, the translation of function calls would be easy:
 $$
 \etrans{\Sigma}{\Gamma}{f[\ol{\tau}]\;\ol{e}} = \formula{f(\ol{\etrans{}{}{e}})} \\
 $$
@@ -504,7 +500,7 @@ This translation of higher-order functions to first-order logic may be
 easy, but it is not complete. In particular, in first-order logic we
 can only reason about functions with a concrete first-order
 representation (i.e. the functions that we already have and their
-(partial) applications) but, for example, lambda expressions cannot be
+partial applications) but, for example, lambda expressions cannot be
 created during proof time. Luckily, the class of properties we reason
 about (contracts) never require us to do so.
 
@@ -531,12 +527,16 @@ Why do we need the last clause? Consider the function @not@:
   not True = False
   not False = True
 \end{code}
-Suppose we want to prove that $@not@ \in @CF@ \rightarrow @CF@$.
-If we lack the last clause above, the FOL prover would have
-no way to dismiss the possibility that $@not@(@3@) = bad$ in some model, and thus
-would fail to prove the theorem.  However, the type system guarantees
-that @not 3@ will never show up, and the final clause is the way we express that
-fact to the FOL prover.
+Suppose we claim that $@not@ \in @CF@ \rightarrow @CF@$, which is patently true.
+But if we lack the last clause above, the claim 
+is \emph{not} true in every model;
+for example @not@ might crash when given the (ill-typed but crash-free) 
+argument @3@.  The third clause above excludes this possibility by
+asserting that the result of @not@ is the special crash-free constant $unr$
+if the scrutinee is ill-typed (i.e. not $bad$ and not built with the 
+constructors of the type).  This is the whole reason we need $unr$ in the first place.
+In general, if $\etrans{}{}{e} = unr$ is provable in the logic, then $e$ is ill-typed, 
+or divergent.
 
 Of course, we also need to axiomatise the behaviour of data constructors and
 selectors, which is done in Figure~\ref{fig:data-cons}:
@@ -572,9 +572,10 @@ into universal quantification and implication; and the claim that $e$ is
 crash-free turns into a use of the special term $\lcf{t}$ in the logic.
 We discuss crash-freedom in Section~\ref{s:cf-fol}.
 
-The first equation, for predicate contracts $e \in \{(x{:}\tau) \mid e' \}$,
+The first equation, for predicate contracts $e \in \{x \mid e' \}$,
 is sightly more complicated.
-The first clause $t=unr$ says that the contract holds if $e$ diverges \spj{Is this right?}.
+The first clause $t=unr$, together with the axioms for $unr$ in Figure~\ref{fig:prelude}, ensures
+that $unr$ satisfies every contract.
 The second and third say that the contract holds if $e'$ diverges or is semantically
 equal to @True@.  The choices embodied in this rule were discussed at length
 in earlier work \cite{xu+:contracts} and we do not rehearse it here.
@@ -587,14 +588,14 @@ because it can crash if evaluated in the context @fst (BAD, True)@.  Of course,
 the context itself should not be the source of the crash; for example @(True,False)@ is
 crash-free even though @BAD (True,False)@ will crash.
 
-We use the FOL term $\lcf{t}$ to assert that $t$ is crash-free. The axioms for $\lcf{}$
+We use the FOL term $\lcf{t}$ to assert that $t$ is crash-free. The axioms for $\lcfZ$
 are given in Figure~\ref{fig:prelude}.  \textsc{AxCfC} says that a data constructor application
 is crash-free if and only iff its arguments are crash-free.  \textsc{AxCfBU} says that
 $unr$ is crash-free, and that $bad$ is not.  That turns out to be all that we need.
 
 \subsection{Summary}
 
-That completes our formally-described --- but only informally-justified --- translation
+That completes our formally-described --- but so far only informally-justified --- translation
 from a $\theLang$ program and a set of contract claims, into first-order logic.
 To a first approximation, we can now hand the generated axioms from the program and
 our axiomatisation to an FOL theorem prover and ask it to use them to prove the 

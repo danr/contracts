@@ -52,18 +52,19 @@ With that in mind, we make the following new contributions:
 \begin{itemize}
   \item We give a translation of Haskell programs to first-order logic (FOL) theories. 
         It turns out that lazy programs (as opposed to
-        strict programs!) have a very natural translation into first-order logic.
-        (Section~\ref{ssect:trans-fol}) 
+        strict programs!) have a very natural translation into first-order logic
+        (Section~\ref{ssect:trans-fol}).
   \item We give a translation of contracts to FOL formulae, and an axiomatisation of 
-        the language semantics in FOL. 
-        (Section~\ref{s:contracts-fol})
-  \item We show that if we can prove the formula that arises from a contract translation 
+        the language semantics in FOL 
+        (Section~\ref{s:contracts-fol}).
+  \item Our main contribution is to show that if we can prove the formula 
+        that arises from a contract translation 
         for a given program, then the program does indeed satisfy this contract. Our proof
-        uses the novel to our knowledge idea of employing the denotational 
-        semantics as a first-order model. (Section~\ref{ssect:denot})
+        uses the novel idea of employing the denotational 
+        semantics as a first-order model (Section~\ref{ssect:denot}).
   \item We show how to use this translation in practice for static contract checking with
         a SAT-solver (Section~\ref{sect:soundness}), 
-        and how to prove goals by induction. (Section~\ref{sect:extensions})
+        and how to prove goals by induction (Section~\ref{sect:extensions}).
 \end{itemize}
 
 We consider this work to be the first step towards practical contract checking 

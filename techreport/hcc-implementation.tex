@@ -7,14 +7,13 @@ called Core~\cite{Sulzmann:2007:SFT:1190315.1190324}, an explicitly-typed
 variant of System F.  It is straightforward
 to translate this into our language $\theLang$.
 
-\subsection{Using the tool}
+\subsection{Expressing contracts in Haskell}
 
-How does the user express contracts? We use HOAS and let the user
-define contracts with a library of contract combinators, reminiscent 
+How does the user express contracts?  We write contracts in Haskell
+itself, using higher-order abstract syntax and a GADT, in 
+a manner reminiscent 
 of the work on {\em typed contracts} for functional 
-programming~\cite{Hinze:2006:TCF:2100071.2100093}.
-The contract combinators are defined in a generalized algebraic 
-datatype @Contract t@, which represents a contract for a function of type @t@:
+programming~\cite{Hinze:2006:TCF:2100071.2100093}:
 \begin{code}
 data Contract t where
   (:->) :: Contract a 
@@ -24,10 +23,14 @@ data Contract t where
   CF    :: Contract a
   (:&:) :: Contract a -> Contract a -> Contract a
 \end{code}
-The combinators are: @:->@ for dependent contract function space, @CF@
+A value of type @Contract t@ is a 
+a contract for a function of type @t@.
+The connectives are @:->@ for dependent contract function space, @CF@
 for crash-freedom, @Pred@ for predication, and
-@:&:@ for conjunction. A useful derived contract is for the 
-non-dependent function space:
+@:&:@ for conjunction. 
+One advantage of writing contracts as Haskell terms is that
+we can use Haskell itself to build new contract combinators.
+For example, a useful derived connective is non-dependent function space:
 \par {\small
 \begin{code}
 (-->) :: Contract a -> Contract b -> Contract (a -> b)
@@ -71,10 +74,12 @@ f . g = \x -> f (g x)
 c_head :: Statement
 c_head = head ::: CF :&: Pred (not . null) --> CF
 \end{code}
-Upon saving this file to, say, @Head.hs@ and running @halo Head@,
-@halo@ translates the contract (and the supporting definitions) into
+If we put this definition in a file @Head.hs@, together with the supporting
+definitions of @head@, @not@, and @null@, 
+then we can run @halo Head.hs@. 
+The @halo@ program translates the contract (and the supporting definitions) into
 FOL, generates a TPTP file and invokes a theorem prover.
-In fact @c_head@ is verified by all theorem provers we tried.
+And indeed @c_head@ is verified by all theorem provers we tried.
 
 We apply fixpoint induction on contracts for recursive functions, as
 described in Section~\ref{sect:induction}.
@@ -308,8 +313,7 @@ We have made some initial experimental results, a small fragment of which can be
 viewed in Figure~\ref{fig:unsres}. Our full testuite and tables can be downloaded from
 \url{https://github.com/danr/contracts/blob/master/tests/BigTestResults.md}.
 \dv{Is this right? How many examples did we evaluate on? 10? 20? 300? is it imporant?}
-``Trivial'' contracts used for sanity checking of the tool are not listed. 
-Here are some parts of what is covered:
+The test cases include:
 \begin{itemize}
   \item Crash freeness of standard functions
     (@(++)@, @foldr1@, @iterate@, @concatMap@).

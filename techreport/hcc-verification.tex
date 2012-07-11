@@ -30,29 +30,31 @@ Hence, to verify a program $e$ satisfies a contract $\Ct$ we need to do the foll
 
 Theorem~\ref{thm:prover-soundness} gives us a way to check that an expression satisfies a 
 contract. Assume that we are given a program $P$ with a function $f \in dom(P)$, for which 
-we have already showed that $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct_f}$.
+we have already shown that $\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{f \in \Ct_f}$.
 Suppose next that we are presented with a ``next'' goal, to prove that 
-$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{h \in \Ct}$. 
+$\langle D_\infty,{\cal I}\rangle \models \ctrans{\Sigma}{P}{h \in \Ct_h}$. 
 We may consider the following three variations of how to do this:
 
 \begin{itemize}
   \item Ask for the unsatisfiability of: 
-    \[  \Th \land \ptrans{}{P} \land \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
+    \[  \Th\; \land \; \ptrans{\Sigma}{P} \; \land \;\neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
         The soundness of this query follows from Theorem~\ref{thm:prover-soundness} above.
 
   \item Ask for the unsatisfiability of:
-    \[  \Th \land 
-        \ptrans{\Sigma}{P}\;\land\;\ctrans{\Sigma}{P}{f \in \Ct_f} \land \neg \ctrans{\Sigma}{P}{h \in \Ct_h} \]
-        This query adds the {\em already proven} contract for $f$ in the theory. If this formula
+    \[  \Th \; \land\; \ptrans{\Sigma}{P} \; \land \; \ctrans{\Sigma}{P}{f \in \Ct_f} \land \neg \ctrans{\Sigma}{P}{h \in \Ct_h} \]
+        This query adds the {\em already proven} contract for $f$ to the theory. If this formula
         is unsatisfiable, then its negation is valid, and we know that the denotational model is 
         a model of the theory {\em and} of $\ctrans{\Sigma}{P}{f \in \Ct_f}$ and hence it must also
         be a model of $\ctrans{\Sigma}{P}{h \in \Ct_h}$.
   \item Ask for the unsatisfiability of:
-    \[  \Th \land 
-        \ptrans{\Sigma}{P \setminus f}\land\ctrans{\Sigma}{P}{f \in \Ct_f}\land
+    \[  \Th \; \land \; 
+        \ptrans{\Sigma}{P \setminus f} \; \land \; 
+        \ctrans{\Sigma}{P}{f \in \Ct_f} \; \land \;
         \neg\ctrans{\Sigma}{P}{h \in \Ct_h} \]
-        This query removes the axioms associated with the definition of $f$ since we may only have 
-        its signature and contract available. Via a similar reasoning as before, such an invocation 
+        This query removes the axioms associated with the \emph{definition} of $f$, leaving
+        only its \emph{contract} available.  This makes the proof of $h$'s contract
+        insensitive to changes in $f$'s immplementation.
+        Via a similar reasoning as before, such an invocation 
         is sound as well.
 \end{itemize}
 
