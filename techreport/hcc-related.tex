@@ -8,7 +8,7 @@ Catch~\cite{Mitchell:2008:PBE:1411286.1411293} is one of the very few tools that
 have been evaluated in large scale and address the verification of lazy Haskell
 programs. Using static analysis, Catch can detect pattern match failures, and hence
 prove that a program cannot crash. Some specification which describes the set of
-constructors that are expected as arguments to each function might be required.
+constructors that are expected as arguments to each function might be
 necessary for the analysis to succeed. Our aim with this work is to achieve similar and
 moreover be in a position to also assert functional correctness specification.
 
@@ -29,7 +29,7 @@ Rather different to Liquid Types, allowing refinements to be written
 in the very same programming language that programs are written, is the
 Dminor~\cite{Bierman+:subtyping} approach. Contrary to our case however, in Dminor
 the expressions that refine type must be pure, that is, terminating and having a unique
-denotation (e.g. not dependent on the store). Driven from a typing relation that includes
+denotation (e.g. not depending on the store)\dr{what is the store?}. Driven from a typing relation that includes
 logic entailment judgements, verification conditions are extracted and discharged automatically using Z3.
 Similar in spirit, other dependent type systems such
 as Fstar~\cite{fstar} extract verification conditions which can be discharged
@@ -40,8 +40,8 @@ goals.
 
 Boogie~\cite{boogie} is a verification back end which supports procedures as well as
 pure functions, and axiomatisation of theories and could potentially be used as the
-back end of our translation as well. Boogie verify programs written in the BoogiePL
-programming languages using Z3. Recent work on performing induction on-top of an
+back end of our translation as well. By using Z3, Boogie verifies
+programs written in the BoogiePL programming languages. Recent work on performing induction on-top of an
 induction-free SMT solver~\cite{Leino:2012:AIS:2189257.2189278} proposes a ``tactic''
 for encoding induction schemes as first-order queries, which is reminiscent of the way
 that we propose to perform induction.
@@ -58,11 +58,11 @@ yields a very fast verification framework for partial functional correctness.
 
 The tool Zeno~\cite{zeno} verifies equational properties of functional
 programs using Haskell as a front end. Its proof search is based on
-induction, equality reasoning and operational semantics. And while
+induction, equality reasoning and operational semantics. While
 guaranteeing termination, it can also start new induction proofs
-driven by syntactic heuristics. It only considers the finite and total
-subset of values, however, while we want to reason about Haskell
-programs as they appear in the wild, possibly non-terminating, with
+driven by syntactical heuristics. However, it only considers the finite and total
+subset of values, and we want to reason about Haskell
+programs as they appear in the wild: possibly non-terminating, with
 lazy infinite values and run time crashes.
 
 % Another tool that proves equational
@@ -71,9 +71,9 @@ lazy infinite values and run time crashes.
 % But if we mention HipSpec, we should mention Hip. Then what about Hip?
 
 First-order logic has been used as a target for higher-order languages in other verification contexts as well.
-The interactive theorem prover Isabelle for many years has had the opportunity to use
+Users of the interactive theorem prover Isabelle have for many years had the opportunity to use
 automated first-order provers to discharge proof obligations. This work has recently culminated into the tool
-Sledgehammer \cite{Sledgehammer}, which not only uses first-order provers, but also SMT solvers as back-ends.
+Sledgehammer \cite{Sledgehammer}, which not only uses first-order provers, but also SMT solvers as back ends.
 There has been a version of the dependently typed programming language Agda in which
 proof obligations could be sent to an automatic first-order prover \cite{AgdaFOL}. Both of these use typed translations from a typed higher-order language of well-founded definitions to first-order logic. The work in this area that perhaps comes closest to ours in that they deal with a lazy, general recursive language with partial functions is by \citet{TypeTheoryFOL}, who use Agda as a logical framework to reason about general recursive functional programs, and combine interaction in Agda with automated proofs in first-order logic.
 
@@ -81,13 +81,15 @@ The previous work on static contract checking for Haskell~\cite{xu+:contracts}
 was based on {\em wrapping}. A term was effectively wrapped
 with an appropriately pushed contract test, and symbolic execution or aggressive inlining was used to show that @BAD@ values could
 never be reached in this wrapped term.
-In follow-up work, Xu~\cite{Xu:2012:HCC:2103746.2103767} proposes a variation for a
-{\em call-by-value} language this time which performs symbolic execution alongside with
+In follow-up work, Xu~\cite{Xu:2012:HCC:2103746.2103767} proposes a variation, this time for a
+{\em call-by-value} language, which performs symbolic execution alongside with
 keeping a ``logicization'' of the program which can be used to eliminate paths that can
 provably not generate @BAD@ value using a theorem prover. The ``logicization'' of a
-program has a similar spirit to our translation to logic but it is unclear what is the
+program has a similar spirit to our translation to logic but
+it is unclear what is the
 model that is being used to prove the soundness of this translation, nor its
-axiomatisation. Furthermore the logicization of programs is dependent on if
+axiomatisation.
+Furthermore, the logicization of programs is dependent on whether
 the resulting formula is going to be used as a goal or assumption in a proof. We believe
 that the direct approach proposed in this paper, which is to directly encode the semantics
 of programs and contracts might be simpler. That said, symbolic execution as proposed
