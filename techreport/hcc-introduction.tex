@@ -1,14 +1,20 @@
+Haskell programmers enjoy the benefits of strong static types and purity: 
+static types eliminate many bugs early on in the development cycle, and purity 
+simplifies equational reasoning about programs. Despite these benefits, however, 
+bugs may still remain inside purely functional code and programs often
+crash if applied to the wrong arguments. 
+
 Consider this Haskell definition:
 \begin{code}
   f xs = head (reverse (True : xs))
   g xs = head (reverse xs)
 \end{code}
-Both @f@ and @g@ are well typed (and hence do not ``go wrong'' in Milner's sense),
-but @g@ can crash (when applied to the empty list), whereas @f@ cannot.
+Both @f@ and @g@ are well typed (and hence do not ``go wrong'' in Milner's 
+sense), but @g@ can crash (when applied to the empty list), whereas @f@ cannot.
 To distinguish the two we need reasoning that goes well beyond 
-that embodied in a standard type system.
+that typically embodied in a standard type system.
 
-One response to this challenge is to beef up the type system, a 
+One response to this challenge is to beef up the type system
 path that leads to dependently typed programming.  Another alternative,
 studied by many researchers~\cite{contracts-literature}, is to allow 
 the programmer to annotate a function with one or more
@@ -32,44 +38,79 @@ and \emph{automatically}. It should be clear that there is a good deal of logica
 and a now-popular approach is to hand off the task to a theorem
 prover, a SMT solver or first-order logic prover.
 With that in mind, we make the following new contributions:
+
 \begin{itemize}
-\item We show how to translate Haskell terms
-into First Order Logic (FOL) (Section~\ref{ssect:trans-fol}).  
-It may appear surprising that this 
-is even possible, since Haskell is a higher order language.  Although
-the basic idea of the translation is folklore in the community,
-we believe that this paper is the first to explain it explicitly.
-
-\item We also show how to translate \emph{contracts} into FOL
-      (Section~\ref{s:contracts-fol}), 
-      a translation that is rather less obvious.
-
-\item We give a proof based on denotational semantics 
-that if the FOL prover discharges a 
-suitable theorem about the translated Haskell term and contract, 
-then indeed the original Haskell term satisfies that contract (Section~\ref{s:xxx}).
-
-%\item It is one thing to make a sound translation, and quite another
-%to produce FOL terms that the FOL prover can actually prove anything
-%about --- a common experience is that it goes out to lunch instead.  We
-%describe a number of techniques that dramatically improve
-%theorem-proving times, moving them from infeasible to feasible (Section\ref{xxx}).
-
-\item For this paper we focus on the
-translation, but we have also implemented a static contract checker
-for Haskell itself, by using GHC as a front end.  We have evaluated
-the practicality of this approach on many examples, including lazy and
-higher-order programs, as we describe in Section~\ref{xxx}.  \spj{I'd like
-to say something more substantial here.}
+  \item We give a translation of Haskell programs to first-order logic (FOL) theories. 
+        It turns out that lazy programs (as opposed to
+        strict programs!) have a very natural translation into first-order logic.
+        (Section~\ref{ssect:trans-fol}) 
+  \item We give a translation of contracts to FOL formulae, and an axiomatization of 
+        the language semantics in FOL. 
+        (Section~\ref{s:contracts-fol})
+  \item We show that if we can prove the formula that arises from a contract translation 
+        for a given program, then the program does indeed satisfy this contract. Our proof
+        uses the novel to our knowledge technique of using the denotational 
+        semantics as a first-order model. (Section~\ref{ssect:denot})
+  \item We show how to use this translation in practice for static contract checking with
+        a SAT-solver (Section~\ref{sect:soundness}), 
+        and how to prove goals by induction. (Section~\ref{sect:extensions})
 \end{itemize}
 
-Our approach to static contract checking is distinctively different to
-previous work: instead of wrapping and symbolic execution we harness
-purity and laziness to \emph{directly encode the denotational semantics of programs
-and contracts in first-order logic}. It turns that lazy programs (as opposed to
-strict programs) have a very natural translation into first-order logic.
-We discuss similarities and differences from
-related work in Section~\ref{s:related}.
+We consider this work to be the first step towards practical contract checking 
+for Haskell programs, that lays out the theoretical foundations for further engineering 
+and experimentation. Nevertheless, we have already implemented a prototype for Haskell 
+programs, that uses GHC as a front-end. We have evaluated the practicality of our approach 
+on many examples, including lazy and higher-order programs, and we report this initial 
+evaluation in Section~\ref{sect:implementation}.
+
+To our knowledge no-one has considered the translation of lazy higher-order programs to 
+first-order logic before in a provably sound way with respect to the denotational
+semantics of programs. Furthemore, our approach to static contract checking is 
+distinctively different to previous work: instead of wrapping and 
+symbolic execution~\cite{xu+:contracts,Xu:2012:HCC:2103746.2103767}, 
+we harness purity and laziness to directly use the denotational semantics
+of programs and contracts and discharge the obligations with a SAT-solver.
+We discuss similarities and differences compared to related work in Section~\ref{sect:related}.
+
+
+%%   \item The translation
+%% For this paper we focus on the translation, but to substantiate the practicality 
+        
+        
+%% \end{itemize} 
+
+
+%% \begin{itemize}
+%% \item We show how to translate Haskell terms
+%% into First Order Logic (FOL) (Section~\ref{ssect:trans-fol}).  
+%% It may appear surprising that this 
+%% is even possible, since Haskell is a higher order language.  Although
+%% the basic idea of the translation is folklore in the community,
+%% we believe that this paper is the first to explain it explicitly.
+
+%% \item We also show how to translate \emph{contracts} into FOL
+%%       (Section~\ref{s:contracts-fol}), 
+%%       a translation that is rather less obvious.
+
+%% \item We give a proof based on denotational semantics 
+%% that if the FOL prover discharges a 
+%% suitable theorem about the translated Haskell term and contract, 
+%% then indeed the original Haskell term satisfies that contract (Section~\ref{s:xxx}).
+
+%% %\item It is one thing to make a sound translation, and quite another
+%% %to produce FOL terms that the FOL prover can actually prove anything
+%% %about --- a common experience is that it goes out to lunch instead.  We
+%% %describe a number of techniques that dramatically improve
+%% %theorem-proving times, moving them from infeasible to feasible (Section\ref{xxx}).
+
+%% \item For this paper we focus on the
+%% translation, but we have also implemented a static contract checker
+%% for Haskell itself, by using GHC as a front end.  We have evaluated
+%% the practicality of this approach on many examples, including lazy and
+%% higher-order programs, as we describe in Section~\ref{xxx}.  \spj{I'd like
+%% to say something more substantial here.}
+%% \end{itemize}
+
 
 
 
