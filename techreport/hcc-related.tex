@@ -1,5 +1,5 @@
 
-There is a very large number of related works on verification of pure and non-pure
+There is a very large body of related work on verification of pure and non-pure
 functional programs. Despite the fact that verifying pure programs should be easier than
 verifying impure ones, there are very few tools for the automatic verification of lazy, 
 higher-order, functional programs. Furthermore, our approach of translating directly the 
@@ -57,6 +57,12 @@ matching search for a counter-model, and is guaranteed to find a model if one ex
 a $\CF$-analogous predicate and, due to call-by-value, no special treatment of $\unr$ seems
 necessary, which is most likely a huge win in terms of performance.
 
+First-order logic has been used as a target for higher-order languages in other verification contexts as well.
+The interactive theorem prover Isabelle for many years has had the opportunity to use
+automated first-order provers to discharge proof obligations. This work has recently culminated into the tool
+Sledgehammer \cite{Sledgehammer}, which not only uses first-order provers, but also SMT solvers as back-ends.
+There has been a version of the dependently typed programming language Agda in which
+proof obligations could be sent to an automatic first-order prover \cite{AgdaFOL}. Both of these use typed translations from a typed higher-order language of well-founded definitions to first-order logic. The work in this area that perhaps comes closest to ours in that they deal with a lazy, general recursive language with partial functions is by Bove et al.\ \cite{TypeTheoryFOL}, who use Agda as a logical framework to reason about general recursive functional programs, and combine interaction in Agda with automated proofs in first-order logic.
 
 \begin{itemize}
   \item Contracts in general (Findler Felleisen etc)
