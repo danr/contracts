@@ -443,7 +443,7 @@ and quantifying over the $\ol{x}$.  We will deal with the second formula shortly
 Ignoring @case@ for now (which we discuss in Section~\ref{s:case-fol}),
 the formula $\utrans{}{e}{f(\ol{x})}$
 simply asserts the equality $f(\ol{x}) = \etrans{}{}{e}$.
-That is, we use a new constant $f$ in the logic for each function definition in the
+That is, we use a new function $f$ in the logic for each function definition in the
 program, and assert that any application of $f$ is equal to (the logical translation of)
 $f$'s right hand side. Notice that we erase type arguments in the translation
 since they do not affect the semantics.
@@ -472,7 +472,7 @@ $$
 At first it might be surprising that we can also translate a \emph{higher-order} language
 $\theLang$ into first order logic, but in fact it is easy to do so, as
 Figure~\ref{fig:etrans} shows.  We introduce into the logic
-(a) a single new constant $app$, and (b) a nullary constant $f_{ptr}$ for each function $f$
+(a) a single new function $app$, and (b) a nullary constant $f_{ptr}$ for each function $f$
 (see Figure~\ref{fig:fol-image}).
 Then, the equations for $\etrans{}{}{e}$ translate application in $\theLang$ to
 a use of $app$ in FOL, and any mention of function $f$ in $\theLang$ to a use
