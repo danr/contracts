@@ -78,36 +78,37 @@ $\dapp(\dbrace{e},d') \in \dbrace{\Ct_2}_{x |->d'}$.
  
 Alas there are {\em more} denotations than images of terms in $D_{\infty}$,
 and that breaks the correspondence. Consider the program:
-\[\begin{array}{lcl}
-f_\omega = f_\omega \\
-f \; (h{:}Bool->Bool->Bool) \\ 
-\begin{array}{lll}
-  & =   & @if@\;(h\;True\;True)\;\;\&\& \;\;not\;(h\;False\;False)\;@then@ \\
-  &     & \quad @if@\;(h\;True\;f_\omega)\;\&\&\;(h\;f_\omega\;True)\;@then@\;@BAD@ \\
-  &     & \quad @else@\;True \\
-  &     & @else@\;True
-\end{array}
-\end{array}\]
+\begin{code}
+  loop = loop
+
+  f :: (Bool -> Bool -> Bool) -> Bool
+  f h = if (h True True) && (not (h False False))
+        then if (h True loop) && (h loop True)
+             then BAD else True
+        else True
+\end{code}
 Also consider now this candidate contract for $f$:
 \[ @f@ \in \CF -> (\CF -> \CF -> \CF) -> \CF \]
 Under the \emph{operational} definition of contract satisfaction, 
 @f@ indeed satisfies the contract.
 To reach @BAD@ we have to pass both conditionals.
-The first ensures that $h$ evaluates at least one of its
+The first ensures that @h@ evaluates at least one of its
 arguments, while the second will diverge if either argument is evaluated.
 Hence @BAD@ cannot be reached, and the contract is satisfied. 
 
 However, \emph{denotationally} it is possible to have the classic 
 parallel-or function, $por$, defined as 
-follows\footnote{For convenience, 
-we are using pattern matching notation instead of our 
-language of domain theory combinators}:
+follows:
 \[\begin{array}{lcl}
   por\;\bot\;\bot & = & \bot \\ 
-  por\;\bot\;True & = & True \\
-  por\;True\;\bot & = & True \\ 
-  por\;False\;False & = & False
+  por\;\bot\;\injKZ{True} & = & \injKZ{True} \\
+  por\;\injKZ{True}\;\bot & = & \injKZ{True} \\ 
+  por\;\injKZ{False}\;\injKZ{False} & = & \injKZ{False}
 \end{array}\] 
+We have to define $por$ in the language of denotational semantics, because
+we cannot write it in Haskell --- that is the point!  For convenience, 
+though, we use pattern matching notation instead of our 
+language of domain theory combinators.
 The rest of the equations (for @BAD@ arguments) are induced by
 monotonicity and we may pick whatever boolean value we like when both
 arguments are @BAD@.

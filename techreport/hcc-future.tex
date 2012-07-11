@@ -3,20 +3,27 @@
 % Printing countermodels
 % (Typeclasses)
 
-There are several avenues for future work. 
-In terms of our implementation, we would like 
-to add support for primitive data types, such as @Integer@, using 
-theorem provers such as @T-SPASS@ to deal with the @tff@ (typed first-order arithmetic)
-extension TPTP. Another way is to also 
-generate theories in the SMT 2.0 format, understood by Z3, which has support 
-for integer arithmetic and more. As mentioned in Section~\ref{ssect:countersat} 
-we have ideas how to generate finite counter examples for contracts that do not 
-hold, and how they should be presented to the user. It would also be interesting 
+Static verification for functional programming languages seems an
+under-studied (compared to the imperative world) and very 
+promising area of research.
+In practical terms, our most immediate goal is to
+ensure that we can find finite counter-examples quickly,
+and present them comprehensibly to the user, rather allowing the
+theorem prover to diverge.
+As mentioned in Section~\ref{ssect:countersat} we have well-developed ideas
+for how to do this.  It would also be interesting 
 to see if \emph{triggers} in SMT 2.0 could also be used to support that goal. 
-Another important direction is finding ways to split our big verification goals
-into smaller ones that can be proven significantly faster. Finally, we would like
-to investigate whether we can automatically strengthen contracts to be used as 
-induction hypotheses in inductive proofs, deriving information from failed attempts.
+
+We would like to add support for primitive data types, such as
+@Integer@, using theorem provers such as @T-SPASS@ to deal with the
+@tff@ (typed first-order arithmetic) part of TPTP. Another approach might be to
+generate theories in the SMT 2.0 format, understood by Z3, which
+has support for integer arithmetic and more.  Another important
+direction is finding ways to split our big verification goals into
+smaller ones that can be proven significantly faster. Finally, we
+would like to investigate whether we can automatically strengthen
+contracts to be used as induction hypotheses in inductive proofs,
+deriving information from failed attempts.
 
 %A way of presenting countermodels given by @paradox@ in an easily
 %understandable way for the user would be helpful.
