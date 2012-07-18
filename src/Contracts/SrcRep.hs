@@ -2,14 +2,23 @@ module Contracts.SrcRep where
 
 import Var
 import Outputable
+import Type
 
 import Data.List
+
+-- isContractTyCon :: TyCon -> Bool
+-- isContractTyCon =
 
 contrStrWith :: String -> String -> Bool
 contrStrWith end str = "Contracts." `isPrefixOf` str && end `isSuffixOf` str
 
+statementType :: Type -> Bool
+statementType = contrStrWith "Statement" . showSDoc . ppr
+
 isStatementType :: Var -> Bool
-isStatementType = contrStrWith "Statement" . showSDoc . ppr . varType
+isStatementType v =
+    let (args,res) = splitFunTys . dropForAlls . varType $ v
+    in  statementType res && not (any statementType args)
 
 isStatementUsing :: Var -> Bool
 isStatementUsing = contrStrWith "Using" . show

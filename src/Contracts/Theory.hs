@@ -21,7 +21,7 @@ instance Show HCCExtras where
     show (CrashFree tc) = "CrashFree"
 
 instance Clausifiable HCCExtras where
-    mkClause _ = clause Axiom
+    mkClause _ = clause axiom
 
 type HCCContent   = Content HCCExtras
 

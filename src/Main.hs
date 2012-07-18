@@ -8,6 +8,10 @@ import Outputable
 import TysWiredIn
 import UniqSupply
 
+import Var
+import Id
+import CoreSyn
+
 import Halo.Conf
 import Halo.Entry
 import Halo.FOL.Linearise
@@ -17,6 +21,7 @@ import Halo.FOL.Rename
 import Halo.FOL.Style
 import Halo.Lift
 import Halo.Monad
+import Halo.Shared
 import Halo.Subtheory
 import Halo.Trans
 import Halo.Trim
@@ -29,8 +34,10 @@ import Contracts.Params as Params
 import Contracts.FixpointInduction
 import Contracts.Theory
 import Contracts.Axioms
+import Contracts.Inliner
 
 import Control.Monad
+import Control.Monad.Reader
 
 import System.Environment
 import System.Exit
@@ -47,24 +54,68 @@ printCore msg core = do
     mapM_ (printDump . ppr) core
     endl
 
+debugName :: (Var,CoreExpr) -> IO ()
+debugName (v,_) =
+    putStrLn $ show v ++ ":" ++
+        "\n\tisId: " ++ show (isId v) ++
+        "\n\tisLocalVar: " ++ show (isLocalVar v) ++
+        "\n\tisLocalId: " ++ show (isLocalId v) ++
+        "\n\tisGlobalId: " ++ show (isGlobalId v) ++
+        "\n\tisExportedId: " ++ show (isExportedId v)
+
 processFile :: Params -> FilePath -> IO ()
 processFile params@Params{..} file = do
 
+    putStrLn $ "Visiting " ++ file
+
+    -- Get the initial core through Halo
+
     let dsconf = DesugarConf
                      { debug_float_out = db_float_out
-                     , core2core_pass  = core_optimise
+                     , core2core_pass  = not no_core_optimise
                      }
-
 
     (modguts,dflags) <- desugar dsconf file
 
     let core_binds = mg_binds modguts
 
     when dump_init_core (printCore "Original core" core_binds)
+    when db_names $ mapM_ debugName (flattenBinds core_binds)
+
+    -- Lambda lift using GHC's lambda lifter
+
+    floated_prog <- lambdaLift dflags core_binds
+
+    when dump_float_out (printCore "Lambda lifted core" floated_prog)
+
+    -- Case-/let- lift using Halo's lifter, also lift remaining lambdas
 
     us <- mkSplitUniqSupply 'c'
 
-    let (collect_either_res,us2) = initUs us (collectContracts core_binds)
+    let ((lifted_prog,msgs_lift),us2) = caseLetLift floated_prog us
+
+    when db_lift          (printMsgs msgs_lift)
+    when dump_lifted_core (printCore "Final, case/let lifted core" lifted_prog)
+
+    -- Run our inliner
+
+    let (inlined_prog,inline_kit) = inlineProgram lifted_prog
+        InlineKit{..} = inline_kit
+
+    when db_inliner $ do
+        forM_ (flattenBinds lifted_prog) $ \(v,e) -> do
+            putStrLn $ "Inlineable: " ++ show (varInlineable v)
+            putStrLn $ "Before inlining:"
+            putStrLn $ show v ++ "=" ++ showExpr e
+            putStrLn $ "After inlining:"
+            putStrLn $ show v ++ "=" ++ showExpr (inlineExpr e)
+            putStrLn ""
+
+    when dump_inlined_core (printCore "Final, inlined core" inlined_prog)
+
+    -- Collect contracts
+
+    let (collect_either_res,us3) = initUs us2 (collectContracts inlined_prog)
 
     (stmts,program,msgs_collect_contr) <- case collect_either_res of
         Right res@(stmts,_,_) -> do
@@ -74,16 +125,9 @@ processFile params@Params{..} file = do
             putStrLn err
             exitFailure
 
-    floated_prog <- lambdaLift dflags program
-
     when db_collect (printMsgs msgs_collect_contr)
 
-    when dump_float_out (printCore "Lambda lifted core" floated_prog)
-
-    let ((lifted_prog,msgs_lift),us3) = caseLetLift floated_prog us2
-
-    when db_lift    (printMsgs msgs_lift)
-    when dump_core  (printCore "Final, case/let lifted core" lifted_prog)
+    -- Translate contracts & definitions
 
     let ty_cons :: [TyCon]
         ty_cons = mg_tcs modguts
@@ -109,18 +153,18 @@ processFile params@Params{..} file = do
             }
 
         ((fix_prog,fix_info),us4)
-            = initUs us3 (fixpointCoreProgram lifted_prog)
+            = initUs us3 (fixpointCoreProgram inlined_prog)
 
-        halt_env_without_hyp_arities
+        halo_env_without_hyp_arities
             = mkEnv halo_conf ty_cons_with_builtin fix_prog
 
-        halt_env = halt_env_without_hyp_arities
+        halo_env = halo_env_without_hyp_arities
             { arities = fpiFixHypArityMap fix_info
-                            (arities halt_env_without_hyp_arities)
+                            (arities halo_env_without_hyp_arities)
             }
 
         (subtheories_unfiddled,msgs_trans)
-            = translate halt_env ty_cons_with_builtin fix_prog
+            = translate halo_env ty_cons_with_builtin fix_prog
 
         subtheories
             = primConAxioms
@@ -144,21 +188,21 @@ processFile params@Params{..} file = do
 
     when dump_tptp $ putStrLn (toTPTP [] subtheories)
 
-    forM_ stmts $ \stmt@Statement{..} -> do
-        let (proofs,msgs_tr_contr)
-                = runHaloM halt_env (trStatement params stmts fix_info stmt)
+    forM_ stmts $ \top_stmt@TopStmt{..} -> do
+        let (conjectures,msgs_tr_contr) = runHaloM halo_env $
+                runReaderT (trTopStmt top_stmt) (params,fix_info)
 
         when db_trans (printMsgs msgs_tr_contr)
 
-        forM_ proofs $ \(proof_part,(clauses,deps)) -> do
+        forM_ conjectures $ \Conjecture{..} -> do
 
-            let important    = Specific PrimConAxioms:Data boolTyCon:deps
+            let important    = Specific PrimConAxioms:Data boolTyCon:
+                               conj_dependencies
                 subtheories' = trim important subtheories
 
-                tptp = toTPTP clauses subtheories'
+                tptp = toTPTP conj_clauses subtheories'
 
-                filename = show statement_name ++
-                               proofPartSuffix proof_part ++ ".tptp"
+                filename = show top_name ++ conjKindSuffix conj_kind ++ ".tptp"
 
             putStrLn $ "Writing " ++ show filename
 

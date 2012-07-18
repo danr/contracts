@@ -4,6 +4,9 @@ import Var
 import CoreSyn
 
 import Halo.Shared
+import Halo.FOL.Abstract
+
+import Contracts.Theory
 
 data Contract
     = CF
@@ -33,26 +36,63 @@ substContractList c xs = go c
 substContract :: Contract -> Var -> Var -> Contract
 substContract c xold xnew = substContractList c [(xold,xnew)]
 
-data ProofPart
+-- | The translated clauses and its dependencies, and what kind of
+--   conjecture it is (plain / fixpoint base / fixpoint step)
+data Conjecture = Conjecture
+    { conj_clauses      :: [Clause']
+    , conj_dependencies :: [HCCContent]
+    , conj_kind         :: ConjectureKind
+    }
+  deriving Show
+
+-- | The different kinds of conjectures
+data ConjectureKind
     = Plain
     | FixpointBase
     | FixpointStep
   deriving (Show,Eq,Ord)
 
-proofPartSuffix :: ProofPart -> String
-proofPartSuffix p = case p of
+-- | Add more dependencies to a conjecture
+extendConj :: [Clause'] -> [HCCContent] -> Conjecture -> Conjecture
+extendConj cls deps c = c
+    { conj_clauses      = cls ++ conj_clauses c
+    , conj_dependencies = deps ++ conj_dependencies c
+    }
+
+conjKindSuffix :: ConjectureKind -> String
+conjKindSuffix p = case p of
     Plain        -> ""
     FixpointBase -> "_base"
     FixpointStep -> "_step"
 
-data Statement = Statement
-    { statement_name  :: Var
-    , statement_fun   :: Var
-    , statement_con   :: Contract
-    , statement_using :: [Var]
-    , statement_deps  :: [Var]
+data TopStmt = TopStmt
+    { top_name      :: Var
+    , top_statement :: Statement
+    , top_deps      :: [HCCContent]
     }
 
+data Statement = Statement
+    { statement_expr  :: CoreExpr
+    , statement_con   :: Contract
+    , statement_args  :: [Var]
+    , statement_using :: [Statement]
+    -- ^ Stripped of tree usings
+    }
+
+-- | Don't recursively get all Usings as a tree, only as a list
+stripTreeUsings :: Statement -> Statement
+stripTreeUsings stmt =
+    let rmUsing (Statement e c as _) = Statement e c as []
+    in  stmt { statement_using = map rmUsing (statement_using stmt) }
+
 instance Show Statement where
-    show (Statement n f c _ d) = show n ++ " = " ++ show f ++ " ::: " ++ show c
-                               ++ " (dependencies: " ++ unwords (map show d) ++ ")"
+    show (Statement e c u as) = case as of
+        [] -> rest
+        xs -> "forall " ++ unwords (map show xs) ++ " . " ++ rest
+      where
+        rest = showExpr e ++ " ::: " ++ show c
+            ++ " [using: " ++ unwords (map show u) ++ "]"
+
+instance Show TopStmt where
+    show (TopStmt n s ds) = show n ++ " = " ++ show s
+                        ++ " [deps: " ++ unwords (map show ds) ++ "]"

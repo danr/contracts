@@ -1,4 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
+{-
+
+    Translates contracts in the datatypes in Contracts.Types to FOL
+
+-}
 module Contracts.Trans where
 
 import CoreSyn
@@ -6,140 +11,196 @@ import Var
 
 import Contracts.Types
 import Contracts.FixpointInduction
-import Contracts.Theory
 import Contracts.Params
+import Contracts.Theory
 
-import Halo.PrimCon
 import Halo.ExprTrans
 import Halo.Util
 import Halo.Monad
 import Halo.Subtheory
+import Halo.Shared
 import Halo.Data (true,false,unr,bad)
 import Halo.FOL.Abstract
 
 import Control.Monad.Reader
 
-import Data.Map (singleton)
-import Data.List
+-- | We want to access the params and the fix info while doing this
+type TransM = ReaderT (Params,FixInfo) HaloM
 
-type ProofContent = ([Clause'],[HCCContent])
+getParams :: TransM Params
+getParams = asks fst
 
-findStatement :: [Statement] -> Var -> Statement
-findStatement ss c = case find ((c ==) . statement_name) ss of
-    Just s -> s
-    Nothing -> error $ "Cannot find used assumption contract " ++ show c
-
-trStatement :: Params -> [Statement] -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trStatement params@Params{..} ss fix_info stm = do
-
-    fpi_content <- trFPI params fix_info stm
-    plain_content <- trPlain (trNeg params Goal Skolemise) stm
-
-    let parts_and_content
-            | fpi_no_plain && not (null fpi_content) = fpi_content
-            | otherwise = plain_content : fpi_content
-
-    let used_statements = map (findStatement ss) (statement_using stm)
-    (using,deps) <- flip mapAndUnzipM used_statements $ \used_stm -> do
-         (_,content) <- trPlain (trPos params Assumption) used_stm
-         return $ content
-
-    let extend (part,(clauses,contents)) =
-          (part,(clauses ++ concat using,contents ++ concat deps))
-
-    return $ map extend parts_and_content
-
-trFPI :: Params -> FixInfo -> Statement -> HaloM [(ProofPart,ProofContent)]
-trFPI params@Params{..} fix_info stm@(Statement n f c _using deps)
-    | fpiApplicable fix_info f = do
-
-        let [f_base,f_hyp,f_concl]
-                = map (fpiFocusName fix_info f) [ConstantUNR,Hyp,Concl]
-
-            -- Change dependencies from f to f_base or f_concl
-            rename_f Base v | v == f = f_base
-            rename_f Step v | v == f = f_concl
-            rename_f _    v = v
-
-            [deps_base,deps_step]
-                = [ map ( fpiFriendName fix_info f friend_case
-                        . rename_f friend_case ) deps
-                  | friend_case <- [Base,Step]
-                  ]
-
-            rename_c = substContractList c . fpiGetSubstList fix_info f
-
-        (tr_base,ptrs_base) <- capturePtrs $
-            return . clause NegatedConjecture <$>
-            trNeg params Goal Skolemise (Var f_base) (rename_c ConstantUNR)
-
-        (tr_step,ptrs_step) <- capturePtrs $ do
-            hyp   <- clause Hypothesis <$>
-                        trPos params Assumption (Var f_hyp) (rename_c Hyp)
-            concl <- clause NegatedConjecture <$>
-                        trNeg params Goal Skolemise (Var f_concl) (rename_c Concl)
-            return [hyp,concl]
-
-        let content_base = map Function deps_base ++ map Pointer ptrs_base
-            content_step = map Function deps_step ++ map Pointer ptrs_step
-
-        return $
-            [(FixpointBase,(tr_base,content_base)) | not fpi_no_base ] ++
-            [(FixpointStep,(tr_step,content_step))]
-
-    | otherwise = return []
-
-trPlain :: (CoreExpr -> Contract -> HaloM Formula')
-        -> Statement -> HaloM (ProofPart,ProofContent)
-trPlain tr_fun stm@(Statement n v c _ deps) = do
-    (tr_contr,ptrs) <- capturePtrs $ tr_fun (Var v) c
-
-    let clauses =
-            [comment (show stm)
-            ,namedClause (show n) NegatedConjecture tr_contr]
-
-        content_dep = map Function deps ++ map Pointer ptrs
-
-    return (Plain,(clauses,content_dep))
+getFixInfo :: TransM FixInfo
+getFixInfo = asks snd
 
 data Skolem = Skolemise | Quantify
   deriving (Eq,Ord,Show)
 
-data Mode = Goal | Assumption
-  deriving (Eq,Ord,Show)
+trTopStmt :: TopStmt -> TransM [Conjecture]
+trTopStmt (TopStmt _name stmt deps) =
+    trStatement deps (stripTreeUsings stmt)
 
-trPos :: Params -> Mode -> CoreExpr -> Contract -> HaloM Formula'
-trPos params@Params{..} mode e c = case c of
-    Pred p -> do
-        ex <- trExpr e
-        px <- trExpr p
-        return $ min' ex ==> (min' px /\ (ex === unr \/ px === unr \/ px === true))
-    CF -> do
-        e_tr <- trExpr e
-        return $ min' e_tr ==> cf e_tr
-    And c1 c2 -> (/\) <$> trPos params mode e c1 <*> trPos params mode e c2
-    Arrow v c1 c2 -> local (pushQuant [v]) $ do
-        l <- trNeg params mode Quantify (Var v) c1
-        r <- trPos params mode (e `App` Var v) c2
-        return $ forall' [v] (l \/ r)
+trStatement :: [HCCContent] -> Statement -> TransM [Conjecture]
+trStatement deps stmt@Statement{..} = do
 
-trNeg :: Params -> Mode -> Skolem -> CoreExpr -> Contract -> HaloM Formula'
-trNeg params@Params{..} mode skolemise e c = case c of
-    Pred p -> do
-        ex <- trExpr e
-        px <- trExpr p
-        return $ min' ex /\ min' px /\ ex =/= unr /\ (px === false \/ px === bad)
+    Params{..} <- getParams
 
-    CF -> do
-        e_tr <- trExpr e
-        return $ min' e_tr /\ neg (cf e_tr)
+    fpi_content <- trFPI deps stmt
+    plain_content <- trPlain deps trNeg Skolemise stmt
 
-    And c1 c2 -> (\/) <$> trNeg params mode skolemise e c1
-                      <*> trNeg params mode skolemise e c2
+    let conjectures
+            | fpi_no_plain && not (null fpi_content) = fpi_content
+            | otherwise = plain_content : fpi_content
 
-    Arrow v c1 c2 -> local (case skolemise of
-                                Skolemise -> addSkolem v
-                                Quantify  -> pushQuant [v]) $ do
-        l <- trPos params mode (Var v) c1
-        r <- trNeg params mode skolemise (e `App` Var v) c2
-        return $ (skolemise == Quantify ? exists' [v]) (l /\ r)
+    (using_clauses,using_deps) <- (`mapAndUnzipM` statement_using) $ \used_stm -> do
+         Conjecture u_cl u_dep _ <- trPlain deps (\_sk -> trPos) Quantify used_stm
+         return $ (u_cl,u_dep)
+
+    let extender = extendConj (concat using_clauses) (concat using_deps)
+
+    return $ map extender conjectures
+
+trPlain :: [HCCContent] -> (Skolem -> CoreExpr -> Contract -> TransM Formula')
+        -> Skolem -> Statement -> TransM Conjecture
+trPlain deps tr_fun sk stmt@(Statement e c as _) = do
+
+    (tr_contr,ptrs) <- capturePtrs' $ do
+        (case sk of
+             Skolemise -> local' (addSkolems as)
+             Quantify  -> local' (pushQuant as) . fmap (forall' as))
+          $ tr_fun sk e c
+
+    let clauses =
+            [comment (show stmt)
+            ,clause (case sk of
+                        Skolemise -> negatedConjecture
+                        Quantify  -> hypothesis)
+                    tr_contr]
+
+        content_dep = map Pointer ptrs ++ deps
+
+    return $ Conjecture
+        { conj_clauses      = clauses
+        , conj_dependencies = content_dep
+        , conj_kind         = Plain
+        }
+
+-- | The top variable, suitable for fixed point induction
+topVar :: CoreExpr -> Maybe Var
+topVar (Var v)    = Just v
+topVar (App e _)  = topVar e
+topVar (Lam _ e)  = topVar e
+topVar (Cast e _) = topVar e
+topVar (Tick _ e) = topVar e
+topVar _          = Nothing
+
+trFPI :: [HCCContent] -> Statement -> TransM [Conjecture]
+trFPI deps (Statement e c as _) = do
+    fix_info <- getFixInfo
+    Params{..} <- getParams
+    case topVar e of
+        Just f | fpiApplicable fix_info f -> local' (addSkolems as) $ do
+
+            let [f_base,f_hyp,f_concl]
+                    = map (fpiFocusName fix_info f) [ConstantUNR,Hyp,Concl]
+
+                -- Change dependencies from f to f_base or f_concl
+                rename_f Base v | v == f = f_base
+                rename_f Step v | v == f = f_concl
+                rename_f _    v = v
+
+                [deps_base,deps_step]
+                    = [ map (mapFunctionContent
+                             ( fpiFriendName fix_info f friend_case
+                             . rename_f friend_case
+                             )) deps
+                      | friend_case <- [Base,Step]
+                      ]
+
+                rename_c = substContractList c . fpiGetSubstList fix_info f
+
+            let e_subst = subst e f
+
+            (tr_base,ptrs_base) <- capturePtrs' $
+                return . clause negatedConjecture <$>
+                trNeg Skolemise (e_subst f_base) (rename_c ConstantUNR)
+
+            (tr_step,ptrs_step) <- capturePtrs' $ do
+                hyp   <- clause hypothesis <$>
+                            trPos (e_subst f_hyp) (rename_c Hyp)
+                concl <- clause negatedConjecture <$>
+                            trNeg Skolemise (e_subst f_concl) (rename_c Concl)
+                return [hyp,concl]
+
+            let content_base = deps_base ++ map Pointer ptrs_base
+                content_step = deps_step ++ map Pointer ptrs_step
+
+            return $
+                [ Conjecture
+                    { conj_clauses      = tr_base
+                    , conj_dependencies = content_base
+                    , conj_kind         = FixpointBase
+                    }
+                | not fpi_no_base ] ++
+                [ Conjecture
+                    { conj_clauses      = tr_step
+                    , conj_dependencies = content_step
+                    , conj_kind         = FixpointStep
+                    }
+                ]
+
+        _ -> return []
+
+trPos :: CoreExpr -> Contract -> TransM Formula'
+trPos e c = do
+    lift $ write $ "trPos"
+                ++ "\n  e:" ++ showExpr e
+                ++ "\n  c:" ++ show c
+    case c of
+        Pred p -> do
+            ex <- lift $ trExpr e
+            px <- lift $ trExpr p
+            return $ min' ex ==> (min' px /\ (ex === unr \/ px === unr \/ px === true))
+        CF -> do
+            e_tr <- lift $ trExpr e
+            return $ min' e_tr ==> cf e_tr
+        And c1 c2 -> (/\) <$> trPos e c1 <*> trPos e c2
+        Arrow v c1 c2 -> local' (pushQuant [v]) $ do
+            l <- trNeg Quantify (Var v) c1
+            r <- trPos (e @@ Var v) c2
+            return $ forall' [v] (l \/ r)
+
+trNeg :: Skolem -> CoreExpr -> Contract -> TransM Formula'
+trNeg skolemise e c = do
+    lift $ write $ "trNeg (" ++ show skolemise ++ ")"
+                ++ "\n  e:" ++ showExpr e
+                ++ "\n  c:" ++ show c
+    case c of
+        Pred p -> do
+            ex <- lift $ trExpr e
+            px <- lift $ trExpr p
+            return $ min' ex /\ min' px /\ ex =/= unr /\ (px === false \/ px === bad)
+
+        CF -> do
+            e_tr <- lift $ trExpr e
+            return $ min' e_tr /\ neg (cf e_tr)
+
+        And c1 c2 -> (\/) <$> trNeg skolemise e c1
+                          <*> trNeg skolemise e c2
+
+        Arrow v c1 c2 -> local' (case skolemise of
+                                    Skolemise -> addSkolem v
+                                    Quantify  -> pushQuant [v]) $ do
+            l <- trPos (Var v) c1
+            r <- trNeg skolemise (e @@ Var v) c2
+            return $ (skolemise == Quantify ? exists' [v]) (l /\ r)
+
+local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a
+local' k m = do
+    e <- ask
+    lift $ (local k) (runReaderT m e)
+
+capturePtrs' :: TransM a -> TransM (a,[Var])
+capturePtrs' m = do
+    e <- ask
+    lift $ capturePtrs (runReaderT m e)

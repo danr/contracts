@@ -64,10 +64,8 @@ import CoreSyn
 import CoreFVs
 import Var
 import Name hiding (varName)
-import OccName hiding (varName)
 import UniqSet
 import UniqSupply
-import Unique
 
 import Halo.Shared
 import Halo.PrimCon
@@ -100,11 +98,11 @@ data FriendCase
   deriving (Eq,Ord,Show)
 
 newtype FixInfo = FixInfo
-    { fixInfo :: Map Var (Map FocusCase Var,Map (Var,FriendCase) Var)
+    ( Map Var (Map FocusCase Var,Map (Var,FriendCase) Var)
     -- ^ Given a function name, gives you access to what it is called
     --   in the focal cases, and what friendly variables are called
     --   in the friendly cases.
-    }
+    )
   deriving (Monoid,Show)
 
 
@@ -138,7 +136,7 @@ fpiFriendName (FixInfo m) f gcase g = case M.lookup f m of
 fpiGetSubstList :: FixInfo -> Var -> FocusCase -> [(Var,Var)]
 fpiGetSubstList fi@(FixInfo m) f fcase = case M.lookup f m of
     Nothing -> fatalVar "fpiGetSubstList" f
-    Just (focus,friends) -> (f,fpiFocusName fi f fcase):
+    Just (_focus,friends) -> (f,fpiFocusName fi f fcase):
         [ (g,g') | ((g,c),g') <- M.toList friends , focusToFriend fcase == c ]
 
 focusToFriend :: FocusCase -> FriendCase

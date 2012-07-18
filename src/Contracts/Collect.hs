@@ -1,7 +1,12 @@
-{-# LANGUAGE TupleSections #-}
--- This module collects the contracts in the source file and turns
--- them into hcc's internal reperesantion of contracts,
--- i.e. translating the higher order abstract syntax that is used.
+{-
+    This module collects the contracts in the source file and turns
+    them into hcc's internal reperesantion of contracts,
+    i.e. translating the higher order abstract syntax that is used.
+
+    The inliner must be run before, otherwise this will throw errors
+-}
+
+
 
 module Contracts.Collect where
 
@@ -18,70 +23,52 @@ import UniqSet
 
 import Contracts.SrcRep
 import Contracts.Types
+import Contracts.Theory
 
 import Halo.Util
 import Halo.Shared
+import Halo.Subtheory
+import Halo.FreeTyCons
 
-import Data.Maybe
 import Data.Either
+import Data.List
 
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.Error
 import Control.Monad.State
-import Control.Monad.Reader
 
-import Data.List
-
-collectContracts
-    :: [CoreBind]
-    -> UniqSM (Either String ([Statement],[CoreBind],[String]))
+collectContracts :: [CoreBind]
+                 -> UniqSM (Either String ([TopStmt],[CoreBind],[String]))
 collectContracts program = runErrorT $ do
-    let binds :: [(Var,CoreExpr)]
-        binds = flattenBinds program
-
-        statements :: [(Var,CoreExpr)]
-        statements = filter (isStatementType . fst) binds
-
-        program' :: [CoreBind]
+    let program' :: [CoreBind]
         untranslated_stmts :: [(Var,CoreExpr)]
         (program',untranslated_stmts) = partitionEithers $ map pick program
           where
             pick :: CoreBind -> Either CoreBind (Var,CoreExpr)
-            pick (NonRec v e) | isStatementType v = Right (v,e)
-            pick b                                = Left b
+            pick (NonRec v e) | isStatementType v && isExportedId v = Right (v,e)
+            pick b                                                  = Left b
 
-    (stmts,([],db_msgs)) <- runCollectM binds $ do
+    (stmts,db_msgs) <- runCollectM $ do
         write "Untranslated statements:"
         write (unlines (map (show . fst) untranslated_stmts))
         write "Translating them..."
-        let mkStatement' (v,e) = do
-                (stmt,(deps,msgs)) <-
-                    censor (\(deps,msgs) -> (mempty,msgs))
-                           (listen (mkStatement v e))
-                return $ stmt { statement_deps = statement_deps stmt
-                                            ++ filter (not . isTyVar) deps }
-        mapM mkStatement' untranslated_stmts
-
+        mapM (uncurry mkTopStmt) untranslated_stmts
 
     return (stmts,program',db_msgs)
 
 type CollectM =
-    (WriterT ([Var],[String])
-    -- ^ Keeping track of used variables when translating contracts, and
-    -- ^ writing debug messages
-    (ReaderT [(Var,CoreExpr)]
-    -- ^ The set of definitions from the start
+    (WriterT [String]
+    -- ^ Writing debug messages
     (StateT [String]
     -- ^ State of variable names
     (ErrorT String
     -- ^ We can error by throwing a string message
-    UniqSM))))
+    UniqSM)))
     -- ^ Making variable names
 
-runCollectM :: [(Var,CoreExpr)]
-            -> CollectM a -> ErrorT String UniqSM (a,([Var],[String]))
-runCollectM cbs m = (runWriterT m `runReaderT` cbs) `evalStateT` names
+runCollectM :: CollectM a -> ErrorT String UniqSM (a,[String])
+runCollectM m = runWriterT m `evalStateT` names
   where
     names = map ("ct_" ++) $ (`replicateM` ['a'..'z']) =<< [1..]
 
@@ -91,111 +78,84 @@ trimTyApp e@Var{} = Just (e,[])
 trimTyApp e@Lam{} = Just (e,[])
 trimTyApp _       = Nothing
 
-mkStatement :: Var -> CoreExpr -> CollectM Statement
-mkStatement v e = do
-    write $ "Translating statement " ++ show v ++ " = " ++ showExpr e
-    case trimTyApp e of
-        Just (Var x,[f_app,c]) | isStatementCon x -> do
-            write $ "A contract for: " ++ showExpr f_app ++ "."
-            f <- case trimTyApp f_app of
-                Just (Var f,[]) -> do
-                    write $ "Contract is really for " ++ show f ++ "."
-                    return f
-                _ -> throw $ "Invalid lhs of statement" ++ showExpr f_app
-            contr <- mkContract (Var f) c
-            return $ Statement v f contr [] [f | isLocalVar f ]
-        Just (Var x,[stmnt,u]) | isStatementUsing x -> do
-            write $ "A contract using: " ++ showExpr u
-            f <- case trimTyApp u of
-                Just (Var f,[]) -> do
-                    write $ "Contract is really using " ++ show f ++ "."
-                    return f
-                _ -> throw $ "Invalid lhs of using " ++ showExpr u
-            statement <- mkStatement v stmnt
-            return $ statement { statement_using = f : statement_using statement }
-        Just (Var x,[]) -> mkStatement v =<< lookupBind x
-        _ -> throw $ "Error: Invalid statement " ++ show v ++ "."
+mkTopStmt :: Var -> CoreExpr -> CollectM TopStmt
+mkTopStmt name e = do
+    write $ "Making a top statement for " ++ show name
+    let fun_deps :: [HCCContent]
+        fun_deps = Function <$> filter (not . isTyVar) (uniqSetToList (exprFreeVars e))
+    write $ "Fundeps: " ++ show fun_deps
+    (ty_deps,stmt) <- mkStatement atTop e
+    write $ "Tydeps: " ++ show ty_deps
+    let deps     = fun_deps ++ ty_deps
+    return $ TopStmt name stmt deps
+
+inTree,atTop :: Bool
+inTree = True
+atTop = False
+
+mkStatement :: Bool -> CoreExpr -> CollectM ([HCCContent],Statement)
+mkStatement in_tree e = do
+    let (_ty,args,e_stripped) = collectTyAndValBinders e
+    write $ "Translating statement " ++ showExpr e ++ " with arguments " ++ show args
+    case trimTyApp e_stripped of
+        Just (Var x,[f,c]) | isStatementCon x -> do
+            write $ "A contract for: " ++ showExpr f ++ "."
+            contr <- mkContract f c
+            let ty_deps = Data <$> freeTyCons f :: [HCCContent]
+            write $ "Tydeps: " ++ show ty_deps
+            return $ (ty_deps,Statement f contr args [])
+        Just (Var x,[s,u]) | isStatementUsing x ->
+            if in_tree
+                then do
+                    write $ "A skipped tree using: " ++ showExpr u
+                    mkStatement inTree s
+                else do
+                    write $ "A contract using: " ++ showExpr u
+                    (ty_deps_s,s') <- mkStatement atTop s
+                    (ty_deps_u,u') <- mkStatement inTree u
+                    let ty_deps = ty_deps_s `union` ty_deps_u
+                    write $ "Tydeps: " ++ show ty_deps
+                    return $ (ty_deps,s' { statement_using = u' : statement_using s' })
+        _ -> throw $ "Error: Invalid statement " ++ showExpr e_stripped
 
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
-    -- TODO: rewrite this with one pass inlining, and then just use free vars
-    let censor_hack x = censor (first (delete x))
     write $ showExpr f ++ ": " ++ showExpr e
     case trimTyApp e of
         Just (Var x,[])  | isContrCF x -> return CF
-        Just (Var x,[lam@(Lam y p)])
-            | isContrPred x -> do
-                registerFreeVars f lam
-                let s = extendIdSubst emptySubst y f
-                    p' = substExpr (text "mkContract Pred") s p
-                return (Pred p')
-        Just (Var x,[p]) | isContrPred x
-            -> registerFreeVars f p >> return (Pred (p `App` f))
-        Just (Var x,[e1,Lam y e2])
-           | isContrPi x -> Arrow y <$> mkContract (Var y) e1
-                                    <*> censor_hack y (mkContract (f `App` Var y) e2)
-        Just (Var x,[e1,Var z])
-           | isContrPi x -> do
-               e' <- lookupBind z
-               case e' of
-                   Lam y e2 -> Arrow y <$> mkContract (Var y) e1
-                                       <*> censor_hack y (mkContract (f `App` Var y) e2)
-                   _ -> throw $ "(:->) of weird when making a contract for " ++ showExpr f
-                                ++ " looking like " ++ showExpr e
+        Just (Var x,[p]) | isContrPred x -> return (Pred (p @@ f))
+
+        Just (Var x,[e1,Lam y e2]) | isContrPi x ->
+            Arrow y <$> mkContract (Var y) e1
+                    <*> mkContract (f @@ Var y) e2
+
         Just (Var x,[e1,e2])
            | isContrArr x -> do
                v <- mkFreshVar
                Arrow v <$> mkContract (Var v) e1
-                       <*> mkContract (f `App` Var v) e2
+                       <*> mkContract (f @@ Var v) e2
            | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
-        Just (Lam x e,[]) | isTyVar x -> do
+
+        Just (Lam x e',[]) | isTyVar x -> do
             write $ "Skipping lambda of a type variable"
-            mkContract f e
-        _ -> case collectArgs e of
-                 (Var x,es) -> do
-                     (xs,e) <- collectBinders <$> lookupBind x
-                     mkContract f (apply xs es e)
-                 _ -> throw $ "Found weird expression " ++ showExpr e ++
-                         " when making a contract for " ++ showExpr f
+            mkContract f e'
 
-apply :: [Var] -> [CoreExpr] -> CoreExpr -> CoreExpr
-apply [] [] e = e
-apply xs [] e = foldr Lam e xs
-apply [] es e = foldl App e es
-apply (x:xs) (ex:es) e = apply xs es (substExp e x ex)
+        t -> throw $ "Found weird expression " ++ showExpr e ++
+                     " when making a contract for " ++ showExpr f ++
+                     "\n  current trimmedTyApp was" ++ showOutputable t
 
-lookupBind :: Var -> CollectM CoreExpr
-lookupBind x = do
-    binds <- ask
-    case find ((x ==) . fst) binds of
-        Just (_,e) -> return e
-        _ -> throw $ "Found " ++ show x ++ " not leading to anything in making of a contract"
 
 mkFreshVar :: CollectM Var
 mkFreshVar = do
     v <- gets head
     modify tail
-    u <- lift $ lift $ lift $ lift $ getUniqueM
+    u <- lift $ lift $ lift $ getUniqueM
     let name = mkInternalName u (mkOccName varName v) wiredInSrcSpan
     return (mkVanillaGlobal name ty_err)
   where ty_err = error "mkFreshVar type"
 
-register :: Var -> CollectM ()
-register = registerMany . (:[])
-
-registerMany :: [Var] -> CollectM ()
-registerMany = tell . (,mempty)
-
-registerFreeVars :: CoreExpr -> CoreExpr -> CollectM ()
-registerFreeVars now new
-    = registerMany
-        (uniqSetToList (exprFreeVars new `minusUniqSet` exprFreeVars now))
-
 write :: String -> CollectM ()
-write = tell . (mempty,) . (:[])
-
-rewrite :: [String] -> CollectM ()
-rewrite = tell . (mempty,)
+write = tell . return
 
 throw :: String -> CollectM a
 throw = throwError . strMsg

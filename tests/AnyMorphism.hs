@@ -1,5 +1,5 @@
 
--- any p (xs ++ ys) = any p xs || any p ys
+-- any p (xs ++ ys) <=> any p xs || any p ys
 
 module AnyMorphism where
 
@@ -22,25 +22,22 @@ any p (x:xs) = p x || any p xs
 
 unsat_any_cf = any ::: (CF --> CF) --> CF --> CF
 
--- Stupid append with a skolem predicate (!)
-app :: (a -> Bool) -> [a] -> [a] -> [a]
-app p (x:xs) ys = x : app p xs ys
-app p []     ys = ys
+(++) :: [a] -> [a] -> [a]
+[] ++ ys = ys
+(x:xs) ++ ys = x : (xs ++ ys)
 
-unsat_app_cf = app ::: (CF --> CF) --> CF --> CF --> CF
+given :: Statement -> Statement -> Statement
+given x y = Using y x
 
--- This contract should really be quantified over a p
-big_unsat_app_any_morphism =
-    app ::: ((CF --> CF) :-> \p
-         -> CF :-> \xs
-         -> CF :-> \ys
-         -> CF :&: Pred (\zs -> any p zs <=> (any p xs || any p ys)))
-  `Using` unsat_any_cf
+infixr 0 $
 
--- This contract should really be quantified over a p
-big_sat_app_any_morphism_fail =
-    app ::: ((CF --> CF) :-> \p
-         -> CF :-> \xs
-         -> CF :-> \ys
-         -> CF :&: Pred (\zs -> any p zs <=> (any p xs || any p ys)))
+f $ x = f x
 
+-- Now quantified over p
+unsat_app_any_morphism p =
+
+    given unsat_any_cf $
+    given (p ::: CF --> CF) $
+
+    (++) ::: CF :-> \xs -> CF :-> \ys ->
+             CF :&: Pred (\zs -> any p zs <=> (any p xs || any p ys))

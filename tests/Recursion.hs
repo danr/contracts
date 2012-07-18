@@ -35,16 +35,12 @@ max Z y         = y
 max x Z         = x
 max (S x) (S y) = S (max x y)
 
--- Bug
--- max_cf = max ::: CF --> CF --> CF
 
 min :: Nat -> Nat -> Nat
 min Z y         = Z
 min x Z         = Z
 min (S x) (S y) = S (min x y)
 
--- Bug
--- min_cf = min ::: CF --> CF --> CF
 
 rev :: [a] -> [a]
 rev [] = []
@@ -215,6 +211,7 @@ unsat_not_cf       = not ::: CF --> CF
 
    These all probably work with optimisation, but
    the translation of optimised contracts is buggy
+    -}
 
 unsat_drop_cf      = drop ::: CF --> CF --> CF
 unsat_eq_cf        = (==) ::: CF --> CF --> CF
@@ -245,8 +242,11 @@ unsat_intersect_cf = intersect ::: CF --> CF --> CF
 
 unsat_union_cf     = union ::: CF --> CF --> CF
   `Using` unsat_elem_cf
-nd
+
 unsat_le_cf        = (<=) ::: CF --> CF --> CF
 
--}
+unsat_max_cf = max ::: CF --> CF --> CF
+
+unsat_min_cf = min ::: CF --> CF --> CF
+
 
