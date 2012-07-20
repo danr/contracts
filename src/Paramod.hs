@@ -13,8 +13,12 @@
 module Main where
 
 import Control.Arrow
+
 import Data.List
 import Data.List.Split -- split
+import Data.Map (Map)
+import Data.Maybe
+import qualified Data.Map as M
 
 
 {-
@@ -129,9 +133,8 @@ main = interact paramod
 type RawModel = [String]
 
 paramod :: String -> String
-paramod = unlines
-        . map show
-        . sort
+paramod = uncurry showModel
+        . second sort
         . second tabulateModel
         . domainSize
         . cropmodel
@@ -155,11 +158,20 @@ data Symbol
     | App
   deriving (Show,Eq,Ord)
 
+isProj :: Symbol -> Bool
+isProj Projection{} = True
+isProj _            = False
+
+isCon :: Symbol -> Bool
+isCon Constructor{} = True
+isCon _             = False
+
+
 data Predicate = Min | CF
   deriving (Show,Eq,Ord)
 
 tabulateModel :: RawModel -> [Table]
-tabulateModel = map tabulate . splitWhen null
+tabulateModel = map tabulate . filter (not . null) . splitWhen null
 
 data Table
     = Func Symbol [([Int],Int)]
@@ -230,3 +242,65 @@ tabFunc = uncurry Func
 tabPred :: [ParsedRow] -> Table
 tabPred = uncurry Pred
         . (parsePredicate . fst . head &&& map ((head *** bool) . snd))
+
+
+type ConstructorRepr = (Int,Value)
+
+constructorReprs :: [Table] -> [(Int,Value)]
+constructorReprs tbls =
+    [ (d,Con con (map Meta args))
+    | Func (Constructor con) tbl <- tbls
+    , (args,d) <- tbl
+    , and (zipWith (\coord arg -> project con coord arg == d) [0..] args)
+    ]
+  where
+    project :: String -> Int -> Int -> Int
+    project con coord d = proj_map M.! (con,coord,d)
+
+    projs :: [((String,Int,Int),Int)]
+    projs =
+        [ ((con,coord,d),d_projected)
+        | Func (Projection coord con) tbl <- tbls
+        , ([d],d_projected) <- tbl
+        ]
+
+    proj_map = M.fromList projs
+
+data Value = Con String [Value] | Meta Int
+  deriving (Eq,Ord)
+
+instance Show Value where
+    show (Con s []) = s
+    show (Con s as) = "(" ++ s ++ " " ++ unwords (map show as) ++ ")"
+    show (Meta i)   = '!':show i
+
+showModel :: Int -> [Table] -> String
+showModel size tbls = unlines $
+    [ sym ++ " = " ++ val
+    | i <- [1..size]
+    , let sym = '!':show i
+          val = showVal i
+    , sym /= val
+    ] ++
+    [ showSym sym ++ " = " ++ showVal i
+    | Func sym [([],i)] <- tbls
+    ] ++
+    [ twiggle b ++ show pred ++ "(" ++ showVal i ++ ")"
+    | Pred pred tbl <- tbls
+    , (i,b) <- tbl
+    ]
+  where
+    showSym (Function s)     = s
+    showSym (Constructor s)  = s
+    showSym (Skolem s)       = s
+    showSym App              = "app"
+    showSym (Projection i s) = "proj_" ++ show i ++ "_" ++ s
+
+    twiggle True  = " "
+    twiggle False = "~"
+
+    showVal i = show (fromMaybe (Meta i) (M.lookup i (M.fromList reprs)))
+
+    reprs = constructorReprs tbls
+
+
