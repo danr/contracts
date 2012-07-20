@@ -12,16 +12,4 @@ dist
 .tmp
 .tmptime
 .z3.tmp
-
-# Latex temp
-*.aux
-*.log
-*.nav
-*.out
-*.snm
-*.toc
-*.vrb
 *.tptp
-*.pdf
-
-
