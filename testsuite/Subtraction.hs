@@ -15,12 +15,13 @@ Zero   <= _      = True
 _      <= Zero   = False
 Succ x <= Succ y = x <= y
 
-le_cf = (<=) ::: CF --> CF --> CF
+-- CF of (<=) is not needed because they have the same recursive structure
+minus_cf = (-) ::: CF :-> \x -> CF :&: Pred (\y -> y <= x) --> CF
 
-minus_contr =
-    (-) ::: CF :-> \x -> CF :&: Pred (\y -> y <= x) --> CF
+minus_cf_broken = (-) ::: CF --> CF --> CF
 
-minus_contr_patched =
-    (-) ::: CF :-> \x -> CF :&: Pred (\y -> y <= x) --> CF
-  `Using` le_cf
+minus_cf_broken_2 = (-) ::: CF :-> \x -> CF :&: Pred (\y -> y <= Succ x) --> CF
+-- using < instead of <=
+
+
 

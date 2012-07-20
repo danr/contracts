@@ -9,9 +9,9 @@ dist
 *~
 
 # Tests temp
-tests/.tmp
-tests/.tmptime
-tests/.z3.tmp
+.tmp
+.tmptime
+.z3.tmp
 
 # Latex temp
 *.aux

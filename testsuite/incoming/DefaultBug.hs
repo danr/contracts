@@ -10,5 +10,5 @@ mini True  y    = Ok
 mini x     True = Ok
 mini False y    = Ok
 
--- Bug
+-- This used to be a bug, should still be one when optimisation is off
 mini_cf = mini ::: CF --> CF --> CF

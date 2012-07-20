@@ -1,3 +1,4 @@
+-- Dimitrio's parallel or counterexample from the article
 module Counterexample where
 
 import Contracts
