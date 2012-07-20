@@ -18,6 +18,6 @@ withMany withFoo (x:xs) f = withFoo x (\x' ->
 
 -- This function is interesting because it has higher order depth 2
 
-big_unsat_wmc :: Statement
-big_unsat_wmc = withMany ::: (CF --> (CF --> CF) --> CF)
+wmc :: Statement
+wmc = withMany ::: (CF --> (CF --> CF) --> CF)
                          --> CF --> (CF --> CF) --> CF

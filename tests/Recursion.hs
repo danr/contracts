@@ -28,7 +28,7 @@ ind :: Nat -> Nat
 ind Z     = Z
 ind (S x) = S (ind x)
 
-unsat_ind_cf = ind ::: CF --> CF
+ind_cf = ind ::: CF --> CF
 
 max :: Nat -> Nat -> Nat
 max Z y         = y
@@ -153,100 +153,108 @@ sorted :: [Nat] -> Bool
 sorted (x:y:xs) = x <= y && sorted (y:xs)
 sorted _        = True
 
-unsat_and_cf       = (&&) ::: CF --> CF --> CF
-unsat_or_cf        = (||) ::: CF --> CF --> CF
+and_cf       = (&&) ::: CF --> CF --> CF
+or_cf        = (||) ::: CF --> CF --> CF
 
-unsat_length_cf    = length ::: CF --> CF
+length_cf    = length ::: CF --> CF
 
-unsat_append_cf    = (++) ::: CF --> CF --> CF
+append_cf    = (++) ::: CF --> CF --> CF
 
-unsat_rev_cf       = rev ::: CF --> CF
-  `Using` unsat_append_cf
+rev_cf       = rev ::: CF --> CF
+  `Using` append_cf
 
-sat_rev_cf_broken  = rev ::: CF --> CF
+broken_rev_cf_broken  = rev ::: CF --> CF
 
-unsat_double_cf    = double ::: CF --> CF
+double_cf    = double ::: CF --> CF
 
-unsat_even_cf      = even ::: CF --> CF
+even_cf      = even ::: CF --> CF
 
-unsat_half_cf      = half ::: CF --> CF
+half_cf      = half ::: CF --> CF
 
-unsat_plus_cf      = (+) ::: CF --> CF --> CF
+plus_cf      = (+) ::: CF --> CF --> CF
 
-unsat_mul_cf       = (*) ::: CF --> CF --> CF
-  `Using` unsat_plus_cf
+mul_cf       = (*) ::: CF --> CF --> CF
+  `Using` plus_cf
 
-sat_mul_cf_broken  = (*) ::: CF --> CF --> CF
+broken_mul_cf_broken  = (*) ::: CF --> CF --> CF
 
-unsat_mult_cf      = mult ::: CF --> CF --> CF --> CF
-  `Using` unsat_plus_cf
+mult_cf      = mult ::: CF --> CF --> CF --> CF
+  `Using` plus_cf
 
-sat_mult_cf_broken = mult ::: CF --> CF --> CF --> CF
+broken_mult_cf_broken = mult ::: CF --> CF --> CF --> CF
 
-unsat_fac_cf       = fac ::: CF --> CF
-  `Using` unsat_mul_cf
+fac_cf       = fac ::: CF --> CF
+  `Using` mul_cf
 
-sat_fac_cf_broken  = fac ::: CF --> CF
+broken_fac_cf_broken  = fac ::: CF --> CF
 
-unsat_qfac_cf      = qfac ::: CF --> CF --> CF
-  `Using` unsat_mul_cf
+qfac_cf      = qfac ::: CF --> CF --> CF
+  `Using` mul_cf
 
-sat_qfac_cf_broken = qfac ::: CF --> CF --> CF
+broken_qfac_cf_broken = qfac ::: CF --> CF --> CF
 
-unsat_exp_cf       = exp ::: CF --> CF --> CF
-  `Using` unsat_mul_cf
+exp_cf       = exp ::: CF --> CF --> CF
+  `Using` mul_cf
 
-sat_exp_cf_broken  = exp ::: CF --> CF --> CF
+broken_exp_cf_broken  = exp ::: CF --> CF --> CF
 
-big_unsat_exp_accum_cf      = exp_accum ::: CF --> CF --> CF --> CF
-  `Using` unsat_mul_cf
+exp_accum_cf      = exp_accum ::: CF --> CF --> CF --> CF
+  `Using` mul_cf
 
-big_sat_exp_accum_cf_broken = exp_accum ::: CF --> CF --> CF --> CF
+broken_exp_accum_cf_broken = exp_accum ::: CF --> CF --> CF --> CF
 
-unsat_not_cf       = not ::: CF --> CF
+not_cf       = not ::: CF --> CF
 
-{- Bug in translation of multi-patterns (!)
-
-   Need to fix this
-
-   These all probably work with optimisation, but
-   the translation of optimised contracts is buggy
-    -}
-
-unsat_drop_cf      = drop ::: CF --> CF --> CF
-unsat_eq_cf        = (==) ::: CF --> CF --> CF
-unsat_ne_cf        = (/=) ::: CF --> CF --> CF
-unsat_rotate_cf    = rotate ::: CF --> CF --> CF
+drop_cf      = drop ::: CF --> CF --> CF
+rotate_cf    = rotate ::: CF --> CF --> CF
  `Using`
-   unsat_append_cf
+   append_cf
 
-unsat_count_cf     = count ::: CF --> CF --> CF
-unsat_listEq_cf    = listEq ::: CF --> CF --> CF
-unsat_sorted_cf    = sorted ::: CF --> CF
-  `Using` unsat_le_cf
+sorted_cf    = sorted ::: CF --> CF
+  `Using` le_cf
 
-unsat_isort_cf     = isort ::: CF --> CF
-  `Using` unsat_insert_cf
+elem_cf      = elem ::: CF --> CF --> CF
+  `Using` eq_cf
 
-unsat_insert_cf    = insert ::: CF --> CF --> CF
-  `Using` unsat_eq_cf
+subset_cf    = subset ::: CF --> CF --> CF
+  `Using` elem_cf
 
-unsat_elem_cf      = elem ::: CF --> CF --> CF
-  `Using` unsat_eq_cf
+intersect_cf = intersect ::: CF --> CF --> CF
+  `Using` elem_cf
 
-unsat_subset_cf    = subset ::: CF --> CF --> CF
-  `Using` unsat_elem_cf
+union_cf     = union ::: CF --> CF --> CF
+  `Using` elem_cf
 
-unsat_intersect_cf = intersect ::: CF --> CF --> CF
-  `Using` unsat_elem_cf
+max_cf = max ::: CF --> CF --> CF
 
-unsat_union_cf     = union ::: CF --> CF --> CF
-  `Using` unsat_elem_cf
+min_cf = min ::: CF --> CF --> CF
 
-unsat_le_cf        = (<=) ::: CF --> CF --> CF
+eq_cf        = (==) ::: CF --> CF --> CF
 
-unsat_max_cf = max ::: CF --> CF --> CF
+le_cf        = (<=) ::: CF --> CF --> CF
 
-unsat_min_cf = min ::: CF --> CF --> CF
+count_cf     = count ::: CF --> CF --> CF
+  `Using` eq_cf
 
+insert_cf    = insert ::: CF --> CF --> CF
+  `Using` le_cf
+
+isort_cf     = isort ::: CF --> CF
+  `Using` insert_cf
+
+ne_cf        = (/=) ::: CF --> CF --> CF
+  `Using` eq_cf
+
+listEq_cf    = listEq ::: CF --> CF --> CF
+  `Using` eq_cf
+
+broken_count_cf     = count ::: CF --> CF --> CF
+
+broken_insert_cf    = insert ::: CF --> CF --> CF
+
+broken_isort_cf     = isort ::: CF --> CF
+
+broken_ne_cf        = (/=) ::: CF --> CF --> CF
+
+broken_listEq_cf    = listEq ::: CF --> CF --> CF
 

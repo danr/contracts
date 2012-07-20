@@ -9,8 +9,8 @@ w2 :: ()
 w2 = case True of
        False -> ()
 
-sat_w :: Statement
-sat_w = w ::: CF
+broken_w :: Statement
+broken_w = w ::: CF
 
-sat_w2 :: Statement
-sat_w2 = w2 ::: CF
+broken_w2 :: Statement
+broken_w2 = w2 ::: CF

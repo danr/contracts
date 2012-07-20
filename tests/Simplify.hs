@@ -29,9 +29,9 @@ simplify f = case f of
     Not f           -> Not (simplify f)
     Var _           -> f
 
-unsat_simplify_simplifies = simplify ::: CF --> CF :&: Pred isSimplified
+simplify_simplifies = simplify ::: CF --> CF :&: Pred isSimplified
 
-unsat_isSimplified_cf = isSimplified ::: CF --> CF
+isSimplified_cf = isSimplified ::: CF --> CF
 
-unsat_simplify_simplifies_stronger = simplify ::: CF --> CF :&: Pred isSimplified
-  `Using` unsat_isSimplified_cf
+simplify_simplifies_stronger = simplify ::: CF --> CF :&: Pred isSimplified
+  `Using` isSimplified_cf

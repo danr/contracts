@@ -14,7 +14,7 @@ not False = True
 
 f . g = \x -> f (g x)
 
-unsat_head_contract = head ::: CF :&: Pred (not . null) --> CF
+head_contract = head ::: CF :&: Pred (not . null) --> CF
 
-sat_head_broken_1 = head ::: CF --> CF
-sat_head_broken_2 = head ::: Pred (not . null) --> CF
+head_broken_1 = head ::: CF --> CF
+head_broken_2 = head ::: Pred (not . null) --> CF

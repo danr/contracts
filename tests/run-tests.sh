@@ -7,9 +7,6 @@
 # To remove a tool, uncomment line towards the end of this file
 #
 
-
-#!/bin/bash
-
 # Kill whole testing process on Ctrl-C
 trap 'exit 1' INT
 
@@ -88,27 +85,32 @@ function run_z3 {
 
 for FILE in `find -iname '*.tptp'`
 do
-    # holds=0 if it should hold, 1 otherwise
-    holds=`echo $FILE | egrep '(unsat|thm|holds)'`
+    # satisfiable=0 if it should be SAT, 1 otherwise
+    satpatterns="(sat|broken|ef|fails|oops)"
+    grepstr="(_$satpatterns)|($satpatterns""_)"
+    satisfiable=`echo $FILE | egrep $grepstr`
     # if you don't want to test both of these,
     # add an appropriate continue:
-    if [[ $holds ]]; then
-        # continue
-        echo "$FILE, should be UNSAT"
-        good="unsat"
-        bad="sat"
-    else
+    if [[ $satisfiable ]]; then
         # continue
         echo "$FILE, should be SAT"
         good="sat"
         bad="unsat"
+    else
+        # continue
+        echo "$FILE, should be UNSAT"
+        good="unsat"
+        bad="sat"
     fi
     # Remove a tool by uncommenting a line
-    run_koentool paradox 2  $FILE $good $bad ||
-    run_koentool equinox 10 $FILE $good $bad ||
-    run_z3               10 $FILE $good $bad ||
-    run_vampire          10 $FILE $good $bad ||
-    run_eprover          10 $FILE $good $bad ||
+
+    # Run paradox first if file is supposedly SAT, otherwise last
+    ([[ $satisfiable ]] && run_koentool paradox 5  $FILE $good $bad) ||
+    run_z3               5 $FILE $good $bad ||
+    run_vampire          5 $FILE $good $bad ||
+    run_koentool equinox 5 $FILE $good $bad ||
+    run_eprover          5 $FILE $good $bad ||
+    ([[ ! $satisfiable ]] && run_koentool paradox 5  $FILE $good $bad) ||
     echo "All tools timed out"
     echo
 done

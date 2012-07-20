@@ -19,14 +19,14 @@ filter p (x:xs)
 any_pred :: a -> Bool
 any_pred _ = error "any_pred!"
 
-unsat_all_cf = all ::: (CF --> CF) --> CF --> CF
+all_cf = all ::: (CF --> CF) --> CF --> CF
 
-big_unsat_filter_all =
+filter_all =
     filter ::: (CF --> CF) :-> \p ->
                CF :-> \xs ->
                CF :&: Pred (all p)
 
-unsat_filter_all_only_pred =
+filter_all_only_pred =
     filter ::: (CF --> CF) :-> \p ->
                CF :-> \xs ->
                Pred (all p)
@@ -35,19 +35,19 @@ unsat_filter_all_only_pred =
 
 -- Cannot apply IH when you are at [x], and p x
 -- Can we use disjunction here? Is it admissible?
-unsat_filter_any_nonempty =
+filter_any_nonempty =
     filter ::: ((CF --> CF) :-> \p ->
                 (CF :&: Pred (any p)) :-> \xs ->
                 (CF :&: Pred nonEmpty))
-  `Using` unsat_any_cf
+  `Using` any_cf
 
 -- Needs lemmas about <=. Don't sure how to express those
-unsat_filter_le_length =
+filter_le_length =
     filter ::: ((CF --> CF) -->
                 CF :-> \xs ->
                 CF :&: Pred (\rs -> length xs <= length rs))
-  `Using` unsat_le
-  `Using` unsat_length
+  `Using` le
+  `Using` length
 
 -- Auxiliary
 data Nat = S Nat | Z
@@ -62,11 +62,11 @@ Z   <= S _ = True
 S _ <= Z   = False
 S x <= S y = x <= y
 
-unsat_le :: Statement
-unsat_le = (<=) ::: CF --> CF --> CF
+le_cf :: Statement
+le_cf = (<=) ::: CF --> CF --> CF
 
-unsat_length :: Statement
-unsat_length = length ::: CF --> CF
+length_cf :: Statement
+length_cf = length ::: CF --> CF
 
 True  || _ = True
 False || b = b

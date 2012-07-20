@@ -7,7 +7,7 @@ import Contracts
 data Formula v
     = Xor (Formula v) (Formula v) | Lit
 
--- | Everything satisfies the invariant! Hooray!
+-- | Everything brokenisfies the invariant! Hooray!
 invariant :: Formula v -> Bool
 invariant f = case f of
 
@@ -22,19 +22,19 @@ ind Lit         = Lit
 True  && b = b
 False && _ = False
 
-unsat_and_cf = (&&) ::: CF --> CF --> CF
+and_cf = (&&) ::: CF --> CF --> CF
 
 -- | Invariant is crash free
-unsat_invariant_cf = invariant ::: CF --> CF
+invariant_cf = invariant ::: CF --> CF
 
-unsat_ind_contr_cf = ind ::: CF --> CF
+ind_contr_cf = ind ::: CF --> CF
 
 -- | Ind retains the invariant /and/ is crash free
-unsat_ind_contr_retain
+ind_contr_retain
     = ind ::: (Pred invariant :->
                 \ y -> (Pred (\r -> invariant y && invariant r)))
     `Using`
-      unsat_invariant_cf
+      invariant_cf
     `Using`
-      unsat_and_cf
+      and_cf
 

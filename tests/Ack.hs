@@ -10,5 +10,5 @@ ack Z     n     = S n
 ack (S m) Z     = ack m (S Z)
 ack (S m) (S n) = ack m (ack (S m) n)
 
-big_unsat_ack_cf = ack ::: CF --> CF --> CF
+ack_cf = ack ::: CF --> CF --> CF
 

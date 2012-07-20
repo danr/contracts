@@ -16,11 +16,11 @@ foldr1 f [x]     =  x
 foldr1 f (x:xs)  =  f x (foldr1 f xs)
 foldr1 _ []      =  error "Prelude.foldr1: empty list"
 
-unsat_foldr1_cf = foldr1
+foldr1_cf = foldr1
     ::: (CF --> CF --> CF) --> CF :&: Pred (not . null) --> CF
 
-sat_foldr1_cf_only_pred = foldr1
+broken_foldr1_cf_only_pred = foldr1
     ::: (CF --> CF --> CF) --> Pred (not . null) --> CF
 
-sat_foldr1_cf_broken = foldr1
+broken_foldr1_cf_broken = foldr1
     ::: (CF --> CF --> CF) --> CF --> CF

@@ -20,7 +20,7 @@ any :: (a -> Bool) -> [a] -> Bool
 any p []     = False
 any p (x:xs) = p x || any p xs
 
-unsat_any_cf = any ::: (CF --> CF) --> CF --> CF
+any_cf = any ::: (CF --> CF) --> CF --> CF
 
 (++) :: [a] -> [a] -> [a]
 [] ++ ys = ys
@@ -34,9 +34,9 @@ infixr 0 $
 f $ x = f x
 
 -- Now quantified over p
-unsat_app_any_morphism p =
+app_any_morphism p =
 
-    given unsat_any_cf $
+    given any_cf $
     given (p ::: CF --> CF) $
 
     (++) ::: CF :-> \xs -> CF :-> \ys ->

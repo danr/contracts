@@ -95,23 +95,28 @@ do
 
     for FILE in `find -iname '*.tptp'`
     do
-        # holds=0 if it should hold, 1 otherwise
-        holds=`echo $FILE | egrep '(unsat|thm|holds)'`
-        # We skip things that are not "big" when timing
-    #    if [[ `echo $FILE | grep -v big` ]]; then
-    #        continue
-    #    fi
-        if [[ $holds ]]; then
+        # satisfiable=0 if it should be SAT, 1 otherwise
+        # satisfiable=0 if it should be SAT, 1 otherwise
+        satpatterns="(sat|broken|ef|fails|oops)"
+        grepstr="(_$satpatterns)|($satpatterns""_)"
+        satisfiable=`echo $FILE | egrep $grepstr`
+        # if you don't want to test both of these,
+        # add an appropriate continue:
+        if [[ $satisfiable ]]; then
             # continue
-            printf "UNS %-50s\t" `basename $FILE .tptp`
-            good="unsat"
-            bad="sat"
-        else
-            # continue
-            printf "SAT %-50s\t" `basename $FILE .tptp`
+            echo "$FILE, should be SAT"
             good="sat"
             bad="unsat"
+        else
+            # continue
+            echo "$FILE, should be UNSAT"
+            good="unsat"
+            bad="sat"
         fi
+        # We could skip things that are not "big" when timing
+        # if [[ `echo $FILE | grep -v big` ]]; then
+        #     continue
+        # fi
         run_koentool paradox $TIMEOUT $FILE $good $bad p
         run_koentool equinox $TIMEOUT $FILE $good $bad x
         run_z3               $TIMEOUT $FILE $good $bad

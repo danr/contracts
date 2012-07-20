@@ -34,30 +34,30 @@ not False = True
 {-# NOINLINE (.) #-}
 f . g = \x -> f (g x)
 
-unsat_le :: Statement
-unsat_le = (<=) ::: CF --> CF --> CF
+le :: Statement
+le = (<=) ::: CF --> CF --> CF
 
-unsat_risers :: Statement
-unsat_risers = risers
+risers_cf :: Statement
+risers_cf = risers
     ::: CF :&: Pred (not . null)
     --> CF :&: Pred (not . null)
-  `Using` unsat_le
+  `Using` le
 
-sat_risers_missing_le = risers
+broken_risers_missing_le = risers
     ::: CF :&: Pred (not . null)
     --> CF :&: Pred (not . null)
 
-sat_risers_broken = risers
+broken_risers_1 = risers
     ::: CF :&: Pred (not . null) --> CF
-  `Using` unsat_le
+  `Using` le
 
-sat_risers_broken2 = risers
+broken_risers_2 = risers
     ::: CF --> CF
-  `Using` unsat_le
+  `Using` le
 
-sat_risers_broken3 = risers
+broken_risers_3 = risers
     ::: CF --> CF :&: Pred (not.null)
-  `Using` unsat_le
+  `Using` le
 
 risersBy :: (a -> a -> Bool) -> [a] -> [[a]]
 risersBy (<) [] = []
@@ -67,26 +67,26 @@ risersBy (<) (x:y:xs) = case risersBy (<) (y:xs) of
          | otherwise -> [x]:(s:ss)
     [] -> error "internal error"
 
-unsat_risersBy :: Statement
-unsat_risersBy =
+risersBy_cf :: Statement
+risersBy_cf =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred (not . null)
              --> CF :&: Pred (not . null)
 
-big_unsat_risersBy_nonEmpty :: Statement
-big_unsat_risersBy_nonEmpty =
+risersBy_nonEmpty :: Statement
+risersBy_nonEmpty =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred nonEmpty
              --> CF :&: Pred nonEmpty
 
-big_sat_risersBy_nonEmpty_broken :: Statement
-big_sat_risersBy_nonEmpty_broken =
+broken_risersBy_nonEmpty_1 :: Statement
+broken_risersBy_nonEmpty_1 =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred nonEmpty
              --> CF
 
-big_sat_risersBy_nonEmpty_broken2 :: Statement
-big_sat_risersBy_nonEmpty_broken2 =
+broken_risersBy_nonEmpty_2 :: Statement
+broken_risersBy_nonEmpty_2 =
     risersBy ::: (CF --> CF --> CF)
              --> CF
              --> CF

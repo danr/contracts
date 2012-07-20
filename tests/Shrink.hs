@@ -13,7 +13,7 @@ fromJust :: Maybe a -> a
 fromJust (Just x) = x
 fromJust Nothing  = error "fromJust!"
 
-unsat_fromJust_contr = fromJust ::: CF :&: Pred isJust --> CF
+fromJust_contr = fromJust ::: CF :&: Pred isJust --> CF
 
 all :: (a -> Bool) -> [a] -> Bool
 all p (x:xs) = p x && all p xs
@@ -36,8 +36,8 @@ shrink_lazy op []     = error "Empty list!"
 shrink_lazy op [x]    = fromJust x
 shrink_lazy op (x:xs) = fromJust x `op` shrink_lazy op xs
 
-big_unsat_shrink = shrink
+shrink_cf = shrink
     ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF
 
-big_sat_shrink_lazy = shrink_lazy
+broken_shrink_lazy = shrink_lazy
     ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF
