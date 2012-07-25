@@ -94,13 +94,13 @@ import Contracts.SrcRep
 import Halo.Util
 import Halo.Shared
 
-import Data.Maybe
-
 import Control.Monad.Reader
 
 import qualified Data.Map as M
 import Data.Map (Map)
 
+import Data.Maybe
+import Data.Function
 import Data.Graph
 
 -- | The program
@@ -132,11 +132,10 @@ selfRecursive dg v = v `elem` neighbours dg v
 
 -- | Check if a function calls itself directly or indirectly
 recursive :: DepGraph -> Var -> Bool
-recursive dg@(_g,_fromVertex,_) v = selfRecursive dg v
---    || v `elem` map (mid . fromVertex) (reachable g (lookupVertex dg v))
+recursive dg@(g,_,_) v = selfRecursive dg v
+    || any (`pathfinder` v) (neighbours dg v)
   where
-    mid :: (a,b,c) -> b
-    mid (_,y,_) = y
+    pathfinder = path g `on` lookupVertex dg
 
 -- | Check if an expression is directly a case, after stripping lambdas
 isCaseExpr :: CoreExpr -> Bool

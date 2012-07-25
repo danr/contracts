@@ -103,13 +103,13 @@ processFile params@Params{..} file = do
     let (inlined_prog,inline_kit) = inlineProgram lifted_prog
         InlineKit{..} = inline_kit
 
-    when db_inliner $ do
+    when db_inliner $
         forM_ (flattenBinds lifted_prog) $ \(v,e) -> do
             putStrLn $ "Inlineable: " ++ show (varInlineable v)
             putStrLn $ "Before inlining:"
-            putStrLn $ show v ++ "=" ++ showExpr e
+            putStrLn $ show v ++ " = " ++ showExpr e
             putStrLn $ "After inlining:"
-            putStrLn $ show v ++ "=" ++ showExpr (inlineExpr e)
+            putStrLn $ show v ++ " = " ++ showExpr (inlineExpr e)
             putStrLn ""
 
     when dump_inlined_core (printCore "Inlined core" inlined_prog)
