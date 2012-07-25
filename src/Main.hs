@@ -82,7 +82,7 @@ processFile params@Params{..} file = do
     when dump_init_core (printCore "Original core" core_binds)
     when db_names $ mapM_ debugName (flattenBinds core_binds)
 
-    -- Lambda lift using GHC's lambda lifter
+    -- Lambda lift using GHC's lambda lifter. This also runs simpleCoreOptExpr
 
     floated_prog <- lambdaLift dflags core_binds
 
