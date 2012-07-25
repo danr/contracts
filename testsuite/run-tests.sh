@@ -7,6 +7,9 @@
 # To remove a tool, uncomment line towards the end of this file
 #
 
+# Timeout for each theorem prover invocation
+TIMEOUT=1
+
 # Kill whole testing process on Ctrl-C
 trap 'exit 1' INT
 
@@ -105,12 +108,12 @@ do
     # Remove a tool by uncommenting a line
 
     # Run paradox first if file is supposedly SAT, otherwise last
-    ([[ $satisfiable ]] && run_koentool paradox 5  $FILE $good $bad) ||
-    run_z3               5 $FILE $good $bad ||
-    run_vampire          5 $FILE $good $bad ||
-    run_koentool equinox 5 $FILE $good $bad ||
-    run_eprover          5 $FILE $good $bad ||
-    ([[ ! $satisfiable ]] && run_koentool paradox 5  $FILE $good $bad) ||
+    ([[ $satisfiable ]] && run_koentool paradox $TIMEOUT $FILE $good $bad) ||
+    run_z3               $TIMEOUT $FILE $good $bad ||
+    run_vampire          $TIMEOUT $FILE $good $bad ||
+    run_koentool equinox $TIMEOUT $FILE $good $bad ||
+    run_eprover          $TIMEOUT $FILE $good $bad ||
+    ([[ ! $satisfiable ]] && run_koentool paradox $TIMEOUT $FILE $good $bad) ||
     echo "All tools timed out"
     echo
 done

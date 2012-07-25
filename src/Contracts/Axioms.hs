@@ -1,16 +1,12 @@
 module Contracts.Axioms where
 
 import DataCon
-import Id
-import Name
 import Outputable
-import SrcLoc
 import TyCon
 import Type
-import TysWiredIn
-import Unique
 
 import Halo.FOL.Abstract
+import Halo.PrimCon
 import Halo.Data
 import Halo.Subtheory
 

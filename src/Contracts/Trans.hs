@@ -19,7 +19,7 @@ import Halo.Util
 import Halo.Monad
 import Halo.Subtheory
 import Halo.Shared
-import Halo.Data (true,false,unr,bad)
+import Halo.PrimCon
 import Halo.FOL.Abstract
 
 import Control.Monad.Reader
