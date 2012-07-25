@@ -96,7 +96,6 @@ import Halo.Shared
 
 import Data.Maybe
 
-import Control.Monad
 import Control.Monad.Reader
 
 import qualified Data.Map as M
@@ -121,10 +120,6 @@ neighbours :: DepGraph -> Var -> [Var]
 neighbours dg@(_,fromVertex,_) v = ns
   where (_,_,ns) = fromVertex (lookupVertex dg v)
 
--- | To get the node back
-mid :: (a,b,c) -> b
-mid (_,y,_) = y
-
 -- | Gets the abstract Vertex from a dependency graph
 lookupVertex :: DepGraph -> Var -> Vertex
 lookupVertex (_,_,toVertex) v = case toVertex v of
@@ -137,8 +132,11 @@ selfRecursive dg v = v `elem` neighbours dg v
 
 -- | Check if a function calls itself directly or indirectly
 recursive :: DepGraph -> Var -> Bool
-recursive dg@(g,fromVertex,_) v = selfRecursive dg v
+recursive dg@(_g,_fromVertex,_) v = selfRecursive dg v
 --    || v `elem` map (mid . fromVertex) (reachable g (lookupVertex dg v))
+  where
+    mid :: (a,b,c) -> b
+    mid (_,y,_) = y
 
 -- | Check if an expression is directly a case, after stripping lambdas
 isCaseExpr :: CoreExpr -> Bool

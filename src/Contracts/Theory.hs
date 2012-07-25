@@ -1,8 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 module Contracts.Theory where
 
-import Halo.Subtheory
 import TyCon
+
+import Halo.Subtheory
+import Halo.Shared
 import Halo.FOL.Abstract
 
 data HCCExtras
@@ -18,7 +20,7 @@ data HCCExtras
 instance Show HCCExtras where
     show PrimConAxioms  = "PrimConAxioms"
     show PrimConApps    = "PrimConApps"
-    show (CrashFree tc) = "CrashFree"
+    show (CrashFree tc) = "CrashFree " ++ showOutputable tc
 
 instance Clausifiable HCCExtras where
     mkClause _ = clause axiom

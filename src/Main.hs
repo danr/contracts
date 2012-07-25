@@ -9,7 +9,6 @@ import TysWiredIn
 import UniqSupply
 
 import Var
-import Id
 import CoreSyn
 
 import Halo.Conf
@@ -39,16 +38,18 @@ import Contracts.Inliner
 import Control.Monad
 import Control.Monad.Reader
 
-import System.Environment
 import System.Exit
 import System.FilePath
 
-import System.Console.CmdArgs
+import System.Console.CmdArgs hiding (program)
 
+printMsgs :: [String] -> IO ()
 printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
 
+endl :: IO ()
 endl = putStrLn "\n"
 
+printCore :: String -> [CoreBind] -> IO ()
 printCore msg core = do
     putStrLn $ msg ++ ":\n"
     mapM_ (printDump . ppr) core
@@ -154,7 +155,7 @@ processFile params@Params{..} file = do
             , or_discr          = or_discr
             }
 
-        ((fix_prog,fix_info),us4)
+        ((fix_prog,fix_info),_us4)
             = initUs us3 (fixpointCoreProgram program)
 
         halo_env_without_hyp_arities

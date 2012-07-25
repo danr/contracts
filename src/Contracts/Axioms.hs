@@ -30,7 +30,7 @@ mkCF ty_cons = do
 
                 -- min(K xs) /\ not (cf (K xs)) ==> BigOr_i (min(x_i) /\ not (cf (x_i))
                 [ forall' vars $ min' kxbar : [ neg (cf kxbar) ] ===>
-                                     ors [ ands [neg (cf x),min' x] | x <- xbar ]
+                                     ors [ ands [neg (cf y),min' y] | y <- xbar ]
                 | arity > 0 ]
 
             | c <- cons

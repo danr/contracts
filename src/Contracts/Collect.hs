@@ -15,8 +15,6 @@ import Name
 import SrcLoc
 import Id
 import CoreSyn
-import Outputable
-import CoreSubst
 import UniqSupply
 import CoreFVs
 import UniqSet
