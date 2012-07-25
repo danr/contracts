@@ -111,7 +111,7 @@ processFile params@Params{..} file = do
             putStrLn $ show v ++ "=" ++ showExpr (inlineExpr e)
             putStrLn ""
 
-    when dump_inlined_core (printCore "Final, inlined core" inlined_prog)
+    when dump_inlined_core (printCore "Inlined core" inlined_prog)
 
     -- Collect contracts
 
@@ -126,6 +126,8 @@ processFile params@Params{..} file = do
             exitFailure
 
     when db_collect (printMsgs msgs_collect_contr)
+
+    when dump_final_core (printCore "Final core without Statements" program)
 
     -- Translate contracts & definitions
 
@@ -153,7 +155,7 @@ processFile params@Params{..} file = do
             }
 
         ((fix_prog,fix_info),us4)
-            = initUs us3 (fixpointCoreProgram inlined_prog)
+            = initUs us3 (fixpointCoreProgram program)
 
         halo_env_without_hyp_arities
             = mkEnv halo_conf ty_cons_with_builtin fix_prog
