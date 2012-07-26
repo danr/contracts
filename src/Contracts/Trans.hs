@@ -52,9 +52,10 @@ trStatement deps stmt@Statement{..} = do
             | fpi_no_plain && not (null fpi_content) = fpi_content
             | otherwise = plain_content : fpi_content
 
-    (using_clauses,using_deps) <- (`mapAndUnzipM` statement_using) $ \used_stm -> do
-         Conjecture u_cl u_dep _ <- trPlain deps (\_sk -> trPos) Quantify used_stm
-         return $ (u_cl,u_dep)
+    (using_clauses,using_deps) <- (`mapAndUnzipM` statement_using) $ \used_stm ->
+        local' (addSkolems statement_args) $ do
+            Conjecture u_cl u_dep _ <- trPlain deps (\_sk -> trPos) Quantify used_stm
+            return $ (u_cl,u_dep)
 
     let extender = extendConj (concat using_clauses) (concat using_deps)
 
@@ -64,18 +65,17 @@ trPlain :: [HCCContent] -> (Skolem -> CoreExpr -> Contract -> TransM Formula')
         -> Skolem -> Statement -> TransM Conjecture
 trPlain deps tr_fun sk stmt@(Statement e c as _) = do
 
-    (tr_contr,ptrs) <- capturePtrs' $ do
-        (case sk of
-             Skolemise -> local' (addSkolems as)
-             Quantify  -> local' (pushQuant as) . fmap (forall' as))
-          $ tr_fun sk e c
+    (tr_contr,ptrs) <- capturePtrs' $ ($ tr_fun sk e c) $
+        case sk of
+            Skolemise -> local' (addSkolems as)
+            Quantify  -> fmap (forall' as)
 
     let clauses =
             [comment (show stmt)
-            ,clause (case sk of
+            ,(`clause` tr_contr) $ case sk of
                         Skolemise -> negatedConjecture
-                        Quantify  -> hypothesis)
-                    tr_contr]
+                        Quantify  -> hypothesis
+            ]
 
         content_dep = map Pointer ptrs ++ deps
 
@@ -165,7 +165,7 @@ trPos e c = do
             e_tr <- lift $ trExpr e
             return $ min' e_tr ==> cf e_tr
         And c1 c2 -> (/\) <$> trPos e c1 <*> trPos e c2
-        Arrow v c1 c2 -> local' (pushQuant [v]) $ do
+        Arrow v c1 c2 -> do
             l <- trNeg Quantify (Var v) c1
             r <- trPos (e @@ Var v) c2
             return $ forall' [v] (l \/ r)
@@ -188,9 +188,7 @@ trNeg skolemise e c = do
         And c1 c2 -> (\/) <$> trNeg skolemise e c1
                           <*> trNeg skolemise e c2
 
-        Arrow v c1 c2 -> local' (case skolemise of
-                                    Skolemise -> addSkolem v
-                                    Quantify  -> pushQuant [v]) $ do
+        Arrow v c1 c2 -> local' (skolemise == Skolemise ? addSkolem v) $ do
             l <- trPos (Var v) c1
             r <- trNeg skolemise (e @@ Var v) c2
             return $ (skolemise == Quantify ? exists' [v]) (l /\ r)

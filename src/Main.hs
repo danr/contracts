@@ -119,14 +119,11 @@ processFile params@Params{..} file = do
     let (collect_either_res,us3) = initUs us2 (collectContracts inlined_prog)
 
     (stmts,program,msgs_collect_contr) <- case collect_either_res of
-        Right res@(stmts,_,_) -> do
-            when dump_contracts (mapM_ print stmts)
-            return res
-        Left err -> do
-            putStrLn err
-            exitFailure
+        Right res -> return res
+        Left err  -> putStrLn err >> exitFailure
 
     when db_collect (printMsgs msgs_collect_contr)
+    when dump_contracts (mapM_ print stmts)
 
     when dump_final_core (printCore "Final core without Statements" program)
 
@@ -177,11 +174,14 @@ processFile params@Params{..} file = do
     when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)
     when db_halo       (printMsgs msgs_trans)
 
-    let toTPTP extra_clauses
-            = linTPTP (strStyle (StyleConf { style_comments   = comments
-                                           , style_cnf        = not fof
-                                           , style_dollar_min = dollar_min
-                                           }))
+    let style_conf = StyleConf
+            { style_comments   = comments
+            , style_cnf        = not fof
+            , style_dollar_min = dollar_min
+            }
+
+        toTPTP extra_clauses
+            = linTPTP (strStyle style_conf)
             . renameClauses
             . (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)

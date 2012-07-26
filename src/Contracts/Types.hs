@@ -91,7 +91,7 @@ instance Show Statement where
         xs -> "forall " ++ unwords (map show xs) ++ " . " ++ rest
       where
         rest = showExpr e ++ " ::: " ++ show c
-            ++ " [using: " ++ unwords (map show u) ++ "]"
+            ++ concat [ " [using: " ++ unwords (map show u) ++ "]" | not (null u) ]
 
 instance Show TopStmt where
     show (TopStmt n s ds) = show n ++ " = " ++ show s

@@ -106,14 +106,17 @@ mkStatement in_tree e = do
             if in_tree
                 then do
                     write $ "A skipped tree using: " ++ showExpr u
-                    mkStatement inTree s
+                    (t,s') <- mkStatement inTree s
+                    return (t,s' { statement_args = args ++ statement_args s' })
                 else do
                     write $ "A contract using: " ++ showExpr u
                     (ty_deps_s,s') <- mkStatement atTop s
                     (ty_deps_u,u') <- mkStatement inTree u
                     let ty_deps = ty_deps_s `union` ty_deps_u
                     write $ "Tydeps: " ++ show ty_deps
-                    return $ (ty_deps,s' { statement_using = u' : statement_using s' })
+                    return $ (ty_deps,s' { statement_using = u' : statement_using s'
+                                         , statement_args  = args ++ statement_args s'
+                                         })
         _ -> throw $ "Error: Invalid statement " ++ showExpr e_stripped
 
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
