@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections,ViewPatterns #-}
 {-
 
     We have two uses of inlining so far:
@@ -99,7 +99,6 @@ import Control.Monad.Reader
 import qualified Data.Map as M
 import Data.Map (Map)
 
-import Data.Maybe
 import Data.Function
 import Data.Graph
 
@@ -182,7 +181,8 @@ inline extra_power e = case e of
     App e1 e2 -> do
         let recurse = App <$> inline normalPower e1 <*> inline normalPower e2
         case collectArgs e of
-            (Var f,es) | isContrPi f -> foldl App (Var f) <$> mapM (inline extraPower) es
+            (Var f,es) | isContrPi f || isContrPred f
+                       -> foldl App (Var f) <$> mapM (inline extraPower) es
             (Var f,es) -> ifM (inlineable f) (inlineCall extra_power f es) recurse
             _ -> recurse
     Case e' s t alts -> (\es -> Case es s t) <$> inline normalPower e' <*> mapM inlineAlt alts
@@ -201,11 +201,14 @@ inlineAlt (con,bs,e) = (con,bs,) <$> inline normalPower e
 -- | Inlines a call f @ xs, if we know f is inlineable
 inlineCall :: Bool -> Var -> [CoreExpr] -> InlineM CoreExpr
 inlineCall extra_power f es = do
-    (xs,e) <- collectBinders . fromJust <$> rhs f
-    -- Only apply if we have enough arguments, or function is OK to have remaining lambdas
-    if extra_power || length es >= length xs
-        then inline extra_power (apply xs es e)
-        else foldl App (Var f) <$> mapM (inline extra_power) es
+    m_rhs <- rhs f
+    case m_rhs of
+        Just (collectBinders -> (xs,e))
+            -- Only apply if we have enough arguments, or function is OK to
+            -- have remaining lambdas, but never inline case expressions
+            | not (isCaseExpr e) && (extra_power || length es >= length xs)
+            -> inline extra_power (apply xs es e)
+        _ -> foldl App (Var f) <$> mapM (inline extra_power) es
 
 apply :: [Var] -> [CoreExpr] -> CoreExpr -> CoreExpr
 apply [] [] e = e
