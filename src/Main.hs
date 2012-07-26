@@ -163,7 +163,7 @@ processFile params@Params{..} file = do
                             (arities halo_env_without_hyp_arities)
             }
 
-        (binds_thy,msgs_trans) = runHaloM halo_env (trBinds fix_prog)
+        ((binds_thy,_binds_map),msgs_trans) = runHaloM halo_env (trBinds fix_prog)
 
         background_thy = backgroundTheory halo_conf ty_cons_with_builtin
 
