@@ -2,15 +2,16 @@
 module Main where
 
 import BasicTypes
+import CoreSyn
 import GHC
 import HscTypes
 import Outputable
 import TysWiredIn
 import UniqSupply
-
 import Var
-import CoreSyn
 
+import Halo.BackgroundTheory
+import Halo.Binds
 import Halo.Conf
 import Halo.Entry
 import Halo.FOL.Linearise
@@ -22,18 +23,17 @@ import Halo.Lift
 import Halo.Monad
 import Halo.Shared
 import Halo.Subtheory
-import Halo.Trans
 import Halo.Trim
-import Halo.Util ((?))
+import Halo.Util
 
+import Contracts.Axioms
 import Contracts.Collect
+import Contracts.FixpointInduction
+import Contracts.Inliner
+import Contracts.Params
+import Contracts.Theory
 import Contracts.Trans
 import Contracts.Types
-import Contracts.Params as Params
-import Contracts.FixpointInduction
-import Contracts.Theory
-import Contracts.Axioms
-import Contracts.Inliner
 
 import Control.Monad
 import Control.Monad.Reader
@@ -166,14 +166,13 @@ processFile params@Params{..} file = do
                             (arities halo_env_without_hyp_arities)
             }
 
-        (subtheories_unfiddled,msgs_trans)
-            = translate halo_env ty_cons_with_builtin fix_prog
+        (binds_thy,msgs_trans) = runHaloM halo_env (trBinds fix_prog)
+
+        background_thy = backgroundTheory halo_conf ty_cons_with_builtin
 
         subtheories
-            = primConAxioms
-            : primConApps
-            : mkCF ty_cons_with_builtin ++
-            (map makeDataDepend subtheories_unfiddled)
+            = primConAxioms : primConApps : mkCF ty_cons_with_builtin
+            ++ map makeDataDepend (binds_thy ++ background_thy)
 
     when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)
     when db_halo       (printMsgs msgs_trans)

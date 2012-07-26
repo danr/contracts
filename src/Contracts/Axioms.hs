@@ -7,7 +7,7 @@ import Type
 
 import Halo.FOL.Abstract
 import Halo.PrimCon
-import Halo.Data
+import Halo.Names
 import Halo.Subtheory
 
 import Contracts.Theory
