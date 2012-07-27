@@ -14,17 +14,20 @@ import Contracts.FixpointInduction
 import Contracts.Params
 import Contracts.Theory
 
+import Halo.Binds
 import Halo.ExprTrans
-import Halo.Util
-import Halo.Monad
-import Halo.Subtheory
-import Halo.Shared
-import Halo.PrimCon
 import Halo.FOL.Abstract
+import Halo.Monad
+import Halo.PrimCon
+import Halo.Shared
+import Halo.Subtheory
+import Halo.Util
 
 import Control.Monad.Reader
 
 import qualified Data.Map as M
+import Data.List
+import Data.Maybe
 
 -- | We want to access the params and the fix info while doing this
 type TransM = ReaderT TrEnv HaloM
@@ -41,8 +44,10 @@ getParams = asks env_params
 getFixInfo :: TransM FixInfo
 getFixInfo = asks env_fix_info
 
-getBindPart :: Var -> TransM [HCCBindPart]
-getBindPart x = asks ((M.! x) . env_bind_map)
+getBindParts :: Var -> TransM [HCCBindPart]
+getBindParts x = asks (fromMaybe err . M.lookup x . env_bind_map)
+  where
+    err = error $ "Contracts.Trans.getBindParts: no bind parts for " ++ show x
 
 data Skolem = Skolemise | Quantify
   deriving (Eq,Ord,Show)
@@ -120,6 +125,8 @@ trFPI deps (Statement e c as _) = do
                 rename_f Step v | v == f = f_concl
                 rename_f _    v = v
 
+                -- We use the original dependencies, but rename f to
+                -- f_base or f_concl in dependencies
                 [deps_base,deps_step]
                     = [ map (mapFunctionContent
                              ( fpiFriendName fix_info f friend_case
@@ -128,6 +135,7 @@ trFPI deps (Statement e c as _) = do
                       | friend_case <- [Base,Step]
                       ]
 
+                -- How to rename an entire contract
                 rename_c = substContractList c . fpiGetSubstList fix_info f
 
             let e_subst = subst e f
@@ -136,15 +144,19 @@ trFPI deps (Statement e c as _) = do
                 clauseSplit axiom <$>
                 trContract Neg Skolemise (e_subst f_base) (rename_c ConstantUNR)
 
-            (tr_step,ptrs_step) <- capturePtrs' $ do
-                hyp   <- clauseSplit hypothesis <$>
-                            trContract Pos Quantify (e_subst f_hyp) (rename_c Hyp)
-                concl <- clauseSplit axiom <$>
-                            trContract Neg Skolemise (e_subst f_concl) (rename_c Concl)
-                return $ hyp ++ concl
+            (tr_hyp,ptrs_hyp) <- capturePtrs' $
+                clauseSplit hypothesis <$>
+                trContract Pos Quantify (e_subst f_hyp) (rename_c Hyp)
 
-            let content_base = deps_base ++ map Pointer ptrs_base
-                content_step = deps_step ++ map Pointer ptrs_step
+            (tr_concl,ptrs_concl) <- capturePtrs' $
+                clauseSplit hypothesis <$>
+                trContract Neg Skolemise (e_subst f_concl) (rename_c Concl)
+
+            let content_base  = map Pointer ptrs_base ++ deps_base
+                content_hyp   = map Pointer ptrs_hyp
+                content_concl = map Pointer ptrs_concl ++ deps_step
+
+            splits <- trSplit (e_subst f_concl) (rename_c Concl)
 
             return $
                 [ Conjecture
@@ -154,11 +166,19 @@ trFPI deps (Statement e c as _) = do
                     }
                 | not fpi_no_base ] ++
                 [ Conjecture
-                    { conj_clauses      = tr_step
-                    , conj_dependencies = content_step
+                    { conj_clauses      = tr_hyp ++ tr_concl
+                    , conj_dependencies = nub (content_hyp ++ content_concl)
                     , conj_kind         = FixpointStep
                     }
+                ] ++
+                [ Conjecture
+                    { conj_clauses      = tr_hyp ++ split_clauses
+                    , conj_dependencies = nub (delete (Function f_concl) content_concl ++ split_deps)
+                    , conj_kind         = FixpointStepSplit split_num
+                    }
+                | Split{..} <- splits
                 ]
+
 
         _ -> return []
 
@@ -167,6 +187,67 @@ data Variance = Pos | Neg deriving (Eq,Show)
 opposite :: Variance -> Variance
 opposite Pos = Neg
 opposite Neg = Pos
+
+data Split = Split
+    { split_clauses :: [Clause']
+    , split_deps    :: [HCCContent]
+    , split_num     :: Int
+    }
+
+trSplit :: CoreExpr -> Contract -> TransM [Split]
+trSplit expr contract = do
+    let f = fromMaybe (error "trSplit: topVar returned Nothing") (topVar expr)
+
+    bind_parts <- getBindParts f
+
+    let (min_parts,decl_parts) = partition (minRhs . bind_rhs) bind_parts
+
+    -- Translate everything about min for now
+    (tr_min,min_ptrs) <- lift $
+        ((comment ("Axioms about min for " ++ show f):) . axioms *** pointers)
+        <$> capturePtrs (mapM trBindPart min_parts)
+
+    let min_deps = concatMap bind_deps min_parts ++ min_ptrs
+
+    (tr_contr,contr_deps) <-
+        ((comment "Contract" :) . axioms . splitFormula *** pointers)
+        <$> capturePtrs' (trContract Neg Skolemise expr contract)
+
+    forM (zip decl_parts [0..]) $ \ (decl_part@BindPart{..},num) -> do
+
+        (tr_part,part_ptrs) <- lift $ capturePtrs $ do
+
+            -- Translate just this bind part
+            tr_decl <- ((comment "Bind part":) . definitions . splitFormula) <$>
+                trBindPart decl_part
+
+            -- Foreach argument e, match up the variable v
+            -- introduce e's arguments as skolems and make them equal
+
+            let vars,sks :: [Var]
+                vars = map fst . fst . telescope $ contract
+                sks = concatMap exprFVs (bind_args)
+
+            tr_goal <- local (addSkolems (nub $ sks ++ vars)) $ do
+                tr_eqs <- axioms .: zipWith (===)
+                    <$> mapM (trExpr . Var) vars
+                    <*> mapM trExpr bind_args
+                tr_constrs <- axioms <$> trConstraints bind_constrs
+                return $ [comment "Equalities from arguments"] ++ tr_eqs
+                      ++ [comment "Imposed constraints"] ++ tr_constrs
+
+            return (tr_decl ++ tr_goal)
+
+        let deps = delete (Function f) $
+                min_deps ++ contr_deps ++ bind_deps ++ map Pointer part_ptrs
+
+            clauses = tr_min ++ tr_part ++ tr_contr
+
+        return $ Split
+            { split_clauses = clauses
+            , split_deps    = deps
+            , split_num     = num
+            }
 
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
 trContract variance skolemise e_init contract = do

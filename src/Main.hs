@@ -166,6 +166,7 @@ processFile params@Params{..} file = do
         ((binds_thy,binds_map),msgs_trans) = runHaloM halo_env (trBinds fix_prog)
 
         background_thy = backgroundTheory halo_conf ty_cons_with_builtin
+                      ++ map (mkDummySubtheory . Function) (fpiHypVars fix_info)
 
         subtheories
             = primConAxioms : primConApps : mkCF ty_cons_with_builtin

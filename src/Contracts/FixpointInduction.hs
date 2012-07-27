@@ -54,6 +54,7 @@ module Contracts.FixpointInduction
     , fpiFocusName
     , fpiFriendName
     , fpiGetSubstList
+    , fpiHypVars
     , fpiFixHypArityMap
     , focusToFriend
     , FocusCase(..)
@@ -98,17 +99,21 @@ data FriendCase
   deriving (Eq,Ord,Show)
 
 newtype FixInfo = FixInfo
-    ( Map Var (Map FocusCase Var,Map (Var,FriendCase) Var)
+    ((Map Var (Map FocusCase Var,Map (Var,FriendCase) Var))
     -- ^ Given a function name, gives you access to what it is called
     --   in the focal cases, and what friendly variables are called
     --   in the friendly cases.
-    )
+    ,[Var])
+    -- ^ Names of hypothesis functions
   deriving (Monoid,Show)
 
+-- | Gets then vars of all hypothesis functions
+fpiHypVars :: FixInfo -> [Var]
+fpiHypVars (FixInfo (_,vs)) = vs
 
 -- | True if you can do fixed point induction on this function
 fpiApplicable :: FixInfo -> Var -> Bool
-fpiApplicable (FixInfo m) f = M.member f m
+fpiApplicable (FixInfo (m,_)) f = M.member f m
 
 fatalVar :: String -> Var -> a
 fatalVar s v = error $
@@ -118,7 +123,7 @@ fatalVar s v = error $
 -- | @fpiFocusName fix_info f case@ looks up what the function @f@
 --   is called in this case
 fpiFocusName :: FixInfo -> Var -> FocusCase -> Var
-fpiFocusName (FixInfo m) f fcase = case M.lookup f m of
+fpiFocusName (FixInfo (m,_)) f fcase = case M.lookup f m of
     Nothing -> fatalVar "fpiFocusName" f
     Just (m',_) -> fromMaybe err (M.lookup fcase m')
       where
@@ -128,13 +133,13 @@ fpiFocusName (FixInfo m) f fcase = case M.lookup f m of
 -- | @fpiFriendName fix_info f case g@ looks up what the function @g@
 --   is called in this case
 fpiFriendName :: FixInfo -> Var -> FriendCase -> Var -> Var
-fpiFriendName (FixInfo m) f gcase g = case M.lookup f m of
+fpiFriendName (FixInfo (m,_)) f gcase g = case M.lookup f m of
     Nothing -> fatalVar "fpiFriendName" f
     Just (_,m') -> fromMaybe g (M.lookup (g,gcase) m')
 
 -- | Gets the entire substitution list on this particular case
 fpiGetSubstList :: FixInfo -> Var -> FocusCase -> [(Var,Var)]
-fpiGetSubstList fi@(FixInfo m) f fcase = case M.lookup f m of
+fpiGetSubstList fi@(FixInfo (m,_)) f fcase = case M.lookup f m of
     Nothing -> fatalVar "fpiGetSubstList" f
     Just (_focus,friends) -> (f,fpiFocusName fi f fcase):
         [ (g,g') | ((g,c),g') <- M.toList friends , focusToFriend fcase == c ]
@@ -146,7 +151,7 @@ focusToFriend _           = Step
 -- | We need to add the arities to all the hypothesis functions,
 --   since they have no implementation.
 fpiFixHypArityMap :: FixInfo -> ArityMap -> ArityMap
-fpiFixHypArityMap (FixInfo m) am = M.union am $ M.fromList
+fpiFixHypArityMap (FixInfo (m,_)) am = M.union am $ M.fromList
     [ (f_hyp,arity)
     | (f,(focus_map,_)) <- M.toList m
     , (Hyp,f_hyp) <- M.toList focus_map
@@ -243,16 +248,18 @@ fixate f e friends = do
 
     -- Wrap it all up, and return ---------------------------------------------
 
-    let newFixInfo = FixInfo $ M.singleton f
-            (M.fromList
-                [(ConstantUNR,f_base)
-                ,(Hyp        ,f_hyp)
-                ,(Concl      ,f_concl)
-                ]
-            ,M.fromList $
-                [ ((g,Base),g_base) | (g,_,g_base) <- friends_base ] ++
-                [ ((g,Step),g_step) | (g,_,g_step) <- friends_step ]
-            )
+    let newFixInfo = FixInfo
+            (M.singleton f
+                (M.fromList
+                    [(ConstantUNR,f_base)
+                    ,(Hyp        ,f_hyp)
+                    ,(Concl      ,f_concl)
+                    ]
+                ,M.fromList $
+                    [ ((g,Base),g_base) | (g,_,g_base) <- friends_base ] ++
+                    [ ((g,Step),g_step) | (g,_,g_step) <- friends_step ]
+                )
+            ,[f_hyp])
 
     return ([base_bind,step_bind],newFixInfo)
 

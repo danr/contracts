@@ -54,8 +54,10 @@ data Conjecture = Conjecture
 -- | The different kinds of conjectures
 data ConjectureKind
     = Plain
+    | PlainSplit Int
     | FixpointBase
     | FixpointStep
+    | FixpointStepSplit Int
   deriving (Show,Eq,Ord)
 
 -- | Add more dependencies to a conjecture
@@ -67,9 +69,11 @@ extendConj cls deps c = c
 
 conjKindSuffix :: ConjectureKind -> String
 conjKindSuffix p = case p of
-    Plain        -> ""
-    FixpointBase -> "_base"
-    FixpointStep -> "_step"
+    Plain               -> ""
+    PlainSplit i        -> "_" ++ show i
+    FixpointBase        -> "_base"
+    FixpointStep        -> "_step"
+    FixpointStepSplit i -> "_step_" ++ show i
 
 data TopStmt = TopStmt
     { top_name      :: Var
