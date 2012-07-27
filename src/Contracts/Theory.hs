@@ -6,6 +6,7 @@ import TyCon
 import Halo.Subtheory
 import Halo.Shared
 import Halo.FOL.Abstract
+import Halo.Binds
 
 data HCCExtras
     = PrimConAxioms
@@ -28,6 +29,10 @@ instance Clausifiable HCCExtras where
 type HCCContent   = Content HCCExtras
 
 type HCCSubtheory = Subtheory HCCExtras
+
+type HCCBinds     = BindMap HCCExtras
+
+type HCCBindPart  = BindPart HCCExtras
 
 makeDataDepend :: HCCSubtheory -> HCCSubtheory
 makeDataDepend s@(Subtheory{..}) = case provides of

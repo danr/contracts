@@ -14,6 +14,12 @@ data Contract
     | And Contract Contract
     | Arrow Var Contract Contract
 
+telescope :: Contract -> ([(Var,Contract)],Contract)
+telescope = go []
+  where
+    go acc (Arrow v c1 c2) = go ((v,c1):acc) c2
+    go acc c               = (reverse acc,c)
+
 instance Show Contract where
     show CF              = "CF"
     show (Pred e)        = "{" ++ showExpr e ++ "}"

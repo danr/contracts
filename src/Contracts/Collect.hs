@@ -48,9 +48,8 @@ collectContracts program = runErrorT $ do
             pick b                                                  = Left b
 
     (stmts,db_msgs) <- runCollectM $ do
-        write "Untranslated statements:"
+        write "Collecting statements:"
         write (unlines (map (show . fst) untranslated_stmts))
-        write "Translating them..."
         mapM (uncurry mkTopStmt) untranslated_stmts
 
     return (stmts,program',db_msgs)
@@ -68,7 +67,7 @@ type CollectM =
 runCollectM :: CollectM a -> ErrorT String UniqSM (a,[String])
 runCollectM m = runWriterT m `evalStateT` names
   where
-    names = map ("ct_" ++) $ (`replicateM` ['a'..'z']) =<< [1..]
+    names = (`replicateM` ['a'..'z']) =<< [1..]
 
 trimTyApp :: CoreExpr -> Maybe (CoreExpr,[CoreExpr])
 trimTyApp e@App{} = Just (second trimTyArgs (collectArgs e))
@@ -119,6 +118,11 @@ mkStatement in_tree e = do
                                          })
         _ -> throw $ "Error: Invalid statement " ++ showExpr e_stripped
 
+-- | Updates the unique in a Var: i.e. make it different from the one
+--   we had, but otherwise identical.
+refresh :: Var -> CollectM Var
+refresh v = setVarUnique v <$> (lift $ lift $ lift $ getUniqueM)
+
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
     write $ showExpr f ++ ": " ++ showExpr e
@@ -126,16 +130,17 @@ mkContract f e = do
         Just (Var x,[])  | isContrCF x -> return CF
         Just (Var x,[p]) | isContrPred x -> return (Pred (p @@ f))
 
-        Just (Var x,[e1,Lam y e2]) | isContrPi x ->
-            Arrow y <$> mkContract (Var y) e1
-                    <*> mkContract (f @@ Var y) e2
+        Just (Var x,[e1,Lam y e2]) | isContrPi x -> do
+            y' <- refresh y
+            Arrow y' <$> mkContract (Var y') (subst e1 y y')
+                     <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
 
         Just (Var x,[e1,e2])
-           | isContrArr x -> do
-               v <- mkFreshVar
-               Arrow v <$> mkContract (Var v) e1
-                       <*> mkContract (f @@ Var v) e2
-           | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
+            | isContrArr x -> do
+                v <- mkFreshVar
+                Arrow v <$> mkContract (Var v) e1
+                        <*> mkContract (f @@ Var v) e2
+            | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
 
         Just (Lam x e',[]) | isTyVar x -> do
             write $ "Skipping lambda of a type variable"

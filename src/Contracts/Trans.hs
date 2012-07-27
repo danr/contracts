@@ -24,14 +24,25 @@ import Halo.FOL.Abstract
 
 import Control.Monad.Reader
 
+import qualified Data.Map as M
+
 -- | We want to access the params and the fix info while doing this
-type TransM = ReaderT (Params,FixInfo) HaloM
+type TransM = ReaderT TrEnv HaloM
+
+data TrEnv = TrEnv
+    { env_params   :: Params
+    , env_fix_info :: FixInfo
+    , env_bind_map :: HCCBinds
+    }
 
 getParams :: TransM Params
-getParams = asks fst
+getParams = asks env_params
 
 getFixInfo :: TransM FixInfo
-getFixInfo = asks snd
+getFixInfo = asks env_fix_info
+
+getBindPart :: Var -> TransM [HCCBindPart]
+getBindPart x = asks ((M.! x) . env_bind_map)
 
 data Skolem = Skolemise | Quantify
   deriving (Eq,Ord,Show)
@@ -46,7 +57,7 @@ trStatement deps stmt@Statement{..} = do
     Params{..} <- getParams
 
     fpi_content <- trFPI deps stmt
-    plain_content <- trPlain deps trNeg Skolemise stmt
+    plain_content <- trPlain deps (trContract Neg) Skolemise stmt
 
     let conjectures
             | fpi_no_plain && not (null fpi_content) = fpi_content
@@ -54,7 +65,7 @@ trStatement deps stmt@Statement{..} = do
 
     (using_clauses,using_deps) <- (`mapAndUnzipM` statement_using) $ \used_stm ->
         local' (addSkolems statement_args) $ do
-            Conjecture u_cl u_dep _ <- trPlain deps (\_sk -> trPos) Quantify used_stm
+            Conjecture u_cl u_dep _ <- trPlain deps (trContract Pos) Quantify used_stm
             return $ (u_cl,u_dep)
 
     let extender = extendConj (concat using_clauses) (concat using_deps)
@@ -65,17 +76,17 @@ trPlain :: [HCCContent] -> (Skolem -> CoreExpr -> Contract -> TransM Formula')
         -> Skolem -> Statement -> TransM Conjecture
 trPlain deps tr_fun sk stmt@(Statement e c as _) = do
 
-    (tr_contr,ptrs) <- capturePtrs' $ ($ tr_fun sk e c) $
-        case sk of
-            Skolemise -> local' (addSkolems as)
-            Quantify  -> fmap (forall' as)
+    (tr_contr,ptrs) <- capturePtrs' $ do
+        let before = case sk of
+                Skolemise -> local' (addSkolems as)
+                Quantify  -> fmap (forall' as)
+        before (tr_fun sk e c)
 
-    let clauses =
-            [comment (show stmt)
-            ,(`clause` tr_contr) $ case sk of
-                        Skolemise -> negatedConjecture
-                        Quantify  -> hypothesis
-            ]
+    let cltype = case sk of
+            Skolemise -> negatedConjecture
+            Quantify  -> hypothesis
+
+        clauses = comment (show stmt) : clauseSplit cltype tr_contr
 
         content_dep = map Pointer ptrs ++ deps
 
@@ -122,15 +133,15 @@ trFPI deps (Statement e c as _) = do
             let e_subst = subst e f
 
             (tr_base,ptrs_base) <- capturePtrs' $
-                return . clause negatedConjecture <$>
-                trNeg Skolemise (e_subst f_base) (rename_c ConstantUNR)
+                clauseSplit axiom <$>
+                trContract Neg Skolemise (e_subst f_base) (rename_c ConstantUNR)
 
             (tr_step,ptrs_step) <- capturePtrs' $ do
-                hyp   <- clause hypothesis <$>
-                            trPos (e_subst f_hyp) (rename_c Hyp)
-                concl <- clause negatedConjecture <$>
-                            trNeg Skolemise (e_subst f_concl) (rename_c Concl)
-                return [hyp,concl]
+                hyp   <- clauseSplit hypothesis <$>
+                            trContract Pos Quantify (e_subst f_hyp) (rename_c Hyp)
+                concl <- clauseSplit axiom <$>
+                            trContract Neg Skolemise (e_subst f_concl) (rename_c Concl)
+                return $ hyp ++ concl
 
             let content_base = deps_base ++ map Pointer ptrs_base
                 content_step = deps_step ++ map Pointer ptrs_step
@@ -151,47 +162,63 @@ trFPI deps (Statement e c as _) = do
 
         _ -> return []
 
-trPos :: CoreExpr -> Contract -> TransM Formula'
-trPos e c = do
-    lift $ write $ "trPos"
-                ++ "\n  e:" ++ showExpr e
-                ++ "\n  c:" ++ show c
-    case c of
-        Pred p -> do
-            ex <- lift $ trExpr e
-            px <- lift $ trExpr p
-            return $ min' ex ==> (min' px /\ (ex === unr \/ px === unr \/ px === true))
-        CF -> do
-            e_tr <- lift $ trExpr e
-            return $ min' e_tr ==> cf e_tr
-        And c1 c2 -> (/\) <$> trPos e c1 <*> trPos e c2
-        Arrow v c1 c2 -> do
-            l <- trNeg Quantify (Var v) c1
-            r <- trPos (e @@ Var v) c2
-            return $ forall' [v] (l \/ r)
+data Variance = Pos | Neg deriving (Eq,Show)
 
-trNeg :: Skolem -> CoreExpr -> Contract -> TransM Formula'
-trNeg skolemise e c = do
-    lift $ write $ "trNeg (" ++ show skolemise ++ ")"
-                ++ "\n  e:" ++ showExpr e
-                ++ "\n  c:" ++ show c
-    case c of
-        Pred p -> do
-            ex <- lift $ trExpr e
-            px <- lift $ trExpr p
-            return $ min' ex /\ min' px /\ ex =/= unr /\ (px === false \/ px === bad)
+opposite :: Variance -> Variance
+opposite Pos = Neg
+opposite Neg = Pos
 
-        CF -> do
-            e_tr <- lift $ trExpr e
-            return $ min' e_tr /\ neg (cf e_tr)
+trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
+trContract variance skolemise e_init contract = do
 
-        And c1 c2 -> (\/) <$> trNeg skolemise e c1
-                          <*> trNeg skolemise e c2
+    let (arguments,result) = telescope contract
+        vars     = map fst arguments
+        e_result = foldl (@@) e_init (map Var vars)
 
-        Arrow v c1 c2 -> local' (skolemise == Skolemise ? addSkolem v) $ do
-            l <- trPos (Var v) c1
-            r <- trNeg skolemise (e @@ Var v) c2
-            return $ (skolemise == Quantify ? exists' [v]) (l /\ r)
+    lift $ write $ "trContract (" ++ show skolemise ++ ")" ++ " " ++ show variance
+                ++ "\n    e_init    :" ++ showExpr e_init
+                ++ "\n    e_result  :" ++ showExpr e_result
+                ++ "\n    contract  :" ++ show contract
+                ++ "\n    result    :" ++ show result
+                ++ "\n    arguments :" ++ show arguments
+                ++ "\n    vars      :" ++ show vars
+
+    tr_contract <- local' (skolemise == Skolemise ? addSkolems vars) $ do
+
+        lift $ write $ "Translating arguments of " ++ showExpr e_result
+
+        let tr_argument :: (Var,Contract) -> TransM Formula'
+            tr_argument = uncurry (trContract (opposite variance) Quantify . Var)
+
+        tr_arguments <- mapM tr_argument arguments
+
+        lift $ write $ "Translating result of " ++ showExpr e_result
+
+        tr_result <- case result of
+
+            Pred p -> do
+                ex <- lift $ trExpr e_result
+                px <- lift $ trExpr p
+                return $ case variance of
+                    Neg -> min' ex /\ min' px /\ ex =/= unr /\ (px === false \/ px === bad)
+                    Pos -> min' ex ==> (min' px /\ (ex === unr \/ px === unr \/ px === true))
+
+            CF -> do
+                e_tr <- lift $ trExpr e_result
+                return $ case variance of
+                    Neg -> min' e_tr /\ neg (cf e_tr)
+                    Pos -> min' e_tr ==> cf e_tr
+
+            And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
+                <$> mapM (trContract variance skolemise e_result) [c1,c2]
+
+            Arrow{} -> error "trContract : telescope didn't catch arrow"
+
+        return $ tr_arguments ++ [tr_result]
+
+    return $ case variance of
+        Neg -> (skolemise == Quantify ? exists' vars) (ands tr_contract)
+        Pos -> forall' vars (ors tr_contract)
 
 local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a
 local' k m = do

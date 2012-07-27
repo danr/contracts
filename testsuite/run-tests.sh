@@ -7,8 +7,9 @@
 # To remove a tool, uncomment line towards the end of this file
 #
 
-# Timeout for each theorem prover invocation
-TIMEOUT=1
+# Timeout for each theorem prover invocation, if this environment
+# variable is not set
+TIMEOUT=${TIMEOUT:-1}
 
 # Kill whole testing process on Ctrl-C
 trap 'exit 1' INT

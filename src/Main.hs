@@ -163,7 +163,7 @@ processFile params@Params{..} file = do
                             (arities halo_env_without_hyp_arities)
             }
 
-        ((binds_thy,_binds_map),msgs_trans) = runHaloM halo_env (trBinds fix_prog)
+        ((binds_thy,binds_map),msgs_trans) = runHaloM halo_env (trBinds fix_prog)
 
         background_thy = backgroundTheory halo_conf ty_cons_with_builtin
 
@@ -192,7 +192,7 @@ processFile params@Params{..} file = do
 
     forM_ stmts $ \top_stmt@TopStmt{..} -> do
         let (conjectures,msgs_tr_contr) = runHaloM halo_env $
-                runReaderT (trTopStmt top_stmt) (params,fix_info)
+                runReaderT (trTopStmt top_stmt) (TrEnv params fix_info binds_map)
 
         when db_trans (printMsgs msgs_tr_contr)
 
