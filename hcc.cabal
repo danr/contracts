@@ -27,4 +27,5 @@ executable          hcc
         geniplate      >= 0.6.0.1,
         bimap          >= 0.2,
         ghc-paths      >= 0.1,
-        filepath       >= 1.0
+        filepath       >= 1.0,
+        dlist          >= 0.5
