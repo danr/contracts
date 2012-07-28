@@ -13,3 +13,4 @@ dist
 .tmptime
 .z3.tmp
 *.tptp
+*.tptp.z3
