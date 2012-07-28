@@ -65,7 +65,7 @@ main = do
     system "find -iname '*.tptp.z3' -exec rm -v {} +"
 
     -- Get files from command line
-    hs_files <- unwords . delete "RunTests.hs" <$> getArgs
+    hs_files <- unwords . delete "RunTests.hs" . delete "Contracts.hs" <$> getArgs
 
     -- Generate all contracts
     system $ "hcc -d -i -b -C " ++ hs_files ++ " +RTS -prof"
