@@ -18,7 +18,6 @@ import Halo.FOL.Linearise
 import Halo.FOL.MinAsNotUnr
 import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
-import Halo.FOL.Style
 import Halo.Lift
 import Halo.Monad
 import Halo.Shared
@@ -182,7 +181,7 @@ processFile params@Params{..} file = do
             }
 
         toTPTP extra_clauses
-            = linTPTP (strStyle style_conf)
+            = linStrStyleTPTP style_conf
             . renameClauses
             . (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
