@@ -190,6 +190,8 @@ processFile params@Params{..} file = do
 
     when dump_tptp $ putStrLn (toTPTP [] subtheories)
 
+    let specialised_trim = trim subtheories
+
     forM_ stmts $ \top_stmt@TopStmt{..} -> do
         let (conjectures,msgs_tr_contr) = runHaloM halo_env $
                 runReaderT (trTopStmt top_stmt) (TrEnv params fix_info binds_map)
@@ -200,7 +202,7 @@ processFile params@Params{..} file = do
 
             let important    = Specific PrimConAxioms:Data boolTyCon:
                                conj_dependencies
-                subtheories' = trim important subtheories
+                subtheories' = specialised_trim important
 
                 tptp = toTPTP conj_clauses subtheories'
 
