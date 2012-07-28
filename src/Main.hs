@@ -15,6 +15,7 @@ import Halo.Binds
 import Halo.Conf
 import Halo.Entry
 import Halo.FOL.Linearise
+import Halo.FOL.Dump
 import Halo.FOL.MinAsNotUnr
 import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
@@ -181,8 +182,8 @@ processFile params@Params{..} file = do
             }
 
         toTPTP extra_clauses
-            = linStrStyleTPTP style_conf
-            . renameClauses
+            = (if quick_tptp then dumpTPTP
+                    else linStrStyleTPTP style_conf . renameClauses)
             . (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
             . (++ extra_clauses)

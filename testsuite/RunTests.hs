@@ -67,9 +67,13 @@ main = do
     -- Get files from command line
     hs_files <- unwords . delete "RunTests.hs" . delete "Contracts.hs" <$> getArgs
 
-    -- Generate all contracts
-    system $ "hcc -d -i -b -C " ++ hs_files ++ " +RTS -prof"
+    -- Profile if PROFILE env variable is set
+    profile <- isJust <$> readEnv "PROFILE"
 
+    -- Generate all contracts
+    system $ "hcc --dollar-min --fpi-no-base --fpi-no-plain --quick-tptp " ++ hs_files ++ (guard profile >> " +RTS -prof")
+
+    -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
 
     -- Find files, ensure that they are sorted
@@ -129,7 +133,11 @@ main = do
             when (group_res == UNSAT && all (Just UNSAT ==) results) $ putStrLn "Success!"
 
 printFail :: IO ()
-printFail = putStrLn $ "=== FAIL ==="
+printFail = do
+    putStrLn "=============================================================================="
+    putStrLn "!!! FAIL                                                                   !!!"
+    putStrLn "=============================================================================="
+
 
 unfoldM :: Monad m => [a] -> (a -> m (Maybe b)) -> m (Maybe b)
 unfoldM []     _ = return Nothing
