@@ -94,7 +94,7 @@ main = do
 
     -- Generate all contracts
     system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain "
-                ++ (guard (not readable) >> " --quick-tptp ")
+                ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")
                 ++ hs_files
                 ++ (guard profile >> " +RTS -prof")
