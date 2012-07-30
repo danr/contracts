@@ -17,6 +17,7 @@ import Contracts.Theory
 import Halo.Binds
 import Halo.ExprTrans
 import Halo.FOL.Abstract
+import Halo.FOL.Operations
 import Halo.Monad
 import Halo.PrimCon
 import Halo.Shared
@@ -29,6 +30,12 @@ import qualified Data.Map as M
 import Data.List
 import Data.Maybe
 
+data Variance = Pos | Neg deriving (Eq,Show)
+
+opposite :: Variance -> Variance
+opposite Pos = Neg
+opposite Neg = Pos
+
 -- | We want to access the params and the fix info while doing this
 type TransM = ReaderT TrEnv HaloM
 
@@ -37,6 +44,7 @@ data TrEnv = TrEnv
     , env_fix_info :: FixInfo
     , env_bind_map :: HCCBinds
     }
+
 
 getParams :: TransM Params
 getParams = asks env_params
@@ -53,8 +61,7 @@ data Skolem = Skolemise | Quantify
   deriving (Eq,Ord,Show)
 
 trTopStmt :: TopStmt -> TransM [Conjecture]
-trTopStmt (TopStmt _name stmt deps) =
-    trStatement deps (stripTreeUsings stmt)
+trTopStmt (TopStmt _name stmt deps) = trStatement deps (stripTreeUsings stmt)
 
 trStatement :: [HCCContent] -> Statement -> TransM [Conjecture]
 trStatement deps stmt@Statement{..} = do
@@ -62,44 +69,36 @@ trStatement deps stmt@Statement{..} = do
     Params{..} <- getParams
 
     fpi_content <- trFPI deps stmt
-    plain_content <- trPlain deps (trContract Neg) Skolemise stmt
+    plain_content <- trPlain deps stmt
 
     let conjectures
             | fpi_no_plain && not (null fpi_content) = fpi_content
             | otherwise = plain_content : fpi_content
 
-    (using_clauses,using_deps) <- (`mapAndUnzipM` statement_using) $ \used_stm ->
-        local' (addSkolems statement_args) $ do
-            Conjecture u_cl u_dep _ <- trPlain deps (trContract Pos) Quantify used_stm
-            return $ (u_cl,u_dep)
+    (using_clauses,using_deps) <-
+        local' (addSkolems statement_args) $ mapAndUnzipM trUsing statement_using
 
     let extender = extendConj (concat using_clauses) (concat using_deps)
 
     return $ map extender conjectures
 
-trPlain :: [HCCContent] -> (Skolem -> CoreExpr -> Contract -> TransM Formula')
-        -> Skolem -> Statement -> TransM Conjecture
-trPlain deps tr_fun sk stmt@(Statement e c as _) = do
+trPlain :: [HCCContent] -> Statement -> TransM Conjecture
+trPlain deps (Statement e c as _) = do
 
-    (tr_contr,ptrs) <- capturePtrs' $ do
-        let before = case sk of
-                Skolemise -> local' (addSkolems as)
-                Quantify  -> fmap (forall' as)
-        before (tr_fun sk e c)
-
-    let cltype = case sk of
-            Skolemise -> negatedConjecture
-            Quantify  -> hypothesis
-
-        clauses = comment (show stmt) : clauseSplit cltype tr_contr
-
-        content_dep = map Pointer ptrs ++ deps
+    (clauses,ptrs) <- capturePtrs' (local' (addSkolems as) (trGoal e c))
 
     return $ Conjecture
         { conj_clauses      = clauses
-        , conj_dependencies = content_dep
+        , conj_dependencies = deps ++ pointers ptrs
         , conj_kind         = Plain
         }
+
+trUsing :: Statement -> TransM ([Clause'],[HCCContent])
+trUsing stmt@(Statement e c as _) = post <$> capturePtrs' (trAssum e c)
+  where
+    post = ((comment ("Using\n" ++ show stmt) :)
+         . map (clauseMapFormula (forall' as)))
+         *** pointers
 
 -- | The top variable, suitable for fixed point induction
 topVar :: CoreExpr -> Maybe Var
@@ -110,83 +109,78 @@ topVar (Cast e _) = topVar e
 topVar (Tick _ e) = topVar e
 topVar _          = Nothing
 
+-- | Try to translate this statement using FPI
 trFPI :: [HCCContent] -> Statement -> TransM [Conjecture]
-trFPI deps (Statement e c as _) = do
+trFPI deps st@(Statement e _ _ _) = do
     fix_info <- getFixInfo
-    Params{..} <- getParams
     case topVar e of
-        Just f | fpiApplicable fix_info f -> local' (addSkolems as) $ do
-
-            let [f_base,f_hyp,f_concl]
-                    = map (fpiFocusName fix_info f) [ConstantUNR,Hyp,Concl]
-
-                -- Change dependencies from f to f_base or f_concl
-                rename_f Base v | v == f = f_base
-                rename_f Step v | v == f = f_concl
-                rename_f _    v = v
-
-                -- We use the original dependencies, but rename f to
-                -- f_base or f_concl in dependencies
-                [deps_base,deps_step]
-                    = [ map (mapFunctionContent
-                             ( fpiFriendName fix_info f friend_case
-                             . rename_f friend_case
-                             )) deps
-                      | friend_case <- [Base,Step]
-                      ]
-
-                -- How to rename an entire contract
-                rename_c = substContractList c . fpiGetSubstList fix_info f
-
-            let e_subst = subst e f
-
-            (tr_base,ptrs_base) <- capturePtrs' $
-                clauseSplit axiom <$>
-                trContract Neg Skolemise (e_subst f_base) (rename_c ConstantUNR)
-
-            (tr_hyp,ptrs_hyp) <- capturePtrs' $
-                clauseSplit hypothesis <$>
-                trContract Pos Quantify (e_subst f_hyp) (rename_c Hyp)
-
-            (tr_concl,ptrs_concl) <- capturePtrs' $
-                clauseSplit hypothesis <$>
-                trContract Neg Skolemise (e_subst f_concl) (rename_c Concl)
-
-            let content_base  = map Pointer ptrs_base ++ deps_base
-                content_hyp   = map Pointer ptrs_hyp
-                content_concl = map Pointer ptrs_concl ++ deps_step
-
-            splits <- trSplit (e_subst f_concl) (rename_c Concl)
-
-            return $
-                [ Conjecture
-                    { conj_clauses      = tr_base
-                    , conj_dependencies = content_base
-                    , conj_kind         = FixpointBase
-                    }
-                | not fpi_no_base ] ++
-                [ Conjecture
-                    { conj_clauses      = tr_hyp ++ tr_concl
-                    , conj_dependencies = nub (content_hyp ++ content_concl)
-                    , conj_kind         = FixpointStep
-                    }
-                ] ++
-                [ Conjecture
-                    { conj_clauses      = tr_hyp ++ split_clauses
-                    , conj_dependencies = nub (delete (Function f_concl) content_concl ++ split_deps)
-                    , conj_kind         = FixpointStepSplit split_num
-                    }
-                | Split{..} <- splits
-                ]
-
-
+        Just f | fpiApplicable fix_info f -> trFixated deps st f
         _ -> return []
 
-data Variance = Pos | Neg deriving (Eq,Show)
+-- | Translate this statement with this fixpoint function
+trFixated :: [HCCContent] -> Statement -> Var -> TransM [Conjecture]
+trFixated deps (Statement e c as _) f = local' (addSkolems as) $ do
+    Params{..} <- getParams
+    fix_info <- getFixInfo
 
-opposite :: Variance -> Variance
-opposite Pos = Neg
-opposite Neg = Pos
+    let -- Get the focused names
+        [f_base,f_concl] = map (fpiFocusName fix_info f) [ConstantUNR,Concl]
+
+        -- Change dependencies from f to f_base or f_concl
+        rename_f Base v | v == f = f_base
+        rename_f Step v | v == f = f_concl
+        rename_f _    v = v
+
+        -- We use the original dependencies, but rename f to
+        -- f_base or f_concl in dependencies
+        [orig_deps_base,orig_deps_step]
+            = [ map (mapFunctionContent
+                     ( fpiFriendName fix_info f friend_case
+                     . rename_f friend_case
+                     )) deps
+              | friend_case <- [Base,Step]
+              ]
+
+        -- How to rename an entire contract
+        rename_c = substContractList c . fpiGetSubstList fix_info f
+
+
+    -- Translate the contract for the base, hyp and conclusion focus,
+    -- registering pointers and calculating the final dependencies
+    [(tr_base,deps_base),(tr_hyp,deps_hyp),(tr_concl,deps_concl)] <-
+        sequence
+            [ do let f_version = fpiFocusName fix_info f focused
+                     e' = subst e f f_version
+                     f' = rename_c focused
+
+                 (tr,ptrs) <- capturePtrs' $ tr_contr_fun e' f'
+
+                 return (comment desc : tr,pointers ptrs ++ orig_deps)
+
+            | (desc,tr_contr_fun,focused,orig_deps)
+
+                <- [("Base case",           trGoal ,ConstantUNR,orig_deps_base)
+                   ,("Induction hypothesis",trAssum,Hyp,        []            )
+                   ,("Induction conclusion",trGoal ,Concl,      orig_deps_step)
+                   ]
+            ]
+
+    let tr_step   = tr_hyp ++ tr_concl
+        deps_step = deps_hyp ++ deps_concl
+
+    -- Also split the goal if possible
+    splits <- trSplit (subst e f f_concl) (rename_c Concl)
+
+    return $
+        [ Conjecture tr_base  deps_base  FixpointBase | not fpi_no_base ] ++
+        [ Conjecture tr_step  deps_step  FixpointStep ] ++
+        [ Conjecture tr_split deps_split (FixpointStepSplit split_num)
+        | Split{..} <- splits
+        , let -- Add the induction hypothesis
+              tr_split = tr_hyp ++ split_clauses
+              -- We take the dependencies in the contrcat using f_concl
+              deps_split = split_deps ++ delete (Function f_concl) deps_concl
+        ]
 
 data Split = Split
     { split_clauses :: [Clause']
@@ -268,6 +262,12 @@ bindToSplit f contract_args tr_contr contr_deps decl_part@BindPart{..} num = do
         , split_deps    = dep
         , split_num     = num
         }
+
+trGoal :: CoreExpr -> Contract -> TransM [Clause']
+trGoal e f = clauseSplit axiom <$> trContract Neg Skolemise e f
+
+trAssum :: CoreExpr -> Contract -> TransM [Clause']
+trAssum e f = clauseSplit hypothesis <$> trContract Pos Quantify e f
 
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
 trContract variance skolemise e_init contract = do
