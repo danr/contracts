@@ -200,14 +200,7 @@ trSplit expr contract = do
 
     bind_parts <- getBindParts f
 
-    let (min_parts,decl_parts) = partition (minRhs . bind_rhs) bind_parts
-
-    -- Translate everything about min for now
-    (tr_min,min_ptrs) <- lift $
-        ((comment ("Axioms about min for " ++ show f):) . axioms *** pointers)
-        <$> capturePtrs (mapM trBindPart min_parts)
-
-    let min_deps = concatMap bind_deps min_parts ++ min_ptrs
+    let decl_parts = filter (not . minRhs . bind_rhs) bind_parts
 
     (tr_contr,contr_deps) <-
         ((comment "Contract" :) . axioms . splitFormula *** pointers)
@@ -218,7 +211,8 @@ trSplit expr contract = do
         (tr_part,part_ptrs) <- lift $ capturePtrs $ do
 
             -- Translate just this bind part
-            tr_decl <- ((comment "Bind part":) . definitions . splitFormula) <$>
+            tr_decl <- (((comment $ "Bind part for " ++ show f):)
+                        . definitions . splitFormula) <$>
                 trBindPart decl_part
 
             -- Foreach argument e, match up the variable v
@@ -233,15 +227,20 @@ trSplit expr contract = do
                     <$> mapM (trExpr . Var) vars
                     <*> mapM trExpr bind_args
                 tr_constrs <- axioms <$> trConstraints bind_constrs
-                return $ [comment "Equalities from arguments"] ++ tr_eqs
+
+                -- Translate the relevant mins
+                tr_min <- axioms <$> mapM (liftM (foralls . min') . trExpr) bind_mins
+
+                return $ [comment "Imposed min"] ++ tr_min
+                      ++ [comment "Equalities from arguments"] ++ tr_eqs
                       ++ [comment "Imposed constraints"] ++ tr_constrs
 
             return (tr_decl ++ tr_goal)
 
         let deps = delete (Function f) $
-                min_deps ++ contr_deps ++ bind_deps ++ map Pointer part_ptrs
+                        contr_deps ++ bind_deps ++ map Pointer part_ptrs
 
-            clauses = tr_min ++ tr_part ++ tr_contr
+            clauses = tr_part ++ tr_contr
 
         return $ Split
             { split_clauses = clauses
