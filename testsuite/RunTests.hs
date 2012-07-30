@@ -107,11 +107,16 @@ main = do
 
     putStrLn ""
     putStrLn $ "Timeouts: " ++ show no_tos
+    when (no_tos > 0) $ do
+        putStrLn $ "Files timing out: "
+        mapM_ (putStrLn . ('\t':)) timeouts
+
+    putStrLn ""
     putStrLn $ "Failures: " ++ show no_fails
     when (no_fails > 0) $ do
         printFail
         putStrLn $ "Failing files: "
-        mapM_ putStrLn failures
+        mapM_ (putStrLn . ('\t':)) failures
 
 
 type M = ReaderT Env (WriterT Out IO)
@@ -160,8 +165,6 @@ processGroup group@(first:_) = do
         -- If an UNSAT group was UNSAT everywhere, it's a success
         when (group_res == UNSAT && all (Just UNSAT ==) results) $ put "Success!"
 
-        when (null just_results) $ regTimeout first
-
 processFile :: Res -> Int -> FilePath -> M (Maybe Res)
 processFile group_res group_size file = do
 
@@ -186,7 +189,7 @@ processFile group_res group_size file = do
 
     -- Interpret the result
     case m_result of
-        Nothing -> put "All tools timed out"
+        Nothing -> regTimeout file >> put "All tools timed out"
         Just SAT | group_res == UNSAT -> regFailure file >> printFail
         Just SAT | group_res == SAT   -> put' "Success!"
         _ -> return ()
