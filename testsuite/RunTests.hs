@@ -7,7 +7,7 @@ import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Concurrent
 import Control.DeepSeq
-import Control.Exception
+import Control.Exception as C
 import Data.Char
 import Data.Function
 import Data.List
@@ -224,7 +224,7 @@ regTimeout f = tell (Out [] [f])
 
 -- adapted from HipSpec.ATP.RunProver
 timed :: Int -> FilePath -> String -> [String] -> IO (Maybe Res)
-timed t cmd inp args  = do
+timed t cmd inp args = errHandle $ do
 
     (Just inh, Just outh, Just errh, pid) <-
          createProcess (proc cmd args)
@@ -234,7 +234,7 @@ timed t cmd inp args  = do
 
     output  <- hGetContents outh
     outMVar <- newEmptyMVar
-    void $ forkIO $ rnf output `seq` putMVar outMVar ()
+    void $ forkIO $ evaluate (length output) >> putMVar outMVar ()
 
     void $ forkIO $ do
         err <- hGetContents errh
@@ -254,7 +254,7 @@ timed t cmd inp args  = do
          -- read output
          takeMVar outMVar
          -- wait on the process
-         ex <- rnf output `seq` waitForProcess pid
+         ex <- waitForProcess pid
          hClose outh
          putMVar exit_code_mvar ex
 
@@ -271,3 +271,9 @@ timed t cmd inp args  = do
     return $ case maybe_exit_code of
                 ExitSuccess -> parseOutput output
                 _           -> Nothing
+
+  where
+
+    errHandle m = m `C.catch` \e -> do
+        hPutStrLn stderr (show (e :: IOException))
+        return Nothing
