@@ -5,6 +5,9 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.Reader
+import Control.Concurrent
+import Control.DeepSeq
+import Control.Exception
 import Data.Char
 import Data.Function
 import Data.List
@@ -14,7 +17,11 @@ import System.Environment
 import System.Process
 import System.FilePath
 import System.ShQQ
-import qualified System.Timeout as T
+import System.Process
+import System.IO
+import System.Exit
+import System.CPUTime
+import System.Directory
 
 readEnv :: String -> IO (Maybe String)
 readEnv s = fmap snd . find ((s ==) . fst) <$> getEnvironment
@@ -37,27 +44,24 @@ parseOutput s
     | "Satisfiable"   `isInfixOf` s = Just SAT
     | otherwise = Nothing
 
-timed :: Int -> IO String -> IO (Maybe Res)
-timed t m = (parseOutput =<<) <$> T.timeout (t * 1000 * 1000) m
--- timed t m = parseOutput <$> m
-
 runKoentool :: String -> Int -> String -> IO (Maybe Res)
-runKoentool tool t file = timed t
-    [sh| $tool --no-progress --tstp --time $t $file | grep RESULT |]
+runKoentool tool t file = timed t tool "" $
+    ["--no-progress","--tstp",file]
 
 runEquinox = runKoentool "equinox"
 runParadox = runKoentool "paradox"
 
-runVampire t file = timed t
-    [sh| timeout $t vampire_lin32 --mode casc -t $t < $file | grep status |]
+runVampire t file = do
+    inp <- readFile file
+    timed t "vampire" inp $ ["--mode casc"]
 
-runEprover t file = timed t
-    [sh| timeout $t eprover -tAuto -xAuto --tptp3-format --cpu-limit=$t -s $file | grep status |]
+runEprover t file = timed t "eprover" ""
+    ["-tAuto","-xAuto","--tptp3-format","-s",file]
 
 runZ3 t file = do
     let regexp = "s/\\$min/min/g"
     [sh| sed $regexp $file > ${file}.z3 |]
-    timed t [sh| timeout 1 z3 -tptp -nw ${file}.z3 | grep status |]
+    timed t "z3" "" ["-tptp","-nw",file ++ ".z3"]
 
 equinox = ("equinox",runEquinox)
 paradox = ("paradox",runParadox)
@@ -218,3 +222,52 @@ regFailure f = tell (Out [f] [])
 regTimeout :: FilePath -> M ()
 regTimeout f = tell (Out [] [f])
 
+-- adapted from HipSpec.ATP.RunProver
+timed :: Int -> FilePath -> String -> [String] -> IO (Maybe Res)
+timed t cmd inp args  = do
+
+    (Just inh, Just outh, Just errh, pid) <-
+         createProcess (proc cmd args)
+                       { std_in  = CreatePipe
+                       , std_out = CreatePipe
+                       , std_err = CreatePipe }
+
+    output  <- hGetContents outh
+    outMVar <- newEmptyMVar
+    void $ forkIO $ rnf output `seq` putMVar outMVar ()
+
+    void $ forkIO $ do
+        err <- hGetContents errh
+        n   <- evaluate (length err)
+        when (n > 0) $ hPutStrLn stderr $
+            "*** " ++ cmd ++ " stderr: ***" ++ "\n" ++ err
+
+    unless (null inp) $ do
+        hPutStr inh inp
+        hFlush inh
+
+    hClose inh
+
+    exit_code_mvar <- newEmptyMVar
+
+    tid <- forkIO $ do
+         -- read output
+         takeMVar outMVar
+         -- wait on the process
+         ex <- rnf output `seq` waitForProcess pid
+         hClose outh
+         putMVar exit_code_mvar ex
+
+    kid <- forkIO $ do
+         threadDelay (t * 1000 * 1000)
+         terminateProcess pid
+         putMVar exit_code_mvar =<< waitForProcess pid
+
+    maybe_exit_code <- takeMVar exit_code_mvar
+
+    killThread tid
+    killThread kid
+
+    return $ case maybe_exit_code of
+                ExitSuccess -> parseOutput output
+                _           -> Nothing
