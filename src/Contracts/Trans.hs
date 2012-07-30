@@ -194,63 +194,87 @@ data Split = Split
     , split_num     :: Int
     }
 
+-- Chop this contract up in several parts, enables us to "cursor" through the
+-- definition of the function instead of trying it in one go
 trSplit :: CoreExpr -> Contract -> TransM [Split]
 trSplit expr contract = do
     let f = fromMaybe (error "trSplit: topVar returned Nothing") (topVar expr)
 
     bind_parts <- getBindParts f
 
+    -- We throw away the parts with min rhs, and look at the min-sets
+    -- stored in bind_mins instead
     let decl_parts = filter (not . minRhs . bind_rhs) bind_parts
 
-    (tr_contr,contr_deps) <-
-        ((comment "Contract" :) . axioms . splitFormula *** pointers)
+    -- We will equate the result of the function to the arguments to
+    -- the contract
+    let contract_args :: [Var]
+        contract_args = (map fst . fst . telescope) contract
+
+    -- The contract only needs to be translated once
+    (tr_contr,contr_deps) <- (axioms . splitFormula *** pointers)
         <$> capturePtrs' (trContract Neg Skolemise expr contract)
 
-    forM (zip decl_parts [0..]) $ \ (decl_part@BindPart{..},num) -> do
+    -- The rest of the work is carried out by the bindToSplit function,
+    -- by iterating over the (non-min) BindParts.
+    mapM (uncurry (bindToSplit f contract_args tr_contr contr_deps))
+         (zip decl_parts [0..])
 
-        (tr_part,part_ptrs) <- lift $ capturePtrs $ do
+bindToSplit :: Var -> [Var] -> [Clause'] -> [HCCContent]
+            -> HCCBindPart -> Int -> TransM Split
+bindToSplit f contract_args tr_contr contr_deps decl_part@BindPart{..} num = do
 
-            -- Translate just this bind part
-            tr_decl <- (((comment $ "Bind part for " ++ show f):)
-                        . definitions . splitFormula) <$>
-                trBindPart decl_part
+    (tr_part,part_ptrs) <- lift $ capturePtrs $ do
 
-            -- Foreach argument e, match up the variable v
-            -- introduce e's arguments as skolems and make them equal
+        -- Translate just this bind part
+        tr_decl <- definitions . splitFormula <$> trBindPart decl_part
 
-            let vars,sks :: [Var]
-                vars = map fst . fst . telescope $ contract
-                sks = concatMap exprFVs (bind_args)
+        -- Foreach argument e, match up the variable v
+        -- introduce e's arguments as skolems and make them equal
+        let sks :: [Var]
+            sks = concatMap exprFVs bind_args
 
-            tr_goal <- local (addSkolems (nub $ sks ++ vars)) $ do
-                tr_eqs <- axioms .: zipWith (===)
-                    <$> mapM (trExpr . Var) vars
-                    <*> mapM trExpr bind_args
-                tr_constrs <- axioms <$> trConstraints bind_constrs
+        -- Everything under here considers the otherwise quantified
+        -- vars in the arguments as skolem variables, now quantified
+        -- over the whole theory instead
+        tr_goal <- local (addSkolems (nub $ sks ++ contract_args)) $ do
 
-                -- Translate the relevant mins
-                tr_min <- axioms <$> mapM (liftM (foralls . min') . trExpr) bind_mins
+            -- Make the arguments to the function equal to the
+            -- contract variables from the telescope
+            tr_eqs <- axioms .:
+                zipWith (===) <$> mapM (trExpr . Var) contract_args
+                              <*> mapM trExpr bind_args
 
-                return $ [comment "Imposed min"] ++ tr_min
-                      ++ [comment "Equalities from arguments"] ++ tr_eqs
-                      ++ [comment "Imposed constraints"] ++ tr_constrs
+            -- Translate the constraints, but instead of having them
+            -- as an antecedents, they are now asserted
+            tr_constrs <- axioms <$> trConstraints bind_constrs
 
-            return (tr_decl ++ tr_goal)
+            -- Translate the relevant mins
+            tr_min <- axioms <$> mapM (liftM (foralls . min') . trExpr) bind_mins
 
-        let deps = delete (Function f) $
-                        contr_deps ++ bind_deps ++ map Pointer part_ptrs
+            return $ [comment "Imposed min"] ++ tr_min
+                  ++ [comment "Equalities from arguments"] ++ tr_eqs
+                  ++ [comment "Imposed constraints"] ++ tr_constrs
 
-            clauses = tr_part ++ tr_contr
+        return ([comment $ "Bind part for " ++ show f] ++ tr_decl ++ tr_goal)
 
-        return $ Split
-            { split_clauses = clauses
-            , split_deps    = deps
-            , split_num     = num
-            }
+    -- Use the dependencies defined in the BindPart, but don't add the
+    -- dependency to f, or else the full original definition is added
+    -- to the theory as well.
+    let dep = delete (Function f) $ contr_deps ++ bind_deps ++ pointers part_ptrs
+
+    return $ Split
+        { split_clauses = tr_part ++ [comment "Contract"] ++ tr_contr
+        , split_deps    = dep
+        , split_num     = num
+        }
 
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
 trContract variance skolemise e_init contract = do
 
+    -- We obtain all arguments (to the right of the last arrow), and
+    -- bind them under the same quantifier. This makes somewhat
+    -- simpler theories.
     let (arguments,result) = telescope contract
         vars     = map fst arguments
         e_result = foldl (@@) e_init (map Var vars)
@@ -292,7 +316,7 @@ trContract variance skolemise e_init contract = do
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]
 
-            Arrow{} -> error "trContract : telescope didn't catch arrow"
+            Arrow{} -> error "trContract : telescope didn't catch arrow (impossible)"
 
         return $ tr_arguments ++ [tr_result]
 
