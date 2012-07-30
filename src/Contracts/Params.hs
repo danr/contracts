@@ -53,7 +53,7 @@ defParams = Params
     , or_discr          = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , fpi_no_base       = False &= name "b" &= help "If fpi is applicable, don't generate the base case"
     , fpi_no_plain      = False &= name "i" &= help "If fpi is applicable, don't generate without induction"
-    , quick_tptp        = False &= name "q" &= help "Enable quicker generation of TPTP with variable names from Uniques. Uses cnf and $min and writes no comments."
+    , quick_tptp        = False &= name "Q" &= help "Enable quicker generation of TPTP with variable names from Uniques. Uses cnf and $min and writes no comments."
 
     , db_float_out      = False &= groupname "\nDebugging output"
                                 &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
@@ -76,3 +76,4 @@ defParams = Params
     }
     &= summary "Haskell Contracts Checker v0.1 Dan Rosén danr@student.gu.se"
     &= program "hcc"
+    &= verbosity

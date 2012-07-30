@@ -44,16 +44,13 @@ import System.FilePath
 import System.Console.CmdArgs hiding (program)
 
 printMsgs :: [String] -> IO ()
-printMsgs msgs = unless (null msgs) $ putStrLn $ unlines msgs
-
-endl :: IO ()
-endl = putStrLn "\n"
+printMsgs msgs = unless (null msgs) $ putStrLn (unlines msgs)
 
 printCore :: String -> [CoreBind] -> IO ()
 printCore msg core = do
     putStrLn $ msg ++ ":\n"
     mapM_ (printDump . ppr) core
-    endl
+    putStrLn "\n"
 
 debugName :: (Var,CoreExpr) -> IO ()
 debugName (v,_) =
@@ -209,7 +206,7 @@ processFile params@Params{..} file = do
 
                 filename = show top_name ++ conjKindSuffix conj_kind ++ ".tptp"
 
-            putStrLn $ "Writing " ++ show filename
+            whenNormal $ putStrLn $ "Writing " ++ show filename
 
             when dump_subthys $ do
                 putStrLn $ "Subtheories: "
