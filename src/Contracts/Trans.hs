@@ -45,7 +45,6 @@ data TrEnv = TrEnv
     , env_bind_map :: HCCBinds
     }
 
-
 getParams :: TransM Params
 getParams = asks env_params
 
@@ -166,7 +165,7 @@ trFixated deps (Statement e c as _) f = local' (addSkolems as) $ do
             ]
 
     let tr_step   = tr_hyp ++ tr_concl
-        deps_step = deps_hyp ++ deps_concl
+        deps_step = deps_hyp `union` deps_concl
 
     -- Also split the goal if possible
     splits <- trSplit (subst e f f_concl) (rename_c Concl)
@@ -179,7 +178,7 @@ trFixated deps (Statement e c as _) f = local' (addSkolems as) $ do
         , let -- Add the induction hypothesis
               tr_split = tr_hyp ++ split_clauses
               -- We take the dependencies in the contrcat using f_concl
-              deps_split = split_deps ++ delete (Function f_concl) deps_concl
+              deps_split = split_deps `union` delete (Function f_concl) deps_concl
         ]
 
 data Split = Split
@@ -211,8 +210,7 @@ trSplit expr contract = do
 
     -- The rest of the work is carried out by the bindToSplit function,
     -- by iterating over the (non-min) BindParts.
-    mapM (uncurry (bindToSplit f contract_args tr_contr contr_deps))
-         (zip decl_parts [0..])
+    zipWithM (bindToSplit f contract_args tr_contr contr_deps) decl_parts [0..]
 
 bindToSplit :: Var -> [Var] -> [Clause'] -> [HCCContent]
             -> HCCBindPart -> Int -> TransM Split
