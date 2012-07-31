@@ -25,3 +25,12 @@ True  && b = b
 False && _ = False
 
 map_fromJust_contr = map fromJust ::: CF :&: Pred (all isJust) --> CF
+
+map_fromJust_all = map fromJust ::: CF :&: Pred (all isJust) --> CF
+  `Using` (all ::: (CF --> CF) --> CF --> CF)
+  `Using` (isJust ::: CF :&: Pred isJust --> CF)
+
+map_bla :: (a -> Bool) -> (a -> b) -> Statement
+map_bla p f = map f ::: CF :&: Pred (all p) --> CF
+  `Using` (all ::: (CF --> CF) --> CF --> CF)
+  `Using` (f ::: CF :&: Pred p --> CF)
