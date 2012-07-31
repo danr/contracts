@@ -8,15 +8,19 @@ import Type
 import Halo.FOL.Abstract
 import Halo.PrimCon
 import Halo.Names
+import Halo.Shared
 import Halo.Subtheory
 
 import Contracts.Theory
+
+import Control.Monad
 
 -- | Make axioms about CF
 mkCF :: [TyCon] -> [HCCSubtheory]
 mkCF ty_cons = do
     ty_con <- ty_cons
-    DataTyCon cons _ <- [algTyConRhs ty_con]
+    guard (isAlgTyCon ty_con)
+    DataTyCon dcs _ <- [algTyConRhs ty_con]
 
     return $ Subtheory
         { provides    = Specific (CrashFree ty_con)
@@ -26,20 +30,18 @@ mkCF ty_cons = do
             [
                 [ cf kxbar | arity == 0] ++
 
-                [ forall' vars $ [cf kxbar] ===> ands (map cf xbar) | arity > 0] ++
+                [ foralls $ [cf kxbar] ===> ands (map cf xbar) | arity > 0 ] ++
 
                 -- min(K xs) /\ not (cf (K xs)) ==> BigOr_i (min(x_i) /\ not (cf (x_i))
-                [ forall' vars $ min' kxbar : [ neg (cf kxbar) ] ===>
-                                     ors [ ands [neg (cf y),min' y] | y <- xbar ]
+                [ foralls $ min' kxbar : [ neg (cf kxbar) ] ===>
+                                 ors [ ands [neg (cf y),min' y] | y <- xbar ]
                 | arity > 0 ]
 
-            | c <- cons
-            , let data_c          = dataConWorkId c
-                  (_,_,ty_args,_) = dataConSig c
-                  arity           = length ty_args
-                  vars            = take arity varNames
-                  xbar            = map qvar vars
-                  kxbar           = apply data_c xbar
+            | dc <- dcs
+            , let (k,arity)       = dcIdArity dc
+                  args            = take arity varNames
+                  xbar            = map qvar args
+                  kxbar           = apply k xbar
             ]
         }
 
