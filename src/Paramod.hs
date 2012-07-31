@@ -155,6 +155,7 @@ data Symbol
     | Constructor String
     | Skolem String
     | Projection Int String
+    | Pointer String
     | App
   deriving (Show,Eq,Ord)
 
@@ -165,7 +166,6 @@ isProj _            = False
 isCon :: Symbol -> Bool
 isCon Constructor{} = True
 isCon _             = False
-
 
 data Predicate = Min | CF
   deriving (Show,Eq,Ord)
@@ -185,6 +185,7 @@ parseSymbol ('c':'_':xs)         = Constructor xs
 parseSymbol ('p':'_':i:'_':xs)   = Projection (read [i]) xs
 parseSymbol ('p':'_':i:j:'_':xs) = Projection (read [i,j]) xs
 parseSymbol ('a':'_':xs)         = Skolem xs
+parseSymbol ('p':'t':'r':'_':xs) = Pointer xs
 parseSymbol "app"                = App
 parseSymbol xs                   = error $ "parseSymbol, not a symbol: " ++ xs
 
@@ -251,7 +252,7 @@ constructorReprs tbls =
     [ (d,Con con (map Meta args))
     | Func (Constructor con) tbl <- tbls
     , (args,d) <- tbl
-    , and (zipWith (\coord arg -> project con coord arg == d) [0..] args)
+    , and (zipWith (\coord arg -> project con coord d == arg) [0..] args)
     ]
   where
     project :: String -> Int -> Int -> Int
@@ -279,7 +280,7 @@ showModel size tbls = unlines $
     [ sym ++ " = " ++ val
     | i <- [1..size]
     , let sym = '!':show i
-          val = showVal i
+          val = showVals i
     , sym /= val
     ] ++
     [ showSym sym ++ " = " ++ showVal i
@@ -294,12 +295,20 @@ showModel size tbls = unlines $
     showSym (Constructor s)  = s
     showSym (Skolem s)       = s
     showSym App              = "app"
+    showSym (Pointer s)      = "ptr_" ++ s
     showSym (Projection i s) = "proj_" ++ show i ++ "_" ++ s
 
     twiggle True  = " "
     twiggle False = "~"
 
-    showVal i = show (fromMaybe (Meta i) (M.lookup i (M.fromList reprs)))
+    showVals = showValues True
+    showVal = showValues False
+
+    showValues many i
+        | null alts = show (Meta i)
+        | otherwise = unwords . (if many then id else take 1) . map (show . snd) $ alts
+      where
+        alts = filter ((i ==) . fst) reprs
 
     reprs = constructorReprs tbls
 
