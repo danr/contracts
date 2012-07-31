@@ -1,4 +1,4 @@
-module SimpleEq where
+module SimpleTypeclass where
 
 import Contracts
 import Prelude(Bool(..))
