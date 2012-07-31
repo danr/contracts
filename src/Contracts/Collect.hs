@@ -27,6 +27,7 @@ import Halo.Util
 import Halo.Shared
 import Halo.Subtheory
 import Halo.FreeTyCons
+import Halo.Class
 
 import Data.Either
 import Data.List
@@ -100,7 +101,9 @@ mkStatement in_tree e = do
             contr <- mkContract f c
             let ty_deps = Data <$> freeTyCons f :: [HCCContent]
             write $ "Tydeps: " ++ show ty_deps
-            return $ (ty_deps,Statement f contr args [])
+            let dict_deps = dictDeps f :: [HCCContent]
+            write $ "Dict deps: " ++ show dict_deps
+            return $ (ty_deps ++ dict_deps,Statement f contr args [])
         Just (Var x,[s,u]) | isStatementUsing x ->
             if in_tree
                 then do

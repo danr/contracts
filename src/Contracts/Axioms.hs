@@ -1,6 +1,5 @@
 module Contracts.Axioms where
 
-import DataCon
 import Outputable
 import TyCon
 import Type

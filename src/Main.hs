@@ -13,6 +13,7 @@ import Var
 import Halo.BackgroundTheory
 import Halo.Binds
 import Halo.Conf
+import Halo.Class
 import Halo.Entry
 import Halo.FOL.Linearise
 import Halo.FOL.Dump
@@ -82,7 +83,7 @@ processFile params@Params{..} file = do
 
     -- Lambda lift using GHC's lambda lifter. This also runs simpleCoreOptExpr
 
-    floated_prog <- lambdaLift dflags core_binds
+    floated_prog <- (classBinds (mg_tcs modguts) ++) <$> lambdaLift dflags core_binds
 
     when dump_float_out (printCore "Lambda lifted core" floated_prog)
 
