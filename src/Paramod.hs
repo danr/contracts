@@ -187,6 +187,7 @@ parseSymbol ('p':'_':i:j:'_':xs) = Projection (read [i,j]) xs
 parseSymbol ('a':'_':xs)         = Skolem xs
 parseSymbol ('p':'t':'r':'_':xs) = Pointer xs
 parseSymbol "app"                = App
+parseSymbol ('s':'K':xs)         = Function xs
 parseSymbol xs                   = error $ "parseSymbol, not a symbol: " ++ xs
 
 parsePredicate :: String -> Predicate
@@ -280,12 +281,14 @@ showModel size tbls = unlines $
     [ sym ++ " = " ++ val
     | i <- [1..size]
     , let sym = '!':show i
-          val = showVals i
+          val = showVal i
     , sym /= val
     ] ++
+    "" :
     [ showSym sym ++ " = " ++ showVal i
     | Func sym [([],i)] <- tbls
     ] ++
+    "" :
     [ twiggle b ++ show pred ++ "(" ++ showVal i ++ ")"
     | Pred pred tbl <- tbls
     , (i,b) <- tbl
@@ -301,14 +304,9 @@ showModel size tbls = unlines $
     twiggle True  = " "
     twiggle False = "~"
 
-    showVals = showValues True
-    showVal = showValues False
-
-    showValues many i
-        | null alts = show (Meta i)
-        | otherwise = unwords . (if many then id else take 1) . map (show . snd) $ alts
+    showVal i = (intercalate "/" . map show) (Meta i : alts)
       where
-        alts = filter ((i ==) . fst) reprs
+        alts = (map snd . filter ((i ==) . fst)) reprs
 
     reprs = constructorReprs tbls
 
