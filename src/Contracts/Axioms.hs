@@ -16,7 +16,7 @@ import Contracts.Theory
 mkCF :: [TyCon] -> [HCCSubtheory]
 mkCF ty_cons = do
     ty_con <- ty_cons
-    let DataTyCon cons _ = algTyConRhs ty_con
+    DataTyCon cons _ <- [algTyConRhs ty_con]
 
     return $ Subtheory
         { provides    = Specific (CrashFree ty_con)
