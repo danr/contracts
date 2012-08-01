@@ -48,7 +48,7 @@ defParams = Params
 
     , fof               = False &= name "f" &= help "Always generate clauses in fof"
     , comments          = False &= name "C" &= help "Print comments in TPTP file"
-    , no_core_optimise  = False &= name "U" &= help "Don't run the core2core optimising pass - UNSOUND with two DEFAULT pattern on same expression"
+    , no_core_optimise  = False &= name "U" &= help "Don't run the core2core optimising pass, which seems to be sound with case on known constructor"
     , dollar_min        = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr          = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , fpi_no_base       = False &= name "b" &= help "If fpi is applicable, don't generate the base case"

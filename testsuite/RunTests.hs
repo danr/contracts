@@ -92,10 +92,14 @@ main = do
 
     let init_env = Env quiet timeout
 
+    -- extra arguments to hcc
+    hcc_args <- fromMaybe "" <$> readEnv "HCC_ARGS"
+
     -- Generate all contracts
     system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain "
                 ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")
+                ++ " " ++ hcc_args ++ " "
                 ++ hs_files
                 ++ (guard profile >> " +RTS -prof")
 
