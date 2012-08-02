@@ -87,7 +87,7 @@ trPlain deps (Statement e c as _) = do
     (clauses,ptrs) <- capturePtrs' (local' (addSkolems as) (trGoal e c))
 
     return $ Conjecture
-        { conj_clauses      = clauses
+        { conj_clauses      = comment "Plain contract":clauses
         , conj_dependencies = deps ++ pointers ptrs
         , conj_kind         = Plain
         }
