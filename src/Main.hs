@@ -2,6 +2,7 @@
 module Main where
 
 import BasicTypes
+import Class
 import CoreSyn
 import GHC
 import HscTypes
@@ -22,6 +23,7 @@ import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
 import Halo.Lift
 import Halo.Monad
+import Halo.RemoveDefault
 import Halo.Shared
 import Halo.Subtheory
 import Halo.Trim
@@ -38,6 +40,8 @@ import Contracts.Types
 
 import Control.Monad
 import Control.Monad.Reader
+
+import Data.List
 
 import System.Exit
 import System.FilePath
@@ -74,7 +78,7 @@ processFile params@Params{..} file = do
                      , core2core_pass  = not no_core_optimise
                      }
 
-    (modguts,dflags) <- desugar dsconf file
+    ((modguts,type_env),dflags) <- desugarAndTypeEnv dsconf file
 
     let core_binds = mg_binds modguts
 
@@ -83,22 +87,32 @@ processFile params@Params{..} file = do
 
     -- Lambda lift using GHC's lambda lifter. This also runs simpleCoreOptExpr
 
-    floated_prog <- (classBinds (mg_tcs modguts) ++) <$> lambdaLift dflags core_binds
+    let class_ty_cons = map classTyCon (typeEnvClasses type_env)
+
+    when db_classes $ putStrLn $ "Class ty cons:" ++ showOutputable class_ty_cons
+
+    floated_prog <- lambdaLift dflags (classBinds class_ty_cons ++ core_binds)
 
     when dump_float_out (printCore "Lambda lifted core" floated_prog)
 
     -- Case-/let- lift using Halo's lifter, also lift remaining lambdas
 
-    us <- mkSplitUniqSupply 'c'
+    us0 <- mkSplitUniqSupply 'c'
 
-    let ((lifted_prog,msgs_lift),us2) = caseLetLift floated_prog us
+    let ((lifted_prog,msgs_lift),us1) = caseLetLift floated_prog us0
 
     when db_lift          (printMsgs msgs_lift)
-    when dump_lifted_core (printCore "Final, case/let lifted core" lifted_prog)
+    when dump_lifted_core (printCore "Case/let lifted core" lifted_prog)
+
+    -- Remove DEFAULT alternatives
+
+    let (rm_def_prog,us2) = initUs us1 (removeDefaults lifted_prog)
+
+    when dump_rm_def_core (printCore "Core without DEFAULT alternatives" rm_def_prog)
 
     -- Run our inliner
 
-    let (inlined_prog,inline_kit) = inlineProgram lifted_prog
+    let (inlined_prog,inline_kit) = inlineProgram rm_def_prog
         InlineKit{..} = inline_kit
 
     when db_inliner $
@@ -137,7 +151,7 @@ processFile params@Params{..} file = do
               | size <- [0..8]
               -- ^ choice: only tuples of size 0 to 8 supported!
               ]
-            ++ ty_cons
+            ++ (class_ty_cons `union` ty_cons)
 
         halo_conf :: HaloConf
         halo_conf = sanitizeConf $ HaloConf

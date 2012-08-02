@@ -19,6 +19,7 @@ data Params = Params
     , quick_tptp        :: Bool
 
     , db_float_out      :: Bool
+    , db_classes        :: Bool
     , db_names          :: Bool
     , db_lift           :: Bool
     , db_halo           :: Bool
@@ -29,6 +30,7 @@ data Params = Params
     , dump_init_core    :: Bool
     , dump_float_out    :: Bool
     , dump_lifted_core  :: Bool
+    , dump_rm_def_core  :: Bool
     , dump_inlined_core :: Bool
     , dump_final_core   :: Bool
     , dump_fpi_core     :: Bool
@@ -57,6 +59,7 @@ defParams = Params
 
     , db_float_out      = False &= groupname "\nDebugging output"
                                 &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
+    , db_classes        = False &= help "Debug information about classes found"
     , db_names          = False &= help "Debug information about the top level names in Core"
     , db_lift           = False &= help "Debug the let-/case-lifter"
     , db_halo           = False &= help "Debug the Haskell to Logic translator"
@@ -67,6 +70,7 @@ defParams = Params
     , dump_init_core    = False &= help "Dump initial (possibly optimised) core from GHC"
     , dump_float_out    = False &= help "Dump core after GHC's lambda-lifting"
     , dump_lifted_core  = False &= help "Dump core after Halo's let-/case-/lambda-lifting"
+    , dump_rm_def_core  = False &= help "Dump core after removing DEFAULT branches"
     , dump_inlined_core = False &= help "Dump core after inliner"
     , dump_final_core   = False &= help "Dump (final) core without Statements"
     , dump_fpi_core     = False &= help "Dump core after fixpoint generation"
