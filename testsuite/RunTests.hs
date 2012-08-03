@@ -86,6 +86,7 @@ main = do
     readable <- isJust <$> readEnv "READABLE"
     quiet    <- isJust <$> readEnv "QUIET"
     no_min   <- (== Just "false") <$> readEnv "MIN"
+    no_opt   <- (== Just "false") <$> readEnv "OPTIMISE"
 
     -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
@@ -99,6 +100,7 @@ main = do
     system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain "
                 ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")
+                ++ (guard no_opt >> " -U ")
                 ++ " " ++ hcc_args ++ " "
                 ++ hs_files
                 ++ (guard profile >> " +RTS -prof")
