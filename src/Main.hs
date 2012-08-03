@@ -10,6 +10,7 @@ import Outputable
 import TysWiredIn
 import UniqSupply
 import Var
+import TyCon
 
 import Halo.BackgroundTheory
 import Halo.Binds
@@ -87,11 +88,14 @@ processFile params@Params{..} file = do
 
     -- Lambda lift using GHC's lambda lifter. This also runs simpleCoreOptExpr
 
-    let class_ty_cons = map classTyCon (typeEnvClasses type_env)
+    let classes = typeEnvClasses type_env
 
-    when db_classes $ putStrLn $ "Class ty cons:" ++ showOutputable class_ty_cons
+    when db_classes $ do
+        putStrLn $ "Classes :" ++ showOutputable classes
+        putStrLn $ "Class algTyConRhs: " ++
+            showOutputable (map (data_cons . algTyConRhs . classTyCon) classes)
 
-    floated_prog <- lambdaLift dflags (classBinds class_ty_cons ++ core_binds)
+    floated_prog <- lambdaLift dflags (classBinds classes ++ core_binds)
 
     when dump_float_out (printCore "Lambda lifted core" floated_prog)
 
@@ -151,7 +155,7 @@ processFile params@Params{..} file = do
               | size <- [0..8]
               -- ^ choice: only tuples of size 0 to 8 supported!
               ]
-            ++ (class_ty_cons `union` ty_cons)
+            ++ (map classTyCon classes `union` ty_cons)
 
         halo_conf :: HaloConf
         halo_conf = sanitizeConf $ HaloConf
