@@ -19,6 +19,7 @@ data Params = Params
     , quick_tptp        :: Bool
 
     , db_float_out      :: Bool
+    , db_ty_cons        :: Bool
     , db_classes        :: Bool
     , db_names          :: Bool
     , db_lift           :: Bool
@@ -59,7 +60,8 @@ defParams = Params
 
     , db_float_out      = False &= groupname "\nDebugging output"
                                 &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
-    , db_classes        = False &= help "Debug information about classes found"
+    , db_classes        = False &= help "Debug information about found classes found"
+    , db_ty_cons        = False &= help "Debug some information about found TyCons"
     , db_names          = False &= help "Debug information about the top level names in Core"
     , db_lift           = False &= help "Debug the let-/case-lifter"
     , db_halo           = False &= help "Debug the Haskell to Logic translator"

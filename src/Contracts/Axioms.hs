@@ -18,8 +18,8 @@ import Control.Monad
 mkCF :: [TyCon] -> [HCCSubtheory]
 mkCF ty_cons = do
     ty_con <- ty_cons
-    guard (isAlgTyCon ty_con)
-    DataTyCon dcs _ <- [algTyConRhs ty_con]
+    guard (not (isNewTyCon ty_con))
+    let dcs = tyConDataCons ty_con
 
     return $ Subtheory
         { provides    = Specific (CrashFree ty_con)

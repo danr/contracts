@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards,ViewPatterns,DisambiguateRecordFields #-}
+{-# LANGUAGE RecordWildCards,ViewPatterns,DisambiguateRecordFields,PatternGuards #-}
 module Main where
 
 import BasicTypes
@@ -10,7 +10,11 @@ import Outputable
 import TysWiredIn
 import UniqSupply
 import Var
+
+-- To debug TyCons
 import TyCon
+import Id
+import DataCon
 
 import Halo.BackgroundTheory
 import Halo.Binds
@@ -22,6 +26,7 @@ import Halo.FOL.Dump
 import Halo.FOL.MinAsNotUnr
 import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
+import Halo.FreeTyCons
 import Halo.Lift
 import Halo.Monad
 import Halo.RemoveDefault
@@ -143,12 +148,28 @@ processFile params@Params{..} file = do
 
     when dump_final_core (printCore "Final core without Statements" program)
 
-    -- Translate contracts & definitions
+    -- Get type constructors
 
     let ty_cons :: [TyCon]
         ty_cons = mg_tcs modguts
 
-        ty_cons_with_builtin :: [TyCon]
+    -- Debug (non-builtin) tycons
+
+    when db_ty_cons $ do
+        putStrLn $ "ty_cons: " ++ showOutputable ty_cons
+        void $ sequence $
+            [ putStrLn $ "ty_cons, tyConDataCons with " ++ t ++ " on " ++ s ++ ": "
+               ++ showOutputable (map (map ((id &&& l) . k) . tyConDataCons) ty_cons)
+            | (l,t) <- [(isConLikeId,"isConLikeId")
+                       ,(isNewtypeConId,"isNewtypeConId")
+                       ]
+            , (k,s) <- [(dataConWorkId,"dataConWorkId")
+                       ,(dataConWrapId,"dataConWrapId")
+                       ]
+            ]
+        putStrLn $ "is newtype: " ++ showOutputable (map isNewTyCon ty_cons)
+
+    let ty_cons_with_builtin :: [TyCon]
         ty_cons_with_builtin
             = listTyCon : boolTyCon : unitTyCon
             : [ tupleTyCon BoxedTuple size
@@ -157,7 +178,9 @@ processFile params@Params{..} file = do
               ]
             ++ (map classTyCon classes `union` ty_cons)
 
-        halo_conf :: HaloConf
+    -- Translate definitions
+
+    let halo_conf :: HaloConf
         halo_conf = sanitizeConf $ HaloConf
             { use_min           = not no_min
             , use_minrec        = False
@@ -210,10 +233,14 @@ processFile params@Params{..} file = do
     let specialised_trim = trim subtheories
 
     forM_ stmts $ \top_stmt@TopStmt{..} -> do
+
+        -- Translate contracts
         let (conjectures,msgs_tr_contr) = runHaloM halo_env $
                 runReaderT (trTopStmt top_stmt) (TrEnv params fix_info binds_map)
 
         when db_trans (printMsgs msgs_tr_contr)
+
+        -- Assemble tptp-files
 
         forM_ conjectures $ \Conjecture{..} -> do
 
