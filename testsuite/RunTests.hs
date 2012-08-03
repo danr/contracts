@@ -80,13 +80,14 @@ main = do
 
     -- Profile if PROFILE env variable is set
     -- generate tptp with pretty names if READABLE is set
+    -- use optimisation if OPTIMISE is set
     -- don't write a lot of output if QUIET is set
     -- don't use min if MIN=false
     profile  <- isJust <$> readEnv "PROFILE"
     readable <- isJust <$> readEnv "READABLE"
     quiet    <- isJust <$> readEnv "QUIET"
+    opt      <- isJust <$> readEnv "OPTIMISE"
     no_min   <- (== Just "false") <$> readEnv "MIN"
-    no_opt   <- (== Just "false") <$> readEnv "OPTIMISE"
 
     -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
@@ -100,7 +101,7 @@ main = do
     system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain "
                 ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")
-                ++ (guard no_opt >> " -U ")
+                ++ (guard opt >> " --core-optimise ")
                 ++ " " ++ hcc_args ++ " "
                 ++ hs_files
                 ++ (guard profile >> " +RTS -prof")

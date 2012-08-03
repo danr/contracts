@@ -81,7 +81,7 @@ processFile params@Params{..} file = do
 
     let dsconf = DesugarConf
                      { debug_float_out = db_float_out
-                     , core2core_pass  = not no_core_optimise
+                     , core2core_pass  = core_optimise
                      }
 
     ((modguts,type_env),dflags) <- desugarAndTypeEnv dsconf file

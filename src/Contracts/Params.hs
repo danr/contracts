@@ -11,7 +11,7 @@ data Params = Params
 
     , fof               :: Bool
     , comments          :: Bool
-    , no_core_optimise  :: Bool
+    , core_optimise     :: Bool
     , dollar_min        :: Bool
     , or_discr          :: Bool
     , fpi_no_plain      :: Bool
@@ -51,7 +51,7 @@ defParams = Params
 
     , fof               = False &= name "f" &= help "Always generate clauses in fof"
     , comments          = False &= name "C" &= help "Print comments in TPTP file"
-    , no_core_optimise  = False &= name "U" &= help "Don't run the core2core optimising pass - UNSOUND with two DEFAULT pattern on same expression"
+    , core_optimise     = False &= name "O" &= help "Run the core2core optimising pass"
     , dollar_min        = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr          = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , fpi_no_base       = False &= name "b" &= help "If fpi is applicable, don't generate the base case"
@@ -80,6 +80,6 @@ defParams = Params
     , dump_contracts    = False &= help "Dump the internal representation of contracts"
     , dump_subthys      = False &= help "Dump the subtheories needed for contracts"
     }
-    &= summary "Haskell Contracts Checker v0.1 Dan Rosén danr@student.gu.se"
+    &= summary "Haskell Contracts Checker v0.2 Dan Rosén danr@student.gu.se"
     &= program "hcc"
     &= verbosity
