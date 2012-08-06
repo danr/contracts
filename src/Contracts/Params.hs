@@ -14,9 +14,15 @@ data Params = Params
     , core_optimise     :: Bool
     , dollar_min        :: Bool
     , or_discr          :: Bool
+    , fpi_split         :: Bool
     , fpi_no_plain      :: Bool
     , fpi_no_base       :: Bool
     , quick_tptp        :: Bool
+
+    , no_skolemisation  :: Bool
+    , no_pull_quants    :: Bool
+    , case_lift_inner   :: Bool
+    , var_scrut_constr  :: Bool
 
     , db_float_out      :: Bool
     , db_ty_cons        :: Bool
@@ -41,6 +47,10 @@ data Params = Params
     }
   deriving (Show,Data,Typeable)
 
+sanitizeParams :: Params -> Params
+sanitizeParams p | no_skolemisation p = p { fpi_split = False }
+sanitizeParams p = p
+
 defParams :: Params
 defParams = Params
     { files             = []    &= args   &= typFile
@@ -54,9 +64,16 @@ defParams = Params
     , core_optimise     = False &= name "O" &= help "Run the core2core optimising pass"
     , dollar_min        = False &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , or_discr          = False &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
+    , fpi_split         = False &= name "s" &= help "Split into many goals when doing fpi"
     , fpi_no_base       = False &= name "b" &= help "If fpi is applicable, don't generate the base case"
     , fpi_no_plain      = False &= name "i" &= help "If fpi is applicable, don't generate without induction"
     , quick_tptp        = False &= name "Q" &= help "Enable quicker generation of TPTP with variable names from Uniques. Uses cnf and $min and writes no comments."
+
+    , no_skolemisation  = False &= groupname "\nTesting and comparison"
+                                &= help "Do not skolemise contract"
+    , no_pull_quants    = False &= help "Do not pull quantifiers as far up as possible"
+    , case_lift_inner   = False &= help "Lift all inner cases to top level"
+    , var_scrut_constr  = False &= help "Make a constraint instead of inlining var scrutinees"
 
     , db_float_out      = False &= groupname "\nDebugging output"
                                 &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"

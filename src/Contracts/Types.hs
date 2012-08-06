@@ -14,11 +14,19 @@ data Contract
     | And Contract Contract
     | Arrow Var Contract Contract
 
-telescope :: Contract -> ([(Var,Contract)],Contract)
+-- "Natural" numbers
+data Nat = S Nat | Z
+
+one,inf :: Nat
+one = S Z
+inf = S inf
+
+-- | Telescope down to a certain depth
+telescope :: Nat -> Contract -> ([(Var,Contract)],Contract)
 telescope = go []
   where
-    go acc (Arrow v c1 c2) = go ((v,c1):acc) c2
-    go acc c               = (reverse acc,c)
+    go acc (S d) (Arrow v c1 c2) = go ((v,c1):acc) d c2
+    go acc _     c               = (reverse acc,c)
 
 instance Show Contract where
     show CF              = "CF"

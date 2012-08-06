@@ -108,7 +108,7 @@ processFile params@Params{..} file = do
 
     us0 <- mkSplitUniqSupply 'c'
 
-    let ((lifted_prog,msgs_lift),us1) = caseLetLift floated_prog us0
+    let ((lifted_prog,msgs_lift),us1) = caseLetLift floated_prog case_lift_inner us0
 
     when db_lift          (printMsgs msgs_lift)
     when dump_lifted_core (printCore "Case/let lifted core" lifted_prog)
@@ -189,6 +189,7 @@ processFile params@Params{..} file = do
             -- ^ False for now, no good story about min and ext-eq
             , disjoint_booleans = True -- not squishy_booleans
             , or_discr          = or_discr
+            , var_scrut_constr  = var_scrut_constr
             }
 
         ((fix_prog,fix_info),_us4)
@@ -263,7 +264,7 @@ processFile params@Params{..} file = do
 main :: IO ()
 main = do
 
-    params@Params{..} <- cmdArgs defParams
+    params@Params{..} <- sanitizeParams <$> cmdArgs defParams
 
     when (null files) $ do
         putStrLn "No input files!"

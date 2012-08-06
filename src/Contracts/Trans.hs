@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards,NamedFieldPuns #-}
 {-
 
     Translates contracts in the datatypes in Contracts.Types to FOL
@@ -174,7 +174,8 @@ trFixated deps (Statement e c as _) f = local' (addSkolems as) $ do
         [ Conjecture tr_base  deps_base  FixpointBase | not fpi_no_base ] ++
         [ Conjecture tr_step  deps_step  FixpointStep ] ++
         [ Conjecture tr_split deps_split (FixpointStepSplit split_num)
-        | Split{..} <- splits
+        | fpi_split
+        , Split{..} <- splits
         , let -- Add the induction hypothesis
               tr_split = tr_hyp ++ split_clauses
               -- We take the dependencies in the contrcat using f_concl
@@ -202,7 +203,7 @@ trSplit expr contract = do
     -- We will equate the result of the function to the arguments to
     -- the contract
     let contract_args :: [Var]
-        contract_args = (map fst . fst . telescope) contract
+        contract_args = (map fst . fst . telescope inf) contract
 
     -- The contract only needs to be translated once
     (tr_contr,contr_deps) <- (axioms . splitFormula *** pointers)
@@ -268,14 +269,22 @@ trAssum :: CoreExpr -> Contract -> TransM [Clause']
 trAssum e f = clauseSplit hypothesis <$> trContract Pos Quantify e f
 
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
-trContract variance skolemise e_init contract = do
+trContract variance skolemise_init e_init contract = do
+
+    Params{no_pull_quants,no_skolemisation} <- getParams
+
+    -- Skolemise unless no_skolemisation is on
+    let skolemise
+            | no_skolemisation = Quantify
+            | otherwise        = skolemise_init
 
     -- We obtain all arguments (to the right of the last arrow), and
     -- bind them under the same quantifier. This makes somewhat
-    -- simpler theories.
-    let (arguments,result) = telescope contract
-        vars     = map fst arguments
-        e_result = foldl (@@) e_init (map Var vars)
+    -- simpler theories (unless no_pull_quants is set)
+    let depth              = if no_pull_quants then one else inf
+        (arguments,result) = telescope depth contract
+        vars               = map fst arguments
+        e_result           = foldl (@@) e_init (map Var vars)
 
     lift $ write $ "trContract (" ++ show skolemise ++ ")" ++ " " ++ show variance
                 ++ "\n    e_init    :" ++ showExpr e_init
@@ -302,8 +311,10 @@ trContract variance skolemise e_init contract = do
                 ex <- lift $ trExpr e_result
                 px <- lift $ trExpr p
                 return $ case variance of
-                    Neg -> min' ex /\ min' px /\ ex =/= unr /\ (px === false \/ px === bad)
-                    Pos -> min' ex ==> (min' px /\ (ex === unr \/ px === unr \/ px === true))
+                    Neg -> min' ex /\ min' px /\ ex =/= unr /\
+                                            (px === false \/ px === bad)
+                    Pos -> min' ex ==>
+                           (min' px /\ (ex === unr \/ px === unr \/ px === true))
 
             CF -> do
                 e_tr <- lift $ trExpr e_result
@@ -314,7 +325,9 @@ trContract variance skolemise e_init contract = do
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]
 
-            Arrow{} -> error "trContract : telescope didn't catch arrow (impossible)"
+            -- This case only happens when no_pull_quants is on
+            -- (see telescoping above)
+            Arrow{} -> trContract variance skolemise e_result result
 
         return $ tr_arguments ++ [tr_result]
 

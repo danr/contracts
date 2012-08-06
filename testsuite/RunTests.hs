@@ -97,8 +97,10 @@ main = do
     -- extra arguments to hcc
     hcc_args <- fromMaybe "" <$> readEnv "HCC_ARGS"
 
+    unless (null hcc_args) $ putStrLn $ "HCC_ARGS: " ++ hcc_args
+
     -- Generate all contracts
-    system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain "
+    system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain --fpi-split "
                 ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")
                 ++ (guard opt >> " --core-optimise ")
