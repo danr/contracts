@@ -44,24 +44,25 @@ parseOutput s
     | "Satisfiable"   `isInfixOf` s = Just SAT
     | otherwise = Nothing
 
+
+
 runKoentool :: String -> Int -> String -> IO (Maybe Res)
-runKoentool tool t file = timed t tool "" $
+runKoentool tool t file = timed t tool Nothing $
     ["--no-progress","--tstp",file]
 
 runEquinox = runKoentool "equinox"
 runParadox = runKoentool "paradox"
 
 runVampire t file = do
-    inp <- readFile file
-    timed t "vampire" inp $ ["--mode casc"]
+    timed t "vampire_lin32" (Just file) $ ["--mode","casc"]
 
-runEprover t file = timed t "eprover" ""
+runEprover t file = timed t "eprover" Nothing
     ["-tAuto","-xAuto","--tptp3-format","-s",file]
 
 runZ3 t file = do
     let regexp = "s/\\$min/min/g"
     [sh| sed $regexp $file > ${file}.z3 |]
-    timed t "z3" "" ["-tptp","-nw",file ++ ".z3"]
+    timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3"]
 
 equinox = ("equinox",runEquinox)
 paradox = ("paradox",runParadox)
@@ -232,8 +233,8 @@ regTimeout :: FilePath -> M ()
 regTimeout f = tell (Out [] [f])
 
 -- adapted from HipSpec.ATP.RunProver
-timed :: Int -> FilePath -> String -> [String] -> IO (Maybe Res)
-timed t cmd inp args = errHandle $ do
+timed :: Int -> FilePath -> (Maybe FilePath) -> [String] -> IO (Maybe Res)
+timed t cmd inf args = errHandle $ do
 
     (Just inh, Just outh, Just errh, pid) <-
          createProcess (proc cmd args)
@@ -251,9 +252,12 @@ timed t cmd inp args = errHandle $ do
         when (n > 0) $ hPutStrLn stderr $
             "*** " ++ cmd ++ " stderr: ***" ++ "\n" ++ err
 
-    unless (null inp) $ do
-        hPutStr inh inp
-        hFlush inh
+    case inf of
+        Just file -> do
+            inp <- readFile file
+            hPutStr inh inp
+            hFlush inh
+        Nothing -> return ()
 
     hClose inh
 
@@ -265,12 +269,16 @@ timed t cmd inp args = errHandle $ do
          -- wait on the process
          ex <- waitForProcess pid
          hClose outh
-         putMVar exit_code_mvar ex
+         putMVar exit_code_mvar (Just ex)
 
     kid <- forkIO $ do
          threadDelay (t * 1000 * 1000)
+         killThread tid
          terminateProcess pid
-         putMVar exit_code_mvar =<< waitForProcess pid
+         -- Vampire isn't quite easy to kill unfortunately,
+         -- so we can't wait for the process here
+         forkIO $ void $ waitForProcess pid
+         putMVar exit_code_mvar Nothing
 
     maybe_exit_code <- takeMVar exit_code_mvar
 
@@ -278,8 +286,8 @@ timed t cmd inp args = errHandle $ do
     killThread kid
 
     return $ case maybe_exit_code of
-                ExitSuccess -> parseOutput output
-                _           -> Nothing
+                Just ExitSuccess -> parseOutput output
+                _                -> Nothing
 
   where
 
