@@ -45,8 +45,12 @@ collectContracts program = runErrorT $ do
         (program',untranslated_stmts) = partitionEithers $ map pick program
           where
             pick :: CoreBind -> Either CoreBind (Var,CoreExpr)
-            pick (NonRec v e) | isStatementType v && isExportedId v = Right (v,e)
-            pick b                                                  = Left b
+            pick b = maybe (Left b) Right . msum . map (uncurry pick') $ vses
+              where vses = flattenBinds [b]
+
+            pick' :: Var -> CoreExpr -> Maybe (Var,CoreExpr)
+            pick' v e | isStatementType v && isExportedId v = Just (v,e)
+            pick' _ _                                       = Nothing
 
     (stmts,db_msgs) <- runCollectM $ do
         write "Collecting statements:"
