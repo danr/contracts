@@ -167,6 +167,8 @@ import Data.Map (Map)
 import Data.Maybe
 import Data.List
 
+import Control.Monad
+
 data ConRepr = ConRepr String [Elt]
 
 -- | For a constructor K with arguments d1..dn, check if
@@ -278,11 +280,21 @@ showModel ty_lookup Model{..} =
         app :: Elt -> Elt -> Elt
         app x y = fromMaybe (error "app") (M.lookup [x,y] app_map)
 
+        -- Looking up in the ty environment
+        lookup_ty :: String -> String -> t
+        lookup_ty u s = fromMaybe (error $ "lookup_ty " ++ u ++ ", miss: " ++ s)
+                                  (M.lookup s ty_lookup)
+
+
         skolems :: [(String,Elt,t)]
-        skolems = [ (s,e,fromMaybe (error $ "skolem type: " ++ s)
-                                   (M.lookup s ty_lookup))
+        skolems = [ (s,e,lookup_ty "skolem" s)
                   | Function (Skolem s) [([],e)] <- functions
                   ]
+
+        ptrs :: [(String,Elt,t)]
+        ptrs = [ (s,e,lookup_ty "ptrs" s)
+               | Function (Pointer s) [([],e)] <- functions
+               ]
 
     in  unlines $
             ["Skolems:",""] ++
@@ -291,45 +303,52 @@ showModel ty_lookup Model{..} =
                   ,"    " ++ sk ++ " = " ++ sk_elt
                   ,""]
                 | (sk,e,t) <- skolems
-                , let sk_elt = showElt ty_lookup skolems min_set reprs False e t
-                ]
+                , let sk_elt = showElt ty_lookup skolems ptrs min_set reprs False e t
+                ] ++
+            ["","Functions:",""] ++
+            [ unlines (map ("    " ++) (lines f_cnc))
+            | fun@(Function (OrigFunction f) _) <- functions
+            , let show_elt = showElt ty_lookup skolems ptrs min_set reprs True
+                  f_cnc = showFunTbl show_elt min_set fun (lookup_ty "functions" f)
+            ]
 
-{-
-Then print something like this:...
+            -- TODO : Put pointer functions here too...
 
-Skolems:
+data Repr
+    = Con String [Repr]
+    | Uninteresting
+    | Var String
+    | Meta Int
 
-   w :: [Nat]
-   w = ?1 = ?3 : ?1 = UNR : w
-
-   ?3 is not min, (and is UNR)
-
-   w :: [Nat]
-   w = _ : w
-
-   risers_concl w = ?5
-
-Fixed point induction functions:
-
-    Conclusion:
-
-
-    Hypothesis:
-
-Functions:
-
-
-
-Functions as pointers:
-
--}
+instance Show Repr where
+    showsPrec d r = case r of
+        Uninteresting -> showString "..."
+        Var s         -> showString s
+        Meta i        -> showChar '?' . showsPrec d i
+        Con s as      -> showParen (d > 10 && not (null as)) $
+            foldr1 (\u v -> u . showChar ' ' . v)
+                   (showString s:map (showsPrec 11) as)
 
 -- | Show an element!
+--
+--   QUESTION: Do we always want to print as a constructor rather than
+--   a skolem variable? Then instead of this:
+--       x = Zero
+--       y = Succ x
+--   we get:
+--       y = Succ Zero
+--
+--   But what about u = Succ w, and w = Succ u... Then we will get
+--   u = Succ (Succ u) and w = Succ (Succ w) and the relationship is lost.
+--
+--   Oh... We probably want to print it as as constructor if there is a nullary one
 showElt :: forall t . Typelike t
         => TyLookup t
         -- ^ A mapping from Strings to types
         -> [(String,Elt,t)]
         -- ^ Skolem representations
+        -> [(String,Elt,t)]
+        -- ^ Pointers representations
         -> (Elt -> Bool)
         -- ^ Min set
         -> [(Elt,ConRepr)]
@@ -341,36 +360,86 @@ showElt :: forall t . Typelike t
         -> t
         -- ^ At which type to show it
         -> String
-showElt ty_lookup skolems min_set reprs as_skolem_ok_init e ty
-    = go {- [(e,ty)] -} [] as_skolem_ok_init e ty
+showElt ty_lookup skolems ptrs min_set reprs as_skolem_ok_init e ty
+    = show $ head $ go [] as_skolem_ok_init e ty
   where
-    go :: [(Elt,t)] -> Bool -> Elt -> t -> String
-    go visited as_skolem_ok e@(Elt d) ty = head $ -- intercalate "/" $
+    go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
+    go visited as_skolem_ok e@(Elt d) ty =
         -- If it is not interesting, print it as _
-        [ "_" | not (min_set e) ] ++
+        [ Uninteresting | not (min_set e) ] ++
+
+        -- Try to print it as a nullary constructor
+        [ Con c []
+        | (e',ConRepr c []) <- reprs
+        , e' == e
+        , let con_ty = fromMaybe (error $ "showElt nullary ty con lookup: " ++ c)
+                                 (M.lookup c ty_lookup)
+        , con_ty `lg` ty
+        ] ++
 
         -- Try to print it as a skolem variable if that's ok
-        [ s | as_skolem_ok, (s,e',ty') <- skolems, e == e', eqTy ty ty' ] ++
+        [ Var s | as_skolem_ok, (s,e',ty') <- skolems, e == e', eqTy ty ty' ] ++
 
-        -- Try to print it as a pointer (TODO)
-        [] ++
+        -- Try to print it as a pointer
+        [ Var p | (p,e',ty') <- ptrs, e == e', eqTy ty ty' ] ++
 
-        -- Try to print it as a constructor
+        -- Try to print it as a constructor with arguments
         -- In the recursive case it's OK to write it as a skolem variable again
-        [ "(" ++ intercalate " " (c : zipWith (go ((e,ty):visited) True) es es_tys') ++ ")"
+        [ Con c arg_reprs
         | null (filter (\(e',ty') -> e' == e && eqTy ty' ty) visited)
         -- ^ Don't revisit when priting as a constructor
         , (e',ConRepr c es) <- reprs
+        , length es > 0
         , e' == e
         , let con_ty = fromMaybe (error $ "showElt ty lookup: " ++ c)
                                  (M.lookup c ty_lookup)
               (es_tys,res_ty) = peel (Arity (length es)) con_ty
         , res_ty `lg` ty
         , let es_tys' = map (unifySubst res_ty ty) es_tys
+        , arg_reprs <- zipWithM (go ((e,ty):visited) True) es es_tys'
         ] ++
 
         -- No reasonable information, print it as a metavariable
-        [ '?' : show d ]
+        [ Meta d ]
+
+type FunTblRepr = [([Repr],Repr)]
+
+showFunTbl :: Typelike t
+           => (Elt -> t -> String)
+           -- ^ How to show an element (from showElt)
+           -> (Elt -> Bool)
+           -- ^ Min set
+           -> Function
+           -- ^ The function
+           -> t
+           -- ^ The type of the function
+           -> String
+showFunTbl show_elt min_set fun ty =
+    let Function (OrigFunction f) tbl = fun
+        (ty_args,res_ty) = peel (lambdaArity fun) ty
+
+        str_tbl :: [([String],String)]
+        str_tbl = [ (zipWith show_elt args ty_args,show_elt res res_ty)
+                  | (args,res) <- tbl
+                  , min_set res ]
+
+        args :: [[String]]
+        args = fst (unzip str_tbl)
+
+        args_lengths :: [Int]
+        args_lengths = map (maximum . map length) (transpose args)
+
+        pad :: String -> Int -> String
+        pad s x = s ++ replicate (x - length s) ' '
+
+    in  unlines $
+            (f ++ " :: " ++ showTy ty) :
+            [ intercalate " " (f : zipWith pad args args_lengths ++ ["=",res])
+            | (args,res) <- str_tbl
+            ]
+
+
+
 
 
 {-

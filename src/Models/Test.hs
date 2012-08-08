@@ -5,6 +5,8 @@ import Models.Show
 import Models.ProtoType
 import Models.ParadoxParser hiding (bool)
 
+import System.Environment
+
 import qualified Data.Map as M
 import Data.Map (Map)
 
@@ -33,7 +35,8 @@ env = M.fromList
     ]
 
 main = do
-    m_txt <- readFile "small"
+    [f] <- getArgs
+    m_txt <- readFile f
     let m = parseParadoxModel m_txt
     putStrLn (showModel env m)
 

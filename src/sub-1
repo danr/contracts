@@ -1,0 +1,103 @@
+Paradox, version 4.0, 2010-06-29.
++++ PROBLEM: Subtraction.minus_cf_broken_step.tptp
+Reading 'Subtraction.minus_cf_broken_step.tptp' ... OK
++++ SOLVING: Subtraction.minus_cf_broken_step.tptp
+domain size 1
+domain size 2
+domain size 3
+domain size 4
+domain size 5
++++ BEGIN MODEL
+% domain size is 5
+
+'f_-_concl'(!1,!1) = !5
+'f_-_concl'(!1,!2) = !2
+'f_-_concl'(!1,!3) = !2
+'f_-_concl'(!1,!4) = !2
+'f_-_concl'(!1,!5) = !2
+'f_-_concl'(!2,!1) = !1
+'f_-_concl'(!2,!2) = !2
+'f_-_concl'(!2,!3) = !2
+'f_-_concl'(!2,!4) = !2
+'f_-_concl'(!2,!5) = !2
+'f_-_concl'(!3,!1) = !5
+'f_-_concl'(!3,!2) = !2
+'f_-_concl'(!3,!3) = !2
+'f_-_concl'(!3,!4) = !1
+'f_-_concl'(!3,!5) = !5
+'f_-_concl'(!4,!1) = !5
+'f_-_concl'(!4,!2) = !2
+'f_-_concl'(!4,!3) = !2
+'f_-_concl'(!4,!4) = !2
+'f_-_concl'(!4,!5) = !5
+'f_-_concl'(!5,!1) = !5
+'f_-_concl'(!5,!2) = !5
+'f_-_concl'(!5,!3) = !5
+'f_-_concl'(!5,!4) = !5
+'f_-_concl'(!5,!5) = !5
+
+'f_-_hyp'(!1,!1) = !1
+'f_-_hyp'(!1,!2) = !1
+'f_-_hyp'(!1,!3) = !3
+'f_-_hyp'(!1,!4) = !3
+'f_-_hyp'(!1,!5) = !5
+'f_-_hyp'(!2,!1) = !1
+'f_-_hyp'(!2,!2) = !2
+'f_-_hyp'(!2,!3) = !3
+'f_-_hyp'(!2,!4) = !2
+'f_-_hyp'(!2,!5) = !5
+'f_-_hyp'(!3,!1) = !1
+'f_-_hyp'(!3,!2) = !2
+'f_-_hyp'(!3,!3) = !2
+'f_-_hyp'(!3,!4) = !5
+'f_-_hyp'(!3,!5) = !5
+'f_-_hyp'(!4,!1) = !3
+'f_-_hyp'(!4,!2) = !3
+'f_-_hyp'(!4,!3) = !2
+'f_-_hyp'(!4,!4) = !2
+'f_-_hyp'(!4,!5) = !4
+'f_-_hyp'(!5,!1) = !5
+'f_-_hyp'(!5,!2) = !5
+'f_-_hyp'(!5,!3) = !5
+'f_-_hyp'(!5,!4) = !5
+'f_-_hyp'(!5,!5) = !5
+
+a_y = !3
+
+a_x = !4
+
+c_BAD = !1
+
+c_False = !3
+
+c_Succ(!1) = !5
+c_Succ(!2) = !2
+c_Succ(!3) = !4
+c_Succ(!4) = !5
+c_Succ(!5) = !5
+
+c_True = !2
+
+c_UNR = !2
+
+c_Zero = !3
+
+cf(!1) <=> $false
+cf(!2) <=> $true
+cf(!3) <=> $true
+cf(!4) <=> $true
+cf(!5) <=> $false
+
+min(!1) <=> $true
+min(!2) <=> $false
+min(!3) <=> $true
+min(!4) <=> $true
+min(!5) <=> $false
+
+p_0_Succ(!1) = !3
+p_0_Succ(!2) = !3
+p_0_Succ(!3) = !2
+p_0_Succ(!4) = !3
+p_0_Succ(!5) = !5
++++ END MODEL
++++ RESULT: Satisfiable

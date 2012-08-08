@@ -43,6 +43,8 @@ c_Succ(!6) = !4
 c_Succ(!7) = !8
 c_Succ(!8) = !7
 c_Succ(!9) = !1
+c_Succ(!10) = !1
+c_Succ(!11) = !1
 
 p_0_Succ(!1) = !3
 p_0_Succ(!2) = !1
@@ -53,14 +55,16 @@ p_0_Succ(!6) = !3
 p_0_Succ(!7) = !8
 p_0_Succ(!8) = !7
 p_0_Succ(!9) = !2
+p_0_Succ(!10) = !1
+p_0_Succ(!11) = !1
 
-c_BAD = !5
+c_BAD = !10
 
 c_False = !3
 
 c_True = !2
 
-c_UNR = !4
+c_UNR = !11
 
 cf(!1) <=> $true
 cf(!2) <=> $true
@@ -71,6 +75,8 @@ cf(!6) <=> $false
 cf(!7) <=> $false
 cf(!8) <=> $false
 cf(!9) <=> $false
+cf(!10) <=> $false
+cf(!11) <=> $false
 
 min(!1) <=> $true
 min(!2) <=> $true
@@ -81,4 +87,6 @@ min(!6) <=> $false
 min(!7) <=> $true
 min(!8) <=> $true
 min(!9) <=> $true
+min(!10) <=> $true
+min(!11) <=> $false
 +++ END MODEL

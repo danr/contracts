@@ -19,6 +19,23 @@ data Symbol
     -- ^ The app symbol
   deriving (Show,Eq,Ord)
 
+symbolString :: Symbol -> String
+symbolString s = case s of
+    OrigFunction s -> s
+    Constructor s  -> s
+    Skolem s       -> s
+    Projection _ s -> s
+    Pointer s      -> s
+    App            -> error "symbolString on app"
+
+isOrigFunction :: Symbol -> Bool
+isOrigFunction OrigFunction{} = True
+isOrigFunciton _              = False
+
+isPointer :: Symbol -> Bool
+isPointer Pointer{} = True
+isPointer _         = False
+
 data Pred = Min | CF
   deriving (Show,Eq,Ord)
 
