@@ -1,0 +1,84 @@
+
+x = Zero
+y = Succ x
+
+z = Succ z
+
+u = Succ w
+w = Succ u
+
+j = Succ (Succ j)
+         \- !8 -/
+
+k = ?? (no representation)
+
+t = not min, no Nat representation available
+
++++ BEGIN MODEL
+% domain size is 9
+a_x = !1
+
+a_y = !2
+
+a_z = !3
+
+a_u = !4
+
+a_w = !5
+
+a_t = !6
+
+a_j = !7
+
+a_k = !9
+
+c_Zero = !1
+
+c_Succ(!1) = !2
+c_Succ(!2) = !2
+c_Succ(!3) = !3
+c_Succ(!4) = !5
+c_Succ(!5) = !4
+c_Succ(!6) = !4
+c_Succ(!7) = !8
+c_Succ(!8) = !7
+c_Succ(!9) = !1
+
+p_0_Succ(!1) = !3
+p_0_Succ(!2) = !1
+p_0_Succ(!3) = !3
+p_0_Succ(!4) = !5
+p_0_Succ(!5) = !4
+p_0_Succ(!6) = !3
+p_0_Succ(!7) = !8
+p_0_Succ(!8) = !7
+p_0_Succ(!9) = !2
+
+c_BAD = !5
+
+c_False = !3
+
+c_True = !2
+
+c_UNR = !4
+
+cf(!1) <=> $true
+cf(!2) <=> $true
+cf(!3) <=> $true
+cf(!4) <=> $true
+cf(!5) <=> $false
+cf(!6) <=> $false
+cf(!7) <=> $false
+cf(!8) <=> $false
+cf(!9) <=> $false
+
+min(!1) <=> $true
+min(!2) <=> $true
+min(!3) <=> $true
+min(!4) <=> $true
+min(!5) <=> $true
+min(!6) <=> $false
+min(!7) <=> $true
+min(!8) <=> $true
+min(!9) <=> $true
++++ END MODEL
