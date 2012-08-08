@@ -3,7 +3,7 @@ module Models.Test where
 import Models.Model
 import Models.Show
 import Models.ProtoType
-import Models.ParadoxParser hiding (bool)
+import Models.ParadoxParser
 
 import System.Environment
 

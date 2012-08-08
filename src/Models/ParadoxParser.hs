@@ -107,7 +107,7 @@ p_1_Cons(!4) = !1
 +++ END MODEL
 
 -}
-module Models.ParadoxParser where
+module Models.ParadoxParser (parseParadoxModel) where
 
 import Control.Arrow
 
@@ -164,15 +164,16 @@ parseSymbol ('p':'_':i:j:'_':xs) = Projection (read [i,j]) xs
 parseSymbol ('a':'_':xs)         = Skolem xs
 parseSymbol ('p':'t':'r':'_':xs) = Pointer xs
 parseSymbol "app"                = App
-parseSymbol ('s':'K':xs)         = OrigFunction xs -- Actually skolem functions,
-parseSymbol xs =                                   -- but I am not sure what to
-   error $ "parseSymbol, not a symbol: " ++ xs     -- do with them right now.
+parseSymbol ('s':'K':xs)         = SkolemFunction xs
+parseSymbol xs =
+   error $ "parseSymbol, not a symbol: " ++ xs
 
 parsePredicate :: String -> Pred
-parsePredicate "min"  = Min
-parsePredicate "$min" = Min
-parsePredicate "cf"   = CF
-parsePredicate xs     = error $ "parsePredicate, not a predicate: " ++ xs
+parsePredicate "min"        = Min
+parsePredicate "$min"       = Min
+parsePredicate "cf"         = CF
+parsePredicate ('s':'P':xs) = SkolemPredicate xs
+parsePredicate xs           = error $ "parsePredicate, not a predicate: " ++ xs
 
 tabulate :: [String] -> Either Function Predicate
 tabulate rs@(r:_)

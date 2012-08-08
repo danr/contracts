@@ -21,6 +21,7 @@ import Halo.Binds
 import Halo.Conf
 import Halo.Class
 import Halo.Entry
+import Halo.FOL.Abstract
 import Halo.FOL.Linearise
 import Halo.FOL.Dump
 import Halo.FOL.MinAsNotUnr
@@ -35,6 +36,8 @@ import Halo.Subtheory
 import Halo.Trim
 import Halo.Util
 
+import Models.Pipe
+
 import Contracts.Axioms
 import Contracts.Collect
 import Contracts.FixpointInduction
@@ -48,6 +51,8 @@ import Control.Monad
 import Control.Monad.Reader
 
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as M
 
 import System.Exit
 import System.FilePath
@@ -221,15 +226,18 @@ processFile params@Params{..} file = do
             , style_dollar_min = dollar_min
             }
 
+        dumpTPTP' x = (dumpTPTP x,error "Can't dump tptp and print model!")
+
+        toTPTP :: [Clause'] -> [HCCSubtheory] -> (String,Map String Var)
         toTPTP extra_clauses
-            = (if quick_tptp then dumpTPTP
-                    else linStrStyleTPTP style_conf . renameClauses)
+            = (if quick_tptp then dumpTPTP'
+                    else first (linStrStyleTPTP style_conf) . renameClauses)
             . (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
             . (++ extra_clauses)
             . concatMap toClauses
 
-    when dump_tptp $ putStrLn (toTPTP [] subtheories)
+    when dump_tptp . putStrLn . fst $ toTPTP [] subtheories
 
     let specialised_trim = trim subtheories
 
@@ -249,17 +257,29 @@ processFile params@Params{..} file = do
                                conj_dependencies
                 subtheories' = specialised_trim important
 
-                tptp = toTPTP conj_clauses subtheories'
+                (tptp,rep_map) = toTPTP conj_clauses subtheories'
 
                 filename = show top_name ++ conjKindSuffix conj_kind ++ ".tptp"
 
-            whenNormal $ putStrLn $ "Writing " ++ show filename
+                write_file = do
+                    whenNormal $ putStrLn $ "Writing " ++ show filename
 
-            when dump_subthys $ do
-                putStrLn $ "Subtheories: "
-                mapM_ print subtheories'
+                    when dump_subthys $ do
+                        putStrLn $ "Subtheories: "
+                        mapM_ print subtheories'
 
-            writeFile filename tptp
+                    writeFile filename tptp
+
+
+            case paradox_file of
+                Just f
+                    | f == filename -> do
+                        write_file
+                        putStrLn $ "Piping this file " ++ f ++ " to paradox, wish me luck!"
+                        let env = M.map varType rep_map
+                        pipe env f
+                    | otherwise -> return ()
+                Nothing -> write_file
 
 main :: IO ()
 main = do

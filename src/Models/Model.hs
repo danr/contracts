@@ -11,6 +11,8 @@ data Symbol
     -- ^ A constructor
     | Skolem String
     -- ^ A skolem variable
+    | SkolemFunction String
+    -- ^ A skolem function
     | Projection Int String
     -- ^ Projecting a constructor on some coordinate
     | Pointer String
@@ -21,12 +23,13 @@ data Symbol
 
 symbolString :: Symbol -> String
 symbolString s = case s of
-    OrigFunction s -> s
-    Constructor s  -> s
-    Skolem s       -> s
-    Projection _ s -> s
-    Pointer s      -> s
-    App            -> error "symbolString on app"
+    OrigFunction s   -> s
+    Constructor s    -> s
+    Skolem s         -> s
+    Projection _ s   -> s
+    Pointer s        -> s
+    SkolemFunction s -> s
+    App              -> error "symbolString on app"
 
 isOrigFunction :: Symbol -> Bool
 isOrigFunction OrigFunction{} = True
@@ -36,7 +39,7 @@ isPointer :: Symbol -> Bool
 isPointer Pointer{} = True
 isPointer _         = False
 
-data Pred = Min | CF
+data Pred = Min | CF | SkolemPredicate String
   deriving (Show,Eq,Ord)
 
 type FunTable = [([Elt],Elt)]

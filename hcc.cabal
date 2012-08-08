@@ -28,13 +28,8 @@ executable          hcc
         bimap          >= 0.2,
         ghc-paths      >= 0.1,
         filepath       >= 1.0,
-        dlist          >= 0.5
+        dlist          >= 0.5,
 
-executable          paramod
-    ghc-options:    -O2
-    hs-source-dirs: src
-    main-is:        Paramod.hs
-
-    build-depends:
-        base           >= 4    && < 5,
+        -- Printing models and running paradox
+        process        >= 1.0,
         split          >= 0.1

@@ -214,8 +214,8 @@ class Typelike t where
     peel  :: Arity -> t -> ([t],t)
 
     -- | The "type-arity" (in constrast to the "lambda-arity") of a function
-    --   (@length . fst . splitFunTys@)
     arity :: t -> Arity
+    arity = Arity . length . fst . split
 
     -- | Split a type into its arguments and result types (@splitFunTys@)
     split :: t -> ([t],t)
@@ -300,16 +300,16 @@ showModel ty_lookup Model{..} =
             ["Skolems:",""] ++
             concat
                 [ ["    " ++ sk ++ " :: " ++ showTy t
-                  ,"    " ++ sk ++ " = " ++ sk_elt
+                  ,"    " ++ sk ++ " = " ++ show sk_elt
                   ,""]
                 | (sk,e,t) <- skolems
-                , let sk_elt = showElt ty_lookup skolems ptrs min_set reprs False e t
+                , let sk_elt = eltRepr ty_lookup skolems ptrs min_set reprs False e t
                 ] ++
             ["","Functions:",""] ++
             [ unlines (map ("    " ++) (lines f_cnc))
             | fun@(Function (OrigFunction f) _) <- functions
-            , let show_elt = showElt ty_lookup skolems ptrs min_set reprs True
-                  f_cnc = showFunTbl show_elt min_set fun (lookup_ty "functions" f)
+            , let elt_repr = eltRepr ty_lookup skolems ptrs min_set reprs True
+                  f_cnc = showFunTbl elt_repr min_set fun (lookup_ty "functions" f)
             ]
 
             -- TODO : Put pointer functions here too...
@@ -325,11 +325,11 @@ instance Show Repr where
         Uninteresting -> showString "..."
         Var s         -> showString s
         Meta i        -> showChar '?' . showsPrec d i
-        Con s as      -> showParen (d > 10 && not (null as)) $
+        Con s as      -> showParen (d >= 10 && not (null as)) $
             foldr1 (\u v -> u . showChar ' ' . v)
-                   (showString s:map (showsPrec 11) as)
+                   (showString s:map (showsPrec 10) as)
 
--- | Show an element!
+-- | Find a good representation for an element at some type
 --
 --   QUESTION: Do we always want to print as a constructor rather than
 --   a skolem variable? Then instead of this:
@@ -342,7 +342,7 @@ instance Show Repr where
 --   u = Succ (Succ u) and w = Succ (Succ w) and the relationship is lost.
 --
 --   Oh... We probably want to print it as as constructor if there is a nullary one
-showElt :: forall t . Typelike t
+eltRepr :: forall t . Typelike t
         => TyLookup t
         -- ^ A mapping from Strings to types
         -> [(String,Elt,t)]
@@ -359,9 +359,9 @@ showElt :: forall t . Typelike t
         -- ^ The element to show
         -> t
         -- ^ At which type to show it
-        -> String
-showElt ty_lookup skolems ptrs min_set reprs as_skolem_ok_init e ty
-    = show $ head $ go [] as_skolem_ok_init e ty
+        -> Repr
+eltRepr ty_lookup skolems ptrs min_set reprs as_skolem_ok_init e ty
+    = head $ go [] as_skolem_ok_init e ty
   where
     go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
     go visited as_skolem_ok e@(Elt d) ty =
@@ -405,8 +405,8 @@ showElt ty_lookup skolems ptrs min_set reprs as_skolem_ok_init e ty
 type FunTblRepr = [([Repr],Repr)]
 
 showFunTbl :: Typelike t
-           => (Elt -> t -> String)
-           -- ^ How to show an element (from showElt)
+           => (Elt -> t -> Repr)
+           -- ^ How to represent an element (from eltRepr)
            -> (Elt -> Bool)
            -- ^ Min set
            -> Function
@@ -414,12 +414,16 @@ showFunTbl :: Typelike t
            -> t
            -- ^ The type of the function
            -> String
-showFunTbl show_elt min_set fun ty =
+showFunTbl elt_repr min_set fun ty =
     let Function (OrigFunction f) tbl = fun
         (ty_args,res_ty) = peel (lambdaArity fun) ty
 
+        show_arg e t = showsPrec 10 (elt_repr e t) ""
+
+        show_res e t = show (elt_repr e t)
+
         str_tbl :: [([String],String)]
-        str_tbl = [ (zipWith show_elt args ty_args,show_elt res res_ty)
+        str_tbl = [ (zipWith show_arg args ty_args,show_res res res_ty)
                   | (args,res) <- tbl
                   , min_set res ]
 

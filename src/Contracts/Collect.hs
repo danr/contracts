@@ -1,23 +1,24 @@
 {-
+
     This module collects the contracts in the source file and turns
     them into hcc's internal reperesantion of contracts,
     i.e. translating the higher order abstract syntax that is used.
 
     The inliner must be run before, otherwise this will throw errors
+
 -}
-
-
-
 module Contracts.Collect where
 
-import Var hiding (varName)
+import CoreFVs
+import CoreSyn
+import CoreUtils
+import Id
 import Name
 import SrcLoc
-import Id
-import CoreSyn
-import UniqSupply
-import CoreFVs
+import Type
 import UniqSet
+import UniqSupply
+import Var hiding (varName)
 
 import Contracts.SrcRep
 import Contracts.Types
@@ -99,8 +100,8 @@ mkStatement :: Bool -> CoreExpr -> CollectM ([HCCContent],Statement)
 mkStatement in_tree e = do
     let (_ty,args,e_stripped) = collectTyAndValBinders e
     write $ "Translating statement " ++ showExpr e ++ " with arguments " ++ show args
-    case trimTyApp e_stripped of
-        Just (Var x,[f,c]) | isStatementCon x -> do
+    case collectArgs e_stripped of
+        (Var x,[_c_ty,f,c]) | isStatementCon x -> do
             write $ "A contract for: " ++ showExpr f ++ "."
             contr <- mkContract f c
             let ty_deps = Data <$> freeTyCons f :: [HCCContent]
@@ -108,7 +109,7 @@ mkStatement in_tree e = do
             let dict_deps = dictDeps f :: [HCCContent]
             write $ "Dict deps: " ++ show dict_deps
             return $ (ty_deps ++ dict_deps,Statement f contr args [])
-        Just (Var x,[s,u]) | isStatementUsing x ->
+        (Var x,[s,u]) | isStatementUsing x ->
             if in_tree
                 then do
                     write $ "A skipped tree using: " ++ showExpr u
@@ -133,23 +134,25 @@ refresh v = setVarUnique v <$> (lift $ lift $ lift $ getUniqueM)
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
     write $ showExpr f ++ ": " ++ showExpr e
-    case trimTyApp e of
-        Just (Var x,[])  | isContrCF x -> return CF
-        Just (Var x,[p]) | isContrPred x -> return (Pred (p @@ f))
+    case collectArgs e of
+        (Var x,[_cf_ty])     | isContrCF x -> return CF
+        (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
 
-        Just (Var x,[e1,Lam y e2]) | isContrPi x -> do
+        (Var x,[_c1_ty,_c2_ty,e1,Lam y e2]) | isContrPi x -> do
             y' <- refresh y
             Arrow y' <$> mkContract (Var y') (subst e1 y y')
                      <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
 
-        Just (Var x,[e1,e2])
+        (Var x,[Type c1_ty,_c2_ty,e1,e2])
             | isContrArr x -> do
-                v <- mkFreshVar
+                v <- mkFreshVar c1_ty
                 Arrow v <$> mkContract (Var v) e1
                         <*> mkContract (f @@ Var v) e2
+
+        (Var x,[_and_ty,e1,e2])
             | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
 
-        Just (Lam x e',[]) | isTyVar x -> do
+        (Lam x e',[]) | isTyVar x -> do
             write $ "Skipping lambda of a type variable"
             mkContract f e'
 
@@ -157,15 +160,21 @@ mkContract f e = do
                      " when making a contract for " ++ showExpr f ++
                      "\n  current trimmedTyApp was" ++ showOutputable t
 
+-- from e :: Contract a
+-- to Contract a
+-- to (Contract,a)
+-- to a
+contractType :: CoreExpr -> Type
+contractType = snd . splitAppTy . exprType
 
-mkFreshVar :: CollectM Var
-mkFreshVar = do
+mkFreshVar :: Type -> CollectM Var
+mkFreshVar ty = do
     v <- gets head
+    write $ "Making a fresh variable " ++ v ++ " with type " ++ showOutputable ty
     modify tail
     u <- lift $ lift $ lift $ getUniqueM
     let name = mkInternalName u (mkOccName varName v) wiredInSrcSpan
-    return (mkVanillaGlobal name ty_err)
-  where ty_err = error "mkFreshVar type"
+    return (mkVanillaGlobal name ty)
 
 write :: String -> CollectM ()
 write = tell . return
