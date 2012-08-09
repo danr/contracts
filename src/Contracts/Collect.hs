@@ -126,11 +126,6 @@ mkStatement in_tree e = do
                                          })
         _ -> throw $ "Error: Invalid statement " ++ showExpr e_stripped
 
--- | Updates the unique in a Var: i.e. make it different from the one
---   we had, but otherwise identical.
-refresh :: Var -> CollectM Var
-refresh v = setVarUnique v <$> (lift $ lift $ lift $ getUniqueM)
-
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
     write $ showExpr f ++ ": " ++ showExpr e
@@ -138,8 +133,8 @@ mkContract f e = do
         (Var x,[_cf_ty])     | isContrCF x -> return CF
         (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
 
-        (Var x,[_c1_ty,_c2_ty,e1,Lam y e2]) | isContrPi x -> do
-            y' <- refresh y
+        (Var x,[Type c1_ty,_c2_ty,e1,Lam y e2]) | isContrPi x -> do
+            y' <- refresh y c1_ty
             Arrow y' <$> mkContract (Var y') (subst e1 y y')
                      <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
 
@@ -166,6 +161,12 @@ mkContract f e = do
 -- to a
 contractType :: CoreExpr -> Type
 contractType = snd . splitAppTy . exprType
+
+-- | Updates the unique in a Var and Type: i.e. make it different from
+--   the one we had, but otherwise identical.
+refresh :: Var -> Type -> CollectM Var
+refresh v ty = (`setVarType` ty) . setVarUnique v
+            <$> (lift $ lift $ lift $ getUniqueM)
 
 mkFreshVar :: Type -> CollectM Var
 mkFreshVar ty = do

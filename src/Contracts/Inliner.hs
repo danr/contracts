@@ -214,7 +214,7 @@ apply :: [Var] -> [CoreExpr] -> CoreExpr -> CoreExpr
 apply [] [] e = e
 apply xs [] e = foldr Lam e xs
 apply [] es e = foldl App e es
-apply (x:xs) (ex:es) e = apply xs es (substExp e x ex)
+apply (x:xs) (ex:es) e = substExp (apply xs es e) x ex
 
 -- | Inline a group of bindings
 inlineBind :: CoreBind -> InlineM CoreBind
