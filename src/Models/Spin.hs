@@ -13,8 +13,7 @@
 module Models.Spin where
 
 import Control.Monad
-import qualified Data.Map as M
-import Data.Map (Map)
+import Control.Applicative
 
 import Models.Model
 
@@ -29,11 +28,11 @@ arguments d (Arity n) = replicateM n (domain d)
 -- | Spins around the app table, under a given arity and domain size.
 --   Starts from one domain element, and uses the app table repeatedly.
 spinner :: DomSize -> Arity -> Elt -> (Elt -> Elt -> Elt) -> FunTable
-spinner d n e app = map ((,) `ap` spun) (arguments d n)
+spinner d n e app = map ((,) <*> spun) (arguments d n)
   where
     spun :: [Elt] -> Elt
     spun = spin e
 
     spin :: Elt -> [Elt] -> Elt
     spin f (x:xs) = spin (app f x) xs
-    spin e []     = e
+    spin f []     = f

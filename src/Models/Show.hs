@@ -252,10 +252,7 @@ class Typelike t where
 
 type TyLookup t = Map String t
 
--- | Environment needed
---
---       Map String t
---
+-- | Environment needed is a map from the strings in the model to types
 showModel :: forall t . Typelike t => TyLookup t -> Model -> String
 showModel ty_lookup Model{..} =
 
@@ -287,14 +284,31 @@ showModel ty_lookup Model{..} =
 
 
         skolems :: [(String,Elt,t)]
-        skolems = [ (s,e,lookup_ty "skolem" s)
-                  | Function (Skolem s) [([],e)] <- functions
-                  ]
+        skolems =
+            [ (s,e,lookup_ty "skolem" s)
+            | Function (Skolem s) [([],e)] <- functions
+            ]
 
         ptrs :: [(String,Elt,t)]
-        ptrs = [ (s,e,lookup_ty "ptrs" s)
-               | Function (Pointer s) [([],e)] <- functions
-               ]
+        ptrs =
+            [ (s,e,lookup_ty "ptrs" s)
+            | Function (Pointer s) [([],e)] <- functions
+            ]
+
+        unspun_pointers :: [Function]
+        unspun_pointers =
+            [ Function (Fun sk) (spinner dom_size a e app)
+            | (sk,e,t) <- skolems
+            , let a@(Arity n) = arity t
+            , n > 0
+            ]
+
+        show_funs fs =
+            [ unlines (map ("    " ++) (lines f_cnc))
+            | fun@(Function (Fun f) _) <- fs
+            , let elt_repr = eltRepr ty_lookup skolems ptrs min_set reprs True
+                  f_cnc = showFunTbl elt_repr min_set fun (lookup_ty "functions" f)
+            ]
 
     in  unlines $
             ["Skolems:",""] ++
@@ -304,13 +318,11 @@ showModel ty_lookup Model{..} =
                   ,""]
                 | (sk,e,t) <- skolems
                 , let sk_elt = eltRepr ty_lookup skolems ptrs min_set reprs False e t
+                , arity t == 0
                 ] ++
-            ["","Functions:",""] ++
-            [ unlines (map ("    " ++) (lines f_cnc))
-            | fun@(Function (OrigFunction f) _) <- functions
-            , let elt_repr = eltRepr ty_lookup skolems ptrs min_set reprs True
-                  f_cnc = showFunTbl elt_repr min_set fun (lookup_ty "functions" f)
-            ]
+            ["","Skolem pointers:",""] ++ show_funs unspun_pointers ++
+            ["","Functions:",""] ++ show_funs functions
+
 
             -- TODO : Put pointer functions here too...
 
@@ -361,8 +373,8 @@ eltRepr :: forall t . Typelike t
         -> t
         -- ^ At which type to show it
         -> Repr
-eltRepr ty_lookup skolems ptrs min_set reprs as_skolem_ok_init
-    = (head .) . go [] as_skolem_ok_init
+eltRepr ty_lookup skolems ptrs min_set reprs
+    = ((head .) .) . go []
   where
     go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
     go visited as_skolem_ok e@(Elt d) ty =
@@ -416,7 +428,7 @@ showFunTbl :: Typelike t
            -- ^ The type of the function
            -> String
 showFunTbl elt_repr min_set fun ty =
-    let Function (OrigFunction f) tbl = fun
+    let Function (Fun f) tbl = fun
         (ty_args,res_ty) = peel (lambdaArity fun) ty
 
         show_arg e t = showsPrec 10 (elt_repr e t) ""
@@ -428,11 +440,11 @@ showFunTbl elt_repr min_set fun ty =
                   | (args,res) <- tbl
                   , min_set res ]
 
-        args :: [[String]]
-        args = fst (unzip str_tbl)
-
         args_lengths :: [Int]
         args_lengths = map (maximum . map length) (transpose args)
+          where
+            args :: [[String]]
+            args = fst (unzip str_tbl)
 
         pad :: String -> Int -> String
         pad s x = s ++ replicate (x - length s) ' '
@@ -443,69 +455,3 @@ showFunTbl elt_repr min_set fun ty =
             | (args,res) <- str_tbl
             ]
 
-
-
-
-
-{-
-
--- Old stuff:
-
--- | Show an element at a particular type, priority:
---
---      * As a skolem variable with this type
---      * As a pointer with this type
---      * As a constructor with this type
---      * As a meta-variable
---
---   When printing things as a constructor, we must not
---   go into a loop...
-showEltAtType :: Typelike t => Elt -> t -> String
-showEltAtType (Elt d) ty =
-
--- | We will need a map from strings to these types (think varType . M.lookup)
-showFunction :: Typelike t => Function -> Map String t -> t -> (Elt -> Bool) -> String
-showFunction fn@(Function f tbl) ty min_set =
-    [ unwords (show f : zipWith showEltAtType args arg_tys
-                ++ ["=",showEltAtType res res_ty]
-                ++ (guard (min_set res) >> "(min)"))
-    | (args,res) <- tbl
-    ]
-  where
-    (arg_tys,res_ty) = peel (arity fn) ty
-
-showModel :: Int -> [Table] -> String
-showModel size tbls = unlines $
-    [ sym ++ " = " ++ val
-    | i <- [1..size]
-    , let sym = '!':show i
-          val = showVal i
-    , sym /= val
-    ] ++
-    "" :
-    [ showSym sym ++ " = " ++ showVal i
-    | Func sym [([],i)] <- tbls
-    ] ++
-    "" :
-    [ twiggle b ++ show pred ++ "(" ++ showVal i ++ ")"
-    | Pred pred tbl <- tbls
-    , (i,b) <- tbl
-    ]
-  where
-    showSym (OrigFunction s) = s
-    showSym (Constructor s)  = s
-    showSym (Skolem s)       = s
-    showSym App              = "app"
-    showSym (Pointer s)      = "ptr_" ++ s
-    showSym (Projection i s) = "proj_" ++ show i ++ "_" ++ s
-
-    twiggle True  = " "
-    twiggle False = "~"
-
-    showVal i = (intercalate "/" . map show) (Meta i : alts)
-      where
-        alts = (map snd . filter ((i ==) . fst)) reprs
-
-    reprs = constructorReprs tbls
-
-    -}

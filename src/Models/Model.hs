@@ -1,12 +1,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Models.Model where
 
-import Data.Map (Map)
-
 -- | We call everything that is deemed a function in FOL a Symbol here
 data Symbol
-    = OrigFunction String
-    -- ^ An original function, i.e., a function in the GHC Core
+    = Fun String
+    -- ^ A function from GHC core or an unspun pointer
     | Constructor String
     -- ^ A constructor
     | Skolem String
@@ -20,24 +18,6 @@ data Symbol
     | App
     -- ^ The app symbol
   deriving (Show,Eq,Ord)
-
-symbolString :: Symbol -> String
-symbolString s = case s of
-    OrigFunction s   -> s
-    Constructor s    -> s
-    Skolem s         -> s
-    Projection _ s   -> s
-    Pointer s        -> s
-    SkolemFunction s -> s
-    App              -> error "symbolString on app"
-
-isOrigFunction :: Symbol -> Bool
-isOrigFunction OrigFunction{} = True
-isOrigFunciton _              = False
-
-isPointer :: Symbol -> Bool
-isPointer Pointer{} = True
-isPointer _         = False
 
 data Pred = Min | CF | SkolemPredicate String
   deriving (Show,Eq,Ord)
@@ -67,7 +47,7 @@ newtype Elt = Elt Int
 newtype DomSize = DomSize Int
   deriving (Eq,Ord,Show,Enum,Num)
 
-newtype Arity = Arity Int
+newtype Arity = Arity { getArity :: Int }
   deriving (Eq,Ord,Show,Enum,Num)
 
 data Model = Model

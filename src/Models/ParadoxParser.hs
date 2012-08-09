@@ -114,9 +114,6 @@ import Control.Arrow
 import Data.Either
 import Data.List
 import Data.List.Split -- split
-import Data.Map (Map)
-import qualified Data.Map as M
-import Data.Maybe
 
 
 import Models.Model
@@ -142,14 +139,7 @@ domainSize :: RawModel -> (DomSize,RawModel)
 domainSize (x:xs) = (DomSize (read str),xs)
   where
     '%':' ':'d':'o':'m':'a':'i':'n':' ':'s':'i':'z':'e':' ':'i':'s':' ':str = x
-
-isProj :: Symbol -> Bool
-isProj Projection{} = True
-isProj _            = False
-
-isCon :: Symbol -> Bool
-isCon Constructor{} = True
-isCon _             = False
+domainSize _ = error "domainSize: empty model?"
 
 tabulateModel :: RawModel -> ([Function],[Predicate])
 tabulateModel = partitionEithers . map tabulate
@@ -157,7 +147,7 @@ tabulateModel = partitionEithers . map tabulate
 
 parseSymbol :: String -> Symbol
 parseSymbol ('\'':xs)            = parseSymbol (reverse . drop 1 . reverse $ xs)
-parseSymbol ('f':'_':xs)         = OrigFunction xs
+parseSymbol ('f':'_':xs)         = Fun xs
 parseSymbol ('c':'_':xs)         = Constructor xs
 parseSymbol ('p':'_':i:'_':xs)   = Projection (read [i]) xs
 parseSymbol ('p':'_':i:j:'_':xs) = Projection (read [i,j]) xs
@@ -181,9 +171,11 @@ tabulate rs@(r:_)
     | otherwise             = Left (tabFunc parsed_rows)
   where
     parsed_rows = map parseRow rs
+tabulate _ = error "tabulate: empty table"
 
 elt :: String -> Elt
 elt ('!':xs) = Elt (read xs)
+elt xs       = error $ "elt, not an elt: " ++ xs
 
 bool :: String -> Bool
 bool "$true"  = True
@@ -210,6 +202,7 @@ tabFunc (unzip -> ((s:_),xs)) = Function
     { function  = parseSymbol s
     , fun_table = map (second elt) xs
     }
+tabFunc _ = error "tabFunc: no rows to parse"
 
 -- | Tabulates a predicate
 tabPred :: [ParsedRow] -> Predicate
@@ -217,6 +210,7 @@ tabPred (unzip -> ((p:_),xs)) = Predicate
     { predicate  = parsePredicate p
     , pred_table = map (second bool) xs
     }
+tabPred _ = error "tabPred: no rows to parse"
 
 -- | Tests `parseRow', should all be true
 parseRowTests :: [Bool]
