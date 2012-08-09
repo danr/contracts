@@ -256,14 +256,19 @@ type TyLookup t = Map String t
 showModel :: forall t . Typelike t => TyLookup t -> Model -> String
 showModel ty_lookup Model{..} =
 
-    let min_set_map = M.fromList
-            [ (d,is_min)
-            | Predicate Min tbl <- predicates
-            , ([d],is_min) <- tbl
+    let min_set,cf :: Elt -> Bool
+        [min_set,cf] =
+            [ let pred_map = M.fromList
+                      [ (d,b)
+                      | Predicate p' tbl <- predicates
+                      , p' == p
+                      , ([d],b) <- tbl
+                      ]
+              in \ x -> fromMaybe (error $ "showModel, missing entry for "
+                                                ++ show x ++ " in " ++ show p)
+                                  (M.lookup x pred_map)
+            | p <- [Min,CF]
             ]
-
-        min_set :: Elt -> Bool
-        min_set x = fromMaybe (error "min_set") (M.lookup x min_set_map)
 
         -- NB: multiset, an elt can have different representations at
         -- different types.
@@ -304,22 +309,19 @@ showModel ty_lookup Model{..} =
             ]
 
         show_funs fs =
-            [ unlines (map ("    " ++) (lines f_cnc))
+            [ f_cnc
             | fun@(Function (Fun f) _) <- fs
             , let elt_repr = eltRepr ty_lookup skolems ptrs min_set reprs True
-                  f_cnc = showFunTbl elt_repr min_set fun (lookup_ty "functions" f)
+                  f_cnc = showFunTbl elt_repr min_set cf fun (lookup_ty "functions" f)
             ]
 
     in  unlines $
             ["Skolems:",""] ++
-            concat
-                [ ["    " ++ sk ++ " :: " ++ showTy t
-                  ,"    " ++ sk ++ " = " ++ show sk_elt
-                  ,""]
-                | (sk,e,t) <- skolems
-                , let sk_elt = eltRepr ty_lookup skolems ptrs min_set reprs False e t
-                , arity t == 0
-                ] ++
+            [ showStrTbl [([],(cf e,show sk_repr))] sk t
+            | (sk,e,t) <- skolems
+            , let sk_repr = eltRepr ty_lookup skolems ptrs min_set reprs False e t
+            , arity t == 0
+            ] ++
             ["","Skolem pointers:",""] ++ show_funs unspun_pointers ++
             ["","Functions:",""] ++ show_funs functions
 
@@ -336,8 +338,8 @@ instance Show Repr where
     showsPrec d r = case r of
         Uninteresting -> showString "..."
         Var s         -> showString s
-        Meta i _tystr -> {- showParen (d >= 10) $ -}
-            showChar '?' . showsPrec d i {- . showString " :: " . showString ty_str -}
+        Meta i ty_str -> showParen (d >= 10) $
+            showChar '?' . showsPrec d i . showString " :: " . showString ty_str
         Con s as      -> showParen (d >= 10 && not (null as)) $
             foldr1 (\u v -> u . showChar ' ' . v)
                    (showString s:map (showsPrec 10) as)
@@ -422,12 +424,14 @@ showFunTbl :: Typelike t
            -- ^ How to represent an element (from eltRepr)
            -> (Elt -> Bool)
            -- ^ Min set
+           -> (Elt -> Bool)
+           -- ^ CF
            -> Function
            -- ^ The function
            -> t
            -- ^ The type of the function
            -> String
-showFunTbl elt_repr min_set fun ty =
+showFunTbl elt_repr min_set cf fun ty =
     let Function (Fun f) tbl = fun
         (ty_args,res_ty) = peel (lambdaArity fun) ty
 
@@ -435,12 +439,15 @@ showFunTbl elt_repr min_set fun ty =
 
         show_res e t = show (elt_repr e t)
 
-        str_tbl :: [([String],String)]
-        str_tbl = [ (zipWith show_arg args ty_args,show_res res res_ty)
+        str_tbl = [ (zipWith show_arg args ty_args,(cf res,show_res res res_ty))
                   | (args,res) <- tbl
                   , min_set res ]
 
-        args_lengths :: [Int]
+    in  showStrTbl str_tbl f ty
+
+showStrTbl :: Typelike t => [([String],(Bool,String))] -> String -> t -> String
+showStrTbl str_tbl f ty =
+    let args_lengths :: [Int]
         args_lengths = map (maximum . map length) (transpose args)
           where
             args :: [[String]]
@@ -449,9 +456,16 @@ showFunTbl elt_repr min_set fun ty =
         pad :: String -> Int -> String
         pad s x = s ++ replicate (x - length s) ' '
 
-    in  unlines $
+        showCF True = ' '
+        showCF False = '#'
+
+    in  indent $
             (f ++ " :: " ++ showTy ty) :
-            [ intercalate " " (f : zipWith pad args args_lengths ++ ["=",res])
-            | (args,res) <- str_tbl
+            [ intercalate " "
+                (f : zipWith pad args args_lengths ++ [showCF cf:"=",res])
+            | (args,(cf,res)) <- str_tbl
             ]
+
+indent :: [String] -> String
+indent = unlines . map ("    " ++)
 
