@@ -40,4 +40,6 @@ shrink_cf = shrink
     ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF
 
 broken_shrink_lazy = shrink_lazy
-    ::: (CF --> CF --> CF) --> CF :&: Pred nonEmpty :&: Pred (all isJust) --> CF
+    ::: (CF --> CF --> CF) :->
+        \ op -> CF :&: Pred nonEmpty :&: Pred (all isJust) :->
+        \ xs -> CF
