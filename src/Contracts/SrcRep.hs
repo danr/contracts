@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 module Contracts.SrcRep where
 
 import Var
@@ -13,7 +14,10 @@ contrStrWith :: String -> String -> Bool
 contrStrWith end str = "Contracts." `isPrefixOf` str && end `isSuffixOf` str
 
 statementType :: Type -> Bool
-statementType = contrStrWith "Statement" . showSDoc . ppr
+statementType ty
+    | Just (ty_con,[_ty]) <- splitTyConApp_maybe ty
+        = contrStrWith "Statement" . showSDoc . ppr $ ty_con
+    | otherwise = False
 
 isStatementType :: Var -> Bool
 isStatementType v =

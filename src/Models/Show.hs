@@ -318,13 +318,14 @@ data Repr
     = Con String [Repr]
     | Uninteresting
     | Var String
-    | Meta Int
+    | Meta Int String
 
 instance Show Repr where
     showsPrec d r = case r of
         Uninteresting -> showString "..."
         Var s         -> showString s
-        Meta i        -> showChar '?' . showsPrec d i
+        Meta i _tystr -> {- showParen (d >= 10) $ -}
+            showChar '?' . showsPrec d i {- . showString " :: " . showString ty_str -}
         Con s as      -> showParen (d >= 10 && not (null as)) $
             foldr1 (\u v -> u . showChar ' ' . v)
                    (showString s:map (showsPrec 10) as)
@@ -360,8 +361,8 @@ eltRepr :: forall t . Typelike t
         -> t
         -- ^ At which type to show it
         -> Repr
-eltRepr ty_lookup skolems ptrs min_set reprs as_skolem_ok_init e ty
-    = head $ go [] as_skolem_ok_init e ty
+eltRepr ty_lookup skolems ptrs min_set reprs as_skolem_ok_init
+    = (head .) . go [] as_skolem_ok_init
   where
     go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
     go visited as_skolem_ok e@(Elt d) ty =
@@ -400,7 +401,7 @@ eltRepr ty_lookup skolems ptrs min_set reprs as_skolem_ok_init e ty
         ] ++
 
         -- No reasonable information, print it as a metavariable
-        [ Meta d ]
+        [ Meta d (showTy ty) ]
 
 type FunTblRepr = [([Repr],Repr)]
 

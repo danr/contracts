@@ -1,14 +1,16 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Models.TypeType where
 
 import Type
 import Unify
 import Outputable
-import VarSet
 import TysPrim
 
 import Models.Show (Typelike(..))
 import Models.Model
+
+import Halo.Shared
 
 import Data.Maybe
 
@@ -36,7 +38,15 @@ instance Typelike Type where
 -- newtype synonyms
 
 getSubst :: Type -> Type -> Maybe TvSubst
-getSubst r s = tcMatchTy (mkVarSet tyvars) (repType r') (repType s)
-  where (tyvars,r') = splitForAllTys r
+getSubst (repType -> r) (repType -> s) = sigma
+  where
+    vs    = tyVarsOfType r
+    sigma = tcMatchTy vs r s
+    _tr   = trace $ unlines
+        ["r: " ++ showOutputable r
+        ,"s: " ++ showOutputable s
+        ,"vs: " ++ showOutputable vs
+        ,"sigma: " ++ showOutputable sigma
+        ]
 
 

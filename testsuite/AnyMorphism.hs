@@ -26,7 +26,7 @@ any_cf = any ::: (CF --> CF) --> CF --> CF
 [] ++ ys = ys
 (x:xs) ++ ys = x : (xs ++ ys)
 
-given :: Statement -> Statement -> Statement
+given :: Statement b -> Statement a -> Statement (a,b)
 given x y = Using y x
 
 infixr 0 $

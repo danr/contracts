@@ -18,6 +18,5 @@ withMany withFoo (x:xs) f = withFoo x (\x' ->
 
 -- This function is interesting because it has higher order depth 2
 
-wmc :: Statement
 wmc = withMany ::: (CF --> (CF --> CF) --> CF)
                          --> CF --> (CF --> CF) --> CF

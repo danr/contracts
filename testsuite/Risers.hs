@@ -34,10 +34,8 @@ not False = True
 {-# NOINLINE (.) #-}
 f . g = \x -> f (g x)
 
-le :: Statement
 le = (<=) ::: CF --> CF --> CF
 
-risers_cf :: Statement
 risers_cf = risers
     ::: CF :&: Pred (not . null)
     --> CF :&: Pred (not . null)
@@ -67,25 +65,21 @@ risersBy (<) (x:y:xs) = case risersBy (<) (y:xs) of
          | otherwise -> [x]:(s:ss)
     [] -> error "internal error"
 
-risersBy_cf :: Statement
 risersBy_cf =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred (not . null)
              --> CF :&: Pred (not . null)
 
-risersBy_nonEmpty :: Statement
 risersBy_nonEmpty =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred nonEmpty
              --> CF :&: Pred nonEmpty
 
-broken_risersBy_nonEmpty_1 :: Statement
 broken_risersBy_nonEmpty_1 =
     risersBy ::: (CF --> CF --> CF)
              --> CF :&: Pred nonEmpty
              --> CF
 
-broken_risersBy_nonEmpty_2 :: Statement
 broken_risersBy_nonEmpty_2 =
     risersBy ::: (CF --> CF --> CF)
              --> CF

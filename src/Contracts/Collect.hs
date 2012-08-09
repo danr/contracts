@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 {-
 
     This module collects the contracts in the source file and turns
@@ -16,8 +17,10 @@ import Id
 import Name
 import SrcLoc
 import Type
+import TysPrim
 import UniqSet
 import UniqSupply
+import Unique
 import Var hiding (varName)
 
 import Contracts.SrcRep
@@ -109,7 +112,7 @@ mkStatement in_tree e = do
             let dict_deps = dictDeps f :: [HCCContent]
             write $ "Dict deps: " ++ show dict_deps
             return $ (ty_deps ++ dict_deps,Statement f contr args [])
-        (Var x,[s,u]) | isStatementUsing x ->
+        (Var x,[_s_ty,_u_ty,s,u]) | isStatementUsing x ->
             if in_tree
                 then do
                     write $ "A skipped tree using: " ++ showExpr u
@@ -155,27 +158,24 @@ mkContract f e = do
                      " when making a contract for " ++ showExpr f ++
                      "\n  current trimmedTyApp was" ++ showOutputable t
 
--- from e :: Contract a
--- to Contract a
--- to (Contract,a)
--- to a
-contractType :: CoreExpr -> Type
-contractType = snd . splitAppTy . exprType
+getUnique' :: CollectM Unique
+getUnique' = lift $ lift $ lift $ getUniqueM
 
 -- | Updates the unique in a Var and Type: i.e. make it different from
 --   the one we had, but otherwise identical.
 refresh :: Var -> Type -> CollectM Var
-refresh v ty = (`setVarType` ty) . setVarUnique v
-            <$> (lift $ lift $ lift $ getUniqueM)
+refresh v ty = do
+    u <- getUnique'
+    return (setVarType (setVarUnique v u) ty)
 
 mkFreshVar :: Type -> CollectM Var
 mkFreshVar ty = do
     v <- gets head
     write $ "Making a fresh variable " ++ v ++ " with type " ++ showOutputable ty
     modify tail
-    u <- lift $ lift $ lift $ getUniqueM
+    u <- getUnique'
     let name = mkInternalName u (mkOccName varName v) wiredInSrcSpan
-    return (mkVanillaGlobal name ty)
+    return (mkLocalId name ty)
 
 write :: String -> CollectM ()
 write = tell . return
