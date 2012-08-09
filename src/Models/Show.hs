@@ -340,16 +340,19 @@ data Repr
 instance Show Repr where
     showsPrec d r = case r of
         Uninteresting        -> showString "..."
-        Var s                -> showString s
+        Var s                -> showString (showOp s)
 
         Meta i Nothing       -> showChar '?' . showsPrec d i
         Meta i (Just ty_str) -> showParen (d >= 10) $
             showChar '?' . showsPrec d i . showString " :: " . showString ty_str
 
         Con s as -> showParen (d >= 10 && not (null as)) $
-            foldl (\u v -> u . showChar ' ' . v)
-                  (showString s)
-                  (map (showsPrec 10) as)
+            foldl1 (\u v -> u . showChar ' ' . v)
+                   (put (map (showsPrec 10) as))
+          where
+            put :: [ShowS] -> [ShowS]
+            put [x,y] | isOp s = [x,showString s,y]
+            put xs = showString s:xs
 
 -- | Find a good representation for an element at some type
 --
@@ -469,13 +472,31 @@ showStrTbl str_tbl f ty =
         showCF True  = ' '
         showCF False = '#'
 
+        f' = showOp f
+
+        -- Put the function in the middle if a binary infix function
+        mid [x,y] | isOp f = [x,f,y]
+        mid xs             = f':xs
+
+        -- But then, remove surrounding parenthesis - a bit of a hack ;)
+        -- (used to do this, but then the alignment gets wrong, bleh)
+        _trim ('(':x:xs) | last (x:xs) == ')' = init (x:xs)
+        _trim xs = xs
+
     in  indent $
-            (f ++ " :: " ++ showTy ty) :
+            (f' ++ " :: " ++ showTy ty) :
             [ intercalate " "
-                (f : zipWith pad args args_lengths ++ ['=':showCF cf:"",res])
+                (mid (zipWith pad args args_lengths) ++ ['=':showCF cf:"",res])
             | (args,(cf,res)) <- str_tbl
             ]
 
 indent :: [String] -> String
 indent = unlines . map ("    " ++)
+
+showOp :: String -> String
+showOp xs | isOp xs   = "(" ++ xs ++ ")"
+          | otherwise = xs
+
+isOp :: String -> Bool
+isOp = any (`elem` "!#$%&*+./<=>?@|\\^-~:")
 
