@@ -62,7 +62,7 @@ primConAxioms = Subtheory
 primConApps :: HCCSubtheory
 primConApps = Subtheory
     { provides    = Specific PrimConApps
-    , depends     = [ AppOnMin ]
+    , depends     = []
     , description = "App on BAD and UNR"
     , formulae    =
          [ forall' [x] $ app bad x' === bad

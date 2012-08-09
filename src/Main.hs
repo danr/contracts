@@ -213,8 +213,15 @@ processFile params@Params{..} file = do
         background_thy = backgroundTheory halo_conf ty_cons_with_builtin
                       ++ map (mkDummySubtheory . Function) (fpiHypVars fix_info)
 
+        app_theory = Subtheory
+            { provides    = AppTheory
+            , depends     = [ Specific PrimConApps, AppOnMin ]
+            , description = "This theory uses the app symbol"
+            , formulae    = []
+            }
+
         subtheories
-            = primConAxioms : primConApps : mkCF ty_cons_with_builtin
+            = primConAxioms : primConApps : app_theory : mkCF ty_cons_with_builtin
             ++ map makeDataDepend (binds_thy ++ background_thy)
 
     when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)

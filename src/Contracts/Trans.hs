@@ -84,20 +84,19 @@ trStatement deps stmt@Statement{..} = do
 trPlain :: [HCCContent] -> Statement -> TransM Conjecture
 trPlain deps (Statement e c as _) = do
 
-    (clauses,ptrs) <- capturePtrs' (local' (addSkolems as) (trGoal e c))
+    (clauses,ptr_deps) <- capturePtrs' (local' (addSkolems as) (trGoal e c))
 
     return $ Conjecture
         { conj_clauses      = comment "Plain contract":clauses
-        , conj_dependencies = deps ++ pointers ptrs
+        , conj_dependencies = deps ++ ptr_deps
         , conj_kind         = Plain
         }
 
 trUsing :: Statement -> TransM ([Clause'],[HCCContent])
-trUsing stmt@(Statement e c as _) = post <$> capturePtrs' (trAssum e c)
+trUsing stmt@(Statement e c as _) = first post <$> capturePtrs' (trAssum e c)
   where
-    post = ((comment ("Using\n" ++ show stmt) :)
-         . map (clauseMapFormula (forall' as)))
-         *** pointers
+    post = (comment ("Using\n" ++ show stmt) :)
+         . map (clauseMapFormula (forall' as))
 
 -- | The top variable, suitable for fixed point induction
 topVar :: CoreExpr -> Maybe Var
@@ -152,9 +151,9 @@ trFixated deps (Statement e c as _) f = local' (addSkolems as) $ do
                      e' = subst e f f_version
                      f' = rename_c focused
 
-                 (tr,ptrs) <- capturePtrs' $ tr_contr_fun e' f'
+                 (tr,ptr_deps) <- capturePtrs' $ tr_contr_fun e' f'
 
-                 return (comment desc : tr,pointers ptrs ++ orig_deps)
+                 return (comment desc : tr,ptr_deps ++ orig_deps)
 
             | (desc,tr_contr_fun,focused,orig_deps)
 
@@ -206,12 +205,12 @@ trSplit expr contract = do
         contract_args = (map fst . fst . telescope inf) contract
 
     -- The contract only needs to be translated once
-    (tr_contr,contr_deps) <- (axioms . splitFormula *** pointers)
+    (tr_contr,ptr_deps) <- first (axioms . splitFormula)
         <$> capturePtrs' (trContract Neg Skolemise expr contract)
 
     -- The rest of the work is carried out by the bindToSplit function,
     -- by iterating over the (non-min) BindParts.
-    zipWithM (bindToSplit f contract_args tr_contr contr_deps) decl_parts [0..]
+    zipWithM (bindToSplit f contract_args tr_contr ptr_deps) decl_parts [0..]
 
 bindToSplit :: Var -> [Var] -> [Clause'] -> [HCCContent]
             -> HCCBindPart -> Int -> TransM Split
@@ -254,7 +253,7 @@ bindToSplit f contract_args tr_contr contr_deps decl_part@BindPart{..} num = do
     -- Use the dependencies defined in the BindPart, but don't add the
     -- dependency to f, or else the full original definition is added
     -- to the theory as well.
-    let dep = delete (Function f) $ contr_deps ++ bind_deps ++ pointers part_ptrs
+    let dep = delete (Function f) $ contr_deps ++ bind_deps ++ part_ptrs
 
     return $ Split
         { split_clauses = tr_part ++ [comment "Contract"] ++ tr_contr
@@ -340,7 +339,7 @@ local' k m = do
     e <- ask
     lift $ (local k) (runReaderT m e)
 
-capturePtrs' :: TransM a -> TransM (a,[Var])
+capturePtrs' :: TransM a -> TransM (a,[HCCContent])
 capturePtrs' m = do
     e <- ask
     lift $ capturePtrs (runReaderT m e)
