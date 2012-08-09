@@ -17,7 +17,6 @@ import System.Environment
 import System.Process
 import System.FilePath
 import System.ShQQ
-import System.Process
 import System.IO
 import System.Exit
 import System.CPUTime
@@ -43,8 +42,6 @@ parseOutput s
     | "Unsatisfiable" `isInfixOf` s = Just UNSAT
     | "Satisfiable"   `isInfixOf` s = Just SAT
     | otherwise = Nothing
-
-
 
 runKoentool :: String -> Int -> String -> IO (Maybe Res)
 runKoentool tool t file = timed t tool Nothing $
@@ -88,12 +85,13 @@ main = do
     readable <- isJust <$> readEnv "READABLE"
     quiet    <- isJust <$> readEnv "QUIET"
     opt      <- isJust <$> readEnv "OPTIMISE"
+    models   <- isJust <$> readEnv "MODELS"
     no_min   <- (== Just "false") <$> readEnv "MIN"
 
     -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
 
-    let init_env = Env quiet timeout
+    let init_env = Env quiet timeout models
 
     -- extra arguments to hcc
     hcc_args <- fromMaybe "" <$> readEnv "HCC_ARGS"
@@ -143,6 +141,7 @@ data Out = Out
 data Env = Env
     { quiet   :: Bool
     , timeout :: Int
+    , models  :: Bool
     }
 
 put :: String -> M ()
@@ -158,8 +157,12 @@ processGroup group@(first:_) = do
     let group_res = parseRes first
         group_size = length group
 
-    -- We skip SAT groups
-    unless (group_size > 1 && group_res == SAT) $ do
+    Env{models} <- ask
+
+    let pursue | models    = group_res == SAT && group_size == 1
+               | otherwise = group_res == UNSAT || group_size == 1
+
+    when pursue $ do
 
         endl
         liftIO $ putStrLn $ takeFileName $ first
@@ -180,35 +183,56 @@ processGroup group@(first:_) = do
         when (group_res == UNSAT && all (Just UNSAT ==) results) $ put "Success!"
 
 processFile :: Res -> Int -> FilePath -> M (Maybe Res)
-processFile group_res group_size file = do
+processFile group_res group_size file_init = do
 
-    Env{timeout} <- ask
+    let file = takeFileName file_init
 
-    -- If SAT, put paradox first, otherwise last
-    let provers = case group_res of { SAT -> (paradox:) ; UNSAT -> (++ [paradox]) }
-                $ [z3,vampire,equinox,eprover]
+    Env{timeout,models} <- ask
 
-        put' | group_size > 1 = put . ("    "++)
-             | otherwise      = put
+    -- Today, we runn hcc :D
 
-    when (group_size > 1) (put $ takeFileName file)
 
-    -- Run until we get a result from a tool
-    m_result <- unfoldM provers $ \(tool,prover) -> do
-        m_res <- liftIO $ prover timeout file
-        case m_res of
-            Nothing  -> put' $ tool ++ " timed out"
-            Just res -> put' $ show res ++ " from " ++ tool
-        return m_res
+    if models
+        then do
+            let hs_file = takeWhile (/= '.') file ++ ".hs"
 
-    -- Interpret the result
-    case m_result of
-        Nothing -> regTimeout file >> put "All tools timed out"
-        Just SAT | group_res == UNSAT -> regFailure file >> printFail
-        Just SAT | group_res == SAT   -> put' "Success!"
-        _ -> return ()
+                cmd = "hcc " ++ hs_file ++ " --paradox-file=" ++ file
 
-    return m_result
+            liftIO $ do
+                putStrLn file
+                putStrLn hs_file
+                putStrLn cmd
+                system cmd
+
+            return $ Just SAT
+        else do
+
+            -- If SAT, put paradox first, otherwise last
+            let provers = case group_res of
+                              { SAT -> (paradox:) ; UNSAT -> (++ [paradox]) }
+                        $ [z3,vampire,equinox,eprover]
+
+                put' | group_size > 1 = put . ("    "++)
+                     | otherwise      = put
+
+            when (group_size > 1) (put $ takeFileName file)
+
+            -- Run until we get a result from a tool
+            m_result <- unfoldM provers $ \(tool,prover) -> do
+                m_res <- liftIO $ prover timeout file
+                case m_res of
+                    Nothing  -> put' $ tool ++ " timed out"
+                    Just res -> put' $ show res ++ " from " ++ tool
+                return m_res
+
+            -- Interpret the result
+            case m_result of
+                Nothing -> regTimeout file >> put "All tools timed out"
+                Just SAT | group_res == UNSAT -> regFailure file >> printFail
+                Just SAT | group_res == SAT   -> put' "Success!"
+                _ -> return ()
+
+            return m_result
 
 printFail :: MonadIO m => m ()
 printFail = do
