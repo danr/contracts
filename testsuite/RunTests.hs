@@ -81,17 +81,18 @@ main = do
     -- use optimisation if OPTIMISE is set
     -- don't write a lot of output if QUIET is set
     -- don't use min if MIN=false
-    profile  <- isJust <$> readEnv "PROFILE"
-    readable <- isJust <$> readEnv "READABLE"
-    quiet    <- isJust <$> readEnv "QUIET"
-    opt      <- isJust <$> readEnv "OPTIMISE"
-    models   <- isJust <$> readEnv "MODELS"
-    no_min   <- (== Just "false") <$> readEnv "MIN"
+    profile     <- isJust <$> readEnv "PROFILE"
+    readable    <- isJust <$> readEnv "READABLE"
+    quiet       <- isJust <$> readEnv "QUIET"
+    opt         <- isJust <$> readEnv "OPTIMISE"
+    models      <- isJust <$> readEnv "MODELS"
+    typed_metas <- isJust <$> readEnv "TYPED_METAS"
+    no_min      <- (== Just "false") <$> readEnv "MIN"
 
     -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
 
-    let init_env = Env quiet timeout models
+    let init_env = Env quiet timeout models typed_metas
 
     -- extra arguments to hcc
     hcc_args <- fromMaybe "" <$> readEnv "HCC_ARGS"
@@ -139,9 +140,10 @@ data Out = Out
     }
 
 data Env = Env
-    { quiet   :: Bool
-    , timeout :: Int
-    , models  :: Bool
+    { quiet       :: Bool
+    , timeout     :: Int
+    , models      :: Bool
+    , typed_metas :: Bool
     }
 
 put :: String -> M ()
@@ -187,16 +189,14 @@ processFile group_res group_size file_init = do
 
     let file = takeFileName file_init
 
-    Env{timeout,models} <- ask
-
-    -- Today, we runn hcc :D
-
+    Env{timeout,models,typed_metas} <- ask
 
     if models
         then do
             let hs_file = takeWhile (/= '.') file ++ ".hs"
 
                 cmd = "hcc " ++ hs_file ++ " --paradox-file=" ++ file
+                         ++ (guard typed_metas >> " --typed-metas")
 
             liftIO $ do
                 putStrLn file

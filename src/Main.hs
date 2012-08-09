@@ -284,7 +284,7 @@ processFile params@Params{..} file = do
                         write_file
                         putStrLn $ "Piping this file " ++ f ++ " to paradox, wish me luck!"
                         let env = M.map varType rep_map
-                        pipe env f
+                        pipe params env f
                     | otherwise -> return ()
                 Nothing -> write_file
 

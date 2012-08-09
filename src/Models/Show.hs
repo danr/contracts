@@ -253,8 +253,8 @@ class Typelike t where
 type TyLookup t = Map String t
 
 -- | Environment needed is a map from the strings in the model to types
-showModel :: forall t . Typelike t => TyLookup t -> Model -> String
-showModel ty_lookup Model{..} =
+showModel :: forall t . Typelike t => Bool -> TyLookup t -> Model -> String
+showModel typed_metas ty_lookup Model{..} =
 
     let min_set,cf :: Elt -> Bool
         [min_set,cf] =
@@ -308,41 +308,48 @@ showModel ty_lookup Model{..} =
             , n > 0
             ]
 
+        elt_repr = eltRepr ty_lookup typed_metas skolems ptrs min_set reprs
+
         show_funs fs =
             [ f_cnc
             | fun@(Function (Fun f) _) <- fs
-            , let elt_repr = eltRepr ty_lookup skolems ptrs min_set reprs True
-                  f_cnc = showFunTbl elt_repr min_set cf fun (lookup_ty "functions" f)
+            , let f_cnc = showFunTbl (elt_repr True) min_set cf fun
+                                     (lookup_ty "functions" f)
             ]
 
+        header h s
+            | null s    = []
+            | otherwise = [h,""] ++ s
+
     in  unlines $
-            ["Skolems:",""] ++
-            [ showStrTbl [([],(cf e,show sk_repr))] sk t
-            | (sk,e,t) <- skolems
-            , let sk_repr = eltRepr ty_lookup skolems ptrs min_set reprs False e t
-            , arity t == 0
-            ] ++
-            ["","Skolem pointers:",""] ++ show_funs unspun_pointers ++
-            ["","Functions:",""] ++ show_funs functions
-
-
-            -- TODO : Put pointer functions here too...
+            header "Skolems:"
+                [ showStrTbl [([],(cf e,show sk_repr))] sk t
+                | (sk,e,t) <- skolems
+                , arity t == 0
+                , let sk_repr = elt_repr False e t
+                ] ++
+            header "Skolem pointers:" (show_funs unspun_pointers) ++
+            header "Functions:" (show_funs functions)
 
 data Repr
     = Con String [Repr]
     | Uninteresting
     | Var String
-    | Meta Int String
+    | Meta Int (Maybe String)
 
 instance Show Repr where
     showsPrec d r = case r of
-        Uninteresting -> showString "..."
-        Var s         -> showString s
-        Meta i ty_str -> showParen (d >= 10) $
+        Uninteresting        -> showString "..."
+        Var s                -> showString s
+
+        Meta i Nothing       -> showChar '?' . showsPrec d i
+        Meta i (Just ty_str) -> showParen (d >= 10) $
             showChar '?' . showsPrec d i . showString " :: " . showString ty_str
-        Con s as      -> showParen (d >= 10 && not (null as)) $
-            foldr1 (\u v -> u . showChar ' ' . v)
-                   (showString s:map (showsPrec 10) as)
+
+        Con s as -> showParen (d >= 10 && not (null as)) $
+            foldl (\u v -> u . showChar ' ' . v)
+                  (showString s)
+                  (map (showsPrec 10) as)
 
 -- | Find a good representation for an element at some type
 --
@@ -360,6 +367,8 @@ instance Show Repr where
 eltRepr :: forall t . Typelike t
         => TyLookup t
         -- ^ A mapping from Strings to types
+        -> Bool
+        -- ^ Write types of metas
         -> [(String,Elt,t)]
         -- ^ Skolem representations
         -> [(String,Elt,t)]
@@ -375,7 +384,7 @@ eltRepr :: forall t . Typelike t
         -> t
         -- ^ At which type to show it
         -> Repr
-eltRepr ty_lookup skolems ptrs min_set reprs
+eltRepr ty_lookup typed_metas skolems ptrs min_set reprs
     = ((head .) .) . go []
   where
     go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
@@ -414,8 +423,9 @@ eltRepr ty_lookup skolems ptrs min_set reprs
         , arg_reprs <- zipWithM (go ((e,ty):visited) True) es es_tys'
         ] ++
 
-        -- No reasonable information, print it as a metavariable
-        [ Meta d (showTy ty) ]
+        -- No reasonable information, print it as a metavariable,
+        -- attached with type information if desired
+        [ Meta d (guard typed_metas >> return (showTy ty)) ]
 
 type FunTblRepr = [([Repr],Repr)]
 
@@ -456,13 +466,13 @@ showStrTbl str_tbl f ty =
         pad :: String -> Int -> String
         pad s x = s ++ replicate (x - length s) ' '
 
-        showCF True = ' '
+        showCF True  = ' '
         showCF False = '#'
 
     in  indent $
             (f ++ " :: " ++ showTy ty) :
             [ intercalate " "
-                (f : zipWith pad args args_lengths ++ [showCF cf:"=",res])
+                (f : zipWith pad args args_lengths ++ ['=':showCF cf:"",res])
             | (args,(cf,res)) <- str_tbl
             ]
 

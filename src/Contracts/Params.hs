@@ -5,7 +5,9 @@ import System.Console.CmdArgs
 
 data Params = Params
     { files             :: [FilePath]
+
     , paradox_file      :: Maybe FilePath
+    , typed_metas       :: Bool
 
     , no_min            :: Bool
     , min_as_not_unr    :: Bool
@@ -55,7 +57,10 @@ sanitizeParams p = p
 defParams :: Params
 defParams = Params
     { files             = []      &= args   &= typFile
-    , paradox_file      = Nothing &= help "Pretty-print this file's countersatisfiable model (uses paradox)"
+
+    , paradox_file      = Nothing &= groupname "\nPrinting models"
+                                  &= help "Pretty-print this file's countersatisfiable model (uses paradox)"
+    , typed_metas       = False   &= name "t" &= help "Print type signatures on meta variables"
 
     , no_min            = False   &= groupname "\nSettings for generated theories"
                                   &= name "m" &= help "Remove all occurences of min in generated theories"
