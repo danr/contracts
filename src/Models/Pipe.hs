@@ -24,7 +24,7 @@ pipe params ty_env f = do
     result <- runParadox 20 f
     case result of
         Just raw_model -> do
-            putStrLn raw_model
+            when (print_raw_model params) (putStrLn raw_model)
             let model = parseParadoxModel raw_model
             putStrLn (showModel (typed_metas params) ty_env model)
         Nothing -> putStrLn "Killed paradox after 20 seconds."

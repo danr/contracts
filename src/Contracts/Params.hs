@@ -7,6 +7,7 @@ data Params = Params
     { files             :: [FilePath]
 
     , paradox_file      :: Maybe FilePath
+    , print_raw_model   :: Bool
     , typed_metas       :: Bool
 
     , no_min            :: Bool
@@ -59,7 +60,8 @@ defParams = Params
     { files             = []      &= args   &= typFile
 
     , paradox_file      = Nothing &= groupname "\nPrinting models"
-                                  &= help "Pretty-print this file's countersatisfiable model (uses paradox)"
+                                  &= help "Pretty-print this file's counter satisfiable model (uses paradox)"
+    , print_raw_model   = False   &= help "Print the raw model from paradox, too"
     , typed_metas       = False   &= name "t" &= help "Print type signatures on meta variables"
 
     , no_min            = False   &= groupname "\nSettings for generated theories"
