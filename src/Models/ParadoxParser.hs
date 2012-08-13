@@ -146,7 +146,6 @@ tabulateModel = partitionEithers . map tabulate
               . filter (not . null) . splitWhen null
 
 parseSymbol :: String -> Symbol
-parseSymbol ('\'':xs)            = parseSymbol (reverse . drop 1 . reverse $ xs)
 parseSymbol ('f':'_':xs)         = Fun xs
 parseSymbol ('c':'_':xs)         = Constructor xs
 parseSymbol ('p':'_':i:'_':xs)   = Projection (read [i]) xs
@@ -186,13 +185,17 @@ type ParsedRow = (String,([Elt],String))
 
 -- | Parses a function or a relational row
 parseRow :: String -> ParsedRow
-parseRow s = (name,(args,rhs))
+parseRow "" = error "parseRow: blank row!"
+parseRow s@(n:ns) = (name,(args,rhs))
   where
-    (name,t:rest) = break (`elem` " (") s
+    (name,t:rest)
+        | n == '\'' = let (u,v) = break (== '\'') ns in (u,drop 1 v)
+        | otherwise = break (`elem` " (") s
 
     args
-        | t == ' ' = []
-        | t == '(' = map elt (splitWhen (== ',') (takeWhile (/= ')') rest))
+        | t == '('  = map elt (splitWhen (== ',') (takeWhile (/= ')') rest))
+        | otherwise = []
+
 
     rhs = reverse . takeWhile (/= ' ') . reverse $ rest
 
@@ -221,4 +224,3 @@ parseRowTests =
     , parseRow "c_Cons(!4,!4) = !1" == ("c_Cons",([4,4],"!1"))
     , parseRow "'f_=='(!1,!1) = !1" == ("'f_=='",([1,1],"!1"))
     ]
-
