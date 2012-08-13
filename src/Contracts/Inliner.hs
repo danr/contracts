@@ -176,15 +176,12 @@ normalPower = False
 -- | Naive for now, but we could cache the results of inlining earlier functions
 inline :: Bool -> CoreExpr -> InlineM CoreExpr
 inline extra_power e = case e of
-    Var v -> ifM ((extra_power ||) <$> inlineable v)
-                 (inlineCall extra_power v []) (return e)
-    App e1 e2 -> do
-        let recurse = App <$> inline normalPower e1 <*> inline normalPower e2
-        case collectArgs e of
-            (Var f,es) | isContrPi f || isContrPred f
-                       -> foldl App (Var f) <$> mapM (inline extraPower) es
-            (Var f,es) -> ifM (inlineable f) (inlineCall extra_power f es) recurse
-            _ -> recurse
+    Var v -> inlineCall extra_power v []
+    App e1 e2 -> case collectArgs e of
+        (Var f,es) | isContrPi f || isContrPred f || isStatementCon f
+                   -> foldl App (Var f) <$> mapM (inline extraPower) es
+        (Var f,es) -> inlineCall extra_power f es
+        _          -> App <$> inline normalPower e1 <*> inline normalPower e2
     Case e' s t alts -> (\es -> Case es s t) <$> inline normalPower e' <*> mapM inlineAlt alts
     Lam x e'   -> Lam x <$> inline normalPower e'
     Tick t e'  -> Tick t <$> inline normalPower e'
@@ -198,15 +195,17 @@ inline extra_power e = case e of
 inlineAlt :: CoreAlt -> InlineM CoreAlt
 inlineAlt (con,bs,e) = (con,bs,) <$> inline normalPower e
 
--- | Inlines a call f @ xs, if we know f is inlineable
+-- | Inlines a call f @ xs
 inlineCall :: Bool -> Var -> [CoreExpr] -> InlineM CoreExpr
 inlineCall extra_power f es = do
     m_rhs <- rhs f
+    inline_me <- inlineable f
     case m_rhs of
         Just (collectBinders -> (xs,e))
             -- Only apply if we have enough arguments, or function is OK to
             -- have remaining lambdas, but never inline case expressions
-            | not (isCaseExpr e) && (extra_power || length es >= length xs)
+            -- or recursive functions
+            | inline_me && (extra_power || length es >= length xs)
             -> inline extra_power (apply xs es e)
         _ -> foldl App (Var f) <$> mapM (inline extra_power) es
 
