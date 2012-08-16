@@ -47,6 +47,18 @@ all_cf = all ::: (CF --> CF) --> CF --> CF
 invariant_cf = invariant ::: CF --> CF
   `Using` all_cf
 
+{- -- This first one is broken but I cannot figure out why
+-- | Map can retain a predicate
+map_retains p = map ::: retain p --> retain (all p)
+  `Using` (p ::: CF --> CF)
+  `Using` all_cf
+
+-- | Retaining is preserved by mapping
+map_retains_invariant_by_lemma =
+    map ::: retain invariant --> retain (all invariant)
+  `Using` map_retains invariant
+    -}
+
 -- | Retaining is preserved by mapping
 map_retains_invariant =
     map ::: retain invariant --> retain (all invariant)
@@ -193,4 +205,3 @@ isAnd _     = False
 
 isOr Or{} = True
 isOr _    = False
-
