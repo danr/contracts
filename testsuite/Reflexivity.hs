@@ -18,6 +18,6 @@ Z     == _     = False
 (S _) == Z     = False
 (S x) == (S y) = x == y
 
-eq_refl x = x ::: CF :=> x == x ::: CF :&: Pred id
+eq_refl = All (\x -> x ::: CF :=> x == x ::: CF :&: Pred id)
 
-max_refl x = x ::: CF :=> max x x ::: CF :&: Pred (== x)
+max_refl = All (\x -> x ::: CF :=> max x x ::: CF :&: Pred (== x))

@@ -26,18 +26,12 @@ any_cf = any ::: (CF --> CF) --> CF --> CF
 [] ++ ys = ys
 (x:xs) ++ ys = x : (xs ++ ys)
 
-given :: Statement b -> Statement a -> Statement (a,b)
-given x y = Using y x
-
 infixr 0 $
 
 f $ x = f x
 
--- Now quantified over p
-app_any_morphism p =
-
-    given any_cf $
-    given (p ::: CF --> CF) $
-
-    (++) ::: CF :-> \xs -> CF :-> \ys ->
-             CF :&: Pred (\zs -> any p zs <=> (any p xs || any p ys))
+app_any_morphism =
+    All (\p -> (p ::: CF --> CF) :=>
+            (++) ::: CF :-> \xs -> CF :-> \ys ->
+                     CF :&: Pred (\zs -> any p zs <=> (any p xs || any p ys)))
+    `Using` any_cf

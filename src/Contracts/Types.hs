@@ -92,25 +92,29 @@ data TopStmt = TopStmt
     , top_deps :: [HCCContent]
     }
 
+mkAll :: Var -> Statement -> Statement
+mkAll x (All xs s) = All (x:xs) s
+mkAll x s          = All [x]    s
+
 data Statement
     = CoreExpr ::: Contract
-    | Lambda [Var] Statement
+    | All [Var] Statement
     | Statement :=> Statement
     | Using Statement Statement
 
 -- | Apply a list of substitutions on a Statement
 substStatementList :: Statement -> [(Var,Var)] -> Statement
 substStatementList s0 xs = case s0 of
-    e ::: c     -> substList e xs ::: substContractList c xs
-    Lambda vs s -> Lambda [fromMaybe v (lookup v xs) | v <- vs]
-                          (substStatementList s xs)
-    s :=> t     -> substStatementList s xs :=> substStatementList t xs
-    Using s t   -> Using (substStatementList s xs) (substStatementList t xs)
+    e ::: c   -> substList e xs ::: substContractList c xs
+    All vs s  -> All [fromMaybe v (lookup v xs) | v <- vs]
+                     (substStatementList s xs)
+    s :=> t   -> substStatementList s xs :=> substStatementList t xs
+    Using s t -> Using (substStatementList s xs) (substStatementList t xs)
 
 instance Show Statement where
-    show (e ::: c) = showExpr e ++ " ::: " ++ show c
-    show (Lambda vs s) = "forall " ++ unwords (map show vs) ++ show s
-    show (s :=> t) = show s ++ " :=> " ++ show t
+    show (e ::: c)   = showExpr e ++ " ::: " ++ show c
+    show (All vs s)  = "forall " ++ unwords (map show vs) ++ show s
+    show (s :=> t)   = show s ++ " :=> " ++ show t
     show (Using s t) = show s ++ " `Using` " ++ show t
 
 instance Show TopStmt where

@@ -115,7 +115,7 @@ append_retains_invariant =
           -> Pred (\rs -> all invariant xs && all invariant ys && all invariant rs))
 
 -- | all p xs ++ all p ys = all p (xs ++ ys)
-all_homomorphism p = (++) ::: Pred (all p) --> Pred (all p) --> Pred (all p)
+all_homomorphism = All (\p -> (++) ::: Pred (all p) --> Pred (all p) --> Pred (all p))
 
 -- | Retaining is preserved by concat mapping
 --   This one needs that all is a list homomorphism
@@ -123,7 +123,7 @@ concatMap_retains_invariant =
     concatMap ::: (Pred invariant :-> \x -> Pred (\rs -> invariant x && all invariant rs))
               --> retain (all invariant)
   `Using` append_retains_invariant
-  `Using` (all_homomorphism invariant)
+  `Using` all_homomorphism
 
 broken_concatMap_retains_invariant =
     concatMap ::: (Pred invariant :-> \x -> Pred (\rs -> invariant x && all invariant rs))

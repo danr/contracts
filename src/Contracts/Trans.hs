@@ -93,10 +93,10 @@ topVar _          = Nothing
 
 -- | Top variable of a statement, for fpi
 topStmtVar :: Statement -> Maybe Var
-topStmtVar (e ::: _)    = topVar e
-topStmtVar (_ :=> t)    = topStmtVar t
-topStmtVar (Lambda _ s) = topStmtVar s
-topStmtVar (Using s _)  = topStmtVar s
+topStmtVar (e ::: _)   = topVar e
+topStmtVar (_ :=> t)   = topStmtVar t
+topStmtVar (All _ s)   = topStmtVar s
+topStmtVar (Using s _) = topStmtVar s
 
 -- | Try to translate this statement using FPI
 trFPI :: [HCCContent] -> Statement -> TransM [Conjecture]
@@ -245,13 +245,13 @@ trStmt = fmap (clauseSplit axiom) . go Neg True
     go :: Variance -> Bool -> Statement -> TransM Formula'
     go v   top   (e ::: c)
         = trContract v (if top && v == Neg then Skolemise else Quantify) e c
-    go Neg True  (Lambda vs u) = local' (addSkolems vs) (go Neg True u)
-    go Neg False (Lambda vs u) = exists' vs <$> go Neg True u
-    go Pos top   (Lambda vs u) = forall' vs <$> go Pos top u
-    go Neg top   (s :=> t)     = (/\) <$> go Pos False s <*> go Neg top t
-    go Pos _     (s :=> t)     = (\/) <$> go Neg False s <*> go Pos False t
-    go Neg True  (Using s u)   = (/\) <$> go Neg True s <*> go Pos False u
-    go v   top   (Using s _)   = go v top s
+    go Neg True  (All vs u)  = local' (addSkolems vs) (go Neg True u)
+    go Neg False (All vs u)  = exists' vs <$> go Neg True u
+    go Pos top   (All vs u)  = forall' vs <$> go Pos top u
+    go Neg top   (s :=> t)   = (/\) <$> go Pos False s <*> go Neg top t
+    go Pos _     (s :=> t)   = (\/) <$> go Neg False s <*> go Pos False t
+    go Neg True  (Using s u) = (/\) <$> go Neg True s <*> go Pos False u
+    go v   top   (Using s _) = go v top s
 
 
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'

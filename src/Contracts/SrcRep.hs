@@ -27,6 +27,9 @@ isStatementType v =
 isStatementAssuming :: Var -> Bool
 isStatementAssuming = contrStrWith ":=>" . show
 
+isStatementAll :: Var -> Bool
+isStatementAll = contrStrWith "All" . show
+
 isStatementUsing :: Var -> Bool
 isStatementUsing = contrStrWith "Using" . show
 

@@ -178,7 +178,7 @@ inline :: Bool -> CoreExpr -> InlineM CoreExpr
 inline extra_power e = case e of
     Var v -> inlineCall extra_power v []
     App e1 e2 -> case collectArgs e of
-        (Var f,es) | isContrPi f || isContrPred f || isStatementCon f
+        (Var f,es) | any ($ f) [isContrPi,isContrPred,isStatementCon,isStatementAll]
                    -> foldl App (Var f) <$> mapM (inline extraPower) es
         (Var f,es) -> inlineCall extra_power f es
         _          -> App <$> inline normalPower e1 <*> inline normalPower e2
