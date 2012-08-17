@@ -17,10 +17,10 @@ infixr 3 :&:
 
 infix 1 :::
 
-data Statement where
-   (:::) :: a -> Contract a -> Statement
-   Using :: Statement -> Statement -> Statement
+data Statement u where
+   (:::) :: u -> Contract u -> Statement u
+   Using :: Statement a -> Statement b -> Statement (a,b)
 
 infixl 0 `Using`
-   
+
 

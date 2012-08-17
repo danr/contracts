@@ -3,7 +3,7 @@ module Extensions where
 import Prelude (Bool(..))
 import Contracts
 
-(==>) :: Statement -> Statement -> Statement
+(==>) :: Statement b -> Statement a -> Statement (a,b)
 x ==> y = Using y x
 
 infixr 0 ==>
