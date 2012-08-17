@@ -1,4 +1,4 @@
-module Extensions where
+module Reflexivity where
 
 import Prelude (Bool(..))
 import Contracts
