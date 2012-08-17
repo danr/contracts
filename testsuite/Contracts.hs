@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, RankNTypes #-}
+{-# LANGUAGE GADTs, RankNTypes, EmptyDataDecls #-}
 module Contracts where
 
 data Contract t where
@@ -17,10 +17,13 @@ infixr 3 :&:
 
 infix 1 :::
 
+data Using a b
+data Assuming a b
+
 data Statement u where
    (:::) :: u -> Contract u -> Statement u
-   Using :: Statement a -> Statement b -> Statement (a,b)
+   (:=>) :: Statement a -> Statement b -> Statement (Assuming a b)
+   Using :: Statement a -> Statement b -> Statement (Using a b)
 
+infixl 0 :=>
 infixl 0 `Using`
-
-

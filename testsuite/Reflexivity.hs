@@ -3,11 +3,6 @@ module Reflexivity where
 import Prelude (Bool(..))
 import Contracts
 
-(==>) :: Statement b -> Statement a -> Statement (a,b)
-x ==> y = Using y x
-
-infixr 0 ==>
-
 data Nat = Z | S Nat
 
 max :: Nat -> Nat -> Nat
@@ -23,6 +18,6 @@ Z     == _     = False
 (S _) == Z     = False
 (S x) == (S y) = x == y
 
-eq_refl_broken x = (x ::: CF) ==> x == x ::: CF :&: Pred id
+eq_refl x = x ::: CF :=> x == x ::: CF :&: Pred id
 
-max_refl_broken x = (x ::: CF) ==> max x x ::: CF :&: Pred (== x)
+max_refl x = x ::: CF :=> max x x ::: CF :&: Pred (== x)

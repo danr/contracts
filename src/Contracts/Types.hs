@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Contracts.Types where
 
 import Var
@@ -5,6 +6,8 @@ import CoreSyn
 
 import Halo.Shared
 import Halo.FOL.Abstract
+
+import Data.Maybe
 
 import Contracts.Theory
 
@@ -84,33 +87,32 @@ conjKindSuffix p = case p of
     FixpointStepSplit i -> "_step_" ++ show i
 
 data TopStmt = TopStmt
-    { top_name      :: Var
-    , top_statement :: Statement
-    , top_deps      :: [HCCContent]
+    { top_name :: Var
+    , top_stmt :: Statement
+    , top_deps :: [HCCContent]
     }
 
-data Statement = Statement
-    { statement_expr  :: CoreExpr
-    , statement_con   :: Contract
-    , statement_args  :: [Var]
-    , statement_using :: [Statement]
-    -- ^ Stripped of tree usings
-    }
+data Statement
+    = CoreExpr ::: Contract
+    | Lambda [Var] Statement
+    | Statement :=> Statement
+    | Using Statement Statement
 
--- | Don't recursively get all Usings as a tree, only as a list
-stripTreeUsings :: Statement -> Statement
-stripTreeUsings stmt =
-    let rmUsing (Statement e c as _) = Statement e c as []
-    in  stmt { statement_using = map rmUsing (statement_using stmt) }
+-- | Apply a list of substitutions on a Statement
+substStatementList :: Statement -> [(Var,Var)] -> Statement
+substStatementList s0 xs = case s0 of
+    e ::: c     -> substList e xs ::: substContractList c xs
+    Lambda vs s -> Lambda [fromMaybe v (lookup v xs) | v <- vs]
+                          (substStatementList s xs)
+    s :=> t     -> substStatementList s xs :=> substStatementList t xs
+    Using s t   -> Using (substStatementList s xs) (substStatementList t xs)
 
 instance Show Statement where
-    show (Statement e c u as) = case as of
-        [] -> rest
-        xs -> "forall " ++ unwords (map show xs) ++ " . " ++ rest
-      where
-        rest = showExpr e ++ " ::: " ++ show c
-            ++ concat [ " [using: " ++ unwords (map show u) ++ "]" | not (null u) ]
+    show (e ::: c) = showExpr e ++ " ::: " ++ show c
+    show (Lambda vs s) = "forall " ++ unwords (map show vs) ++ show s
+    show (s :=> t) = show s ++ " :=> " ++ show t
+    show (Using s t) = show s ++ " `Using` " ++ show t
 
 instance Show TopStmt where
-    show (TopStmt n s ds) = show n ++ " = " ++ show s
-                        ++ " [deps: " ++ unwords (map show ds) ++ "]"
+    show TopStmt{..} = show top_name ++ " = " ++ show top_stmt
+                        ++ " [deps: " ++ unwords (map show top_deps) ++ "]"

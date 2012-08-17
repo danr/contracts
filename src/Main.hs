@@ -248,11 +248,11 @@ processFile params@Params{..} file = do
 
     let specialised_trim = trim subtheories
 
-    forM_ stmts $ \top_stmt@TopStmt{..} -> do
+    forM_ stmts $ \top@TopStmt{..} -> do
 
         -- Translate contracts
         let (conjectures,msgs_tr_contr) = runHaloM halo_env $
-                runReaderT (trTopStmt top_stmt) (TrEnv params fix_info binds_map)
+                runReaderT (trTopStmt top) (TrEnv params fix_info binds_map)
 
         when db_trans (printMsgs msgs_tr_contr)
 

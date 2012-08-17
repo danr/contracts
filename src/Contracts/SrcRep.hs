@@ -24,6 +24,9 @@ isStatementType v =
     let (args,res) = splitFunTys . dropForAlls . varType $ v
     in  statementType res && not (any statementType args)
 
+isStatementAssuming :: Var -> Bool
+isStatementAssuming = contrStrWith ":=>" . show
+
 isStatementUsing :: Var -> Bool
 isStatementUsing = contrStrWith "Using" . show
 

@@ -12,12 +12,10 @@ module Contracts.Collect where
 
 import CoreFVs
 import CoreSyn
-import CoreUtils
 import Id
 import Name
 import SrcLoc
 import Type
-import TysPrim
 import UniqSet
 import UniqSupply
 import Unique
@@ -93,7 +91,11 @@ mkTopStmt name e = do
     (ty_deps,stmt) <- mkStatement atTop e
     write $ "Tydeps: " ++ show ty_deps
     let deps     = fun_deps ++ ty_deps
-    return $ TopStmt name stmt deps
+    return $ TopStmt
+        { top_name = name
+        , top_stmt = stmt
+        , top_deps = deps
+        }
 
 inTree,atTop :: Bool
 inTree = True
@@ -103,6 +105,8 @@ mkStatement :: Bool -> CoreExpr -> CollectM ([HCCContent],Statement)
 mkStatement in_tree e = do
     let (_ty,args,e_stripped) = collectTyAndValBinders e
     write $ "Translating statement " ++ showExpr e ++ " with arguments " ++ show args
+    let mk_stmt | null args = id
+                | otherwise = Lambda args
     case collectArgs e_stripped of
         (Var x,[_c_ty,f,c]) | isStatementCon x -> do
             write $ "A contract for: " ++ showExpr f ++ "."
@@ -111,22 +115,27 @@ mkStatement in_tree e = do
             write $ "Tydeps: " ++ show ty_deps
             let dict_deps = dictDeps f :: [HCCContent]
             write $ "Dict deps: " ++ show dict_deps
-            return $ (ty_deps ++ dict_deps,Statement f contr args [])
+            return $ (ty_deps ++ dict_deps,mk_stmt (f ::: contr))
+        (Var x,[_s_ty,_u_ty,s,u]) | isStatementAssuming x -> do
+            write $ "Assuming " ++ showExpr s ++ " in the statement " ++ showExpr u
+            (ty_deps_s,s') <- mkStatement in_tree s
+            (ty_deps_u,u') <- mkStatement in_tree u
+            let ty_deps = ty_deps_s `union` ty_deps_u
+            write $ "Tydeps: " ++ show ty_deps
+            return $ (ty_deps,mk_stmt (s' :=> u'))
         (Var x,[_s_ty,_u_ty,s,u]) | isStatementUsing x ->
             if in_tree
                 then do
                     write $ "A skipped tree using: " ++ showExpr u
                     (t,s') <- mkStatement inTree s
-                    return (t,s' { statement_args = args ++ statement_args s' })
+                    return (t,mk_stmt s')
                 else do
                     write $ "A contract using: " ++ showExpr u
                     (ty_deps_s,s') <- mkStatement atTop s
                     (ty_deps_u,u') <- mkStatement inTree u
                     let ty_deps = ty_deps_s `union` ty_deps_u
                     write $ "Tydeps: " ++ show ty_deps
-                    return $ (ty_deps,s' { statement_using = u' : statement_using s'
-                                         , statement_args  = args ++ statement_args s'
-                                         })
+                    return $ (ty_deps,mk_stmt (Using s' u'))
         _ -> throw $ "Error: Invalid statement " ++ showExpr e_stripped
 
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
@@ -182,4 +191,3 @@ write = tell . return
 
 throw :: String -> CollectM a
 throw = throwError . strMsg
-
