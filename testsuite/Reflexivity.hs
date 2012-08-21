@@ -14,9 +14,8 @@ id x = x
 
 (==) :: Nat -> Nat -> Bool
 Z     == Z     = True
-Z     == _     = False
-(S _) == Z     = False
 (S x) == (S y) = x == y
+_     == _     = False
 
 x /= y = if x == y then True else False
 
@@ -32,20 +31,34 @@ False && _ = False
 False || b = b
 True  || _ = True
 
+f $ x = f x
+infixl 0 $
+
 eq_cf = (==) ::: CF --> CF --> CF
 
 eq_refl = All (\x -> x ::: CF :=> x == x ::: CF :&: Pred id)
 
+eq_refl_broken = All (\x -> x ::: CF :=> True ::: Pred ((x == x) <=>))
+
 eq_sym = All (\x -> All (\y -> x ::: CF :=> y ::: CF :=>
     (y == x ::: CF :&: Pred ((x == y) <=>))))
 
-eq_trans_broken = All (\x -> All (\y -> All (\z ->
+{-
+-- This one is Unsatisfiable with min, but Satisfiable without min!
+-- Bleh :(
+eq_sym' = All $ \x -> All $ \y ->
+    x ::: CF :=> y ::: CF :=>
+    x == y ::: CF :&: Pred id :=>
+    y == x ::: CF :&: Pred id
+-}
+
+eq_trans_broken = (All $ \x -> All $ \y -> All $ \z ->
     x ::: CF :=> y ::: CF :=> z ::: CF :=>
-    (x == z ::: CF :&: Pred
-        (\b ->
-            if b
-                then (x == y) <=> (y == z)
-                else (x /= y) || (y /= z))))))
+    x == y ::: CF :&: Pred id :=>
+    y == z ::: CF :&: Pred id :=>
+    x == z ::: CF :&: Pred id)
+  `Using` eq_cf
   `Using` eq_refl
+  `Using` eq_sym
 
 max_refl = All (\x -> x ::: CF :=> max x x ::: CF :&: Pred (== x))
