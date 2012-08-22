@@ -16,11 +16,16 @@ import TyCon
 import Id
 import DataCon
 
+-- To debug names
+import CoreFVs
+import VarSet
+
 import Halo.BackgroundTheory
 import Halo.Binds
 import Halo.Conf
 import Halo.Class
 import Halo.Entry
+import Halo.Fetch
 import Halo.FOL.Abstract
 import Halo.FOL.Linearise
 import Halo.FOL.Dump
@@ -69,13 +74,20 @@ printCore msg core = do
     putStrLn "\n"
 
 debugName :: (Var,CoreExpr) -> IO ()
-debugName (v,_) =
+debugName (v,e) =
     putStrLn $ show v ++ ":" ++
         "\n\tisId: " ++ show (isId v) ++
         "\n\tisLocalVar: " ++ show (isLocalVar v) ++
         "\n\tisLocalId: " ++ show (isLocalId v) ++
         "\n\tisGlobalId: " ++ show (isGlobalId v) ++
-        "\n\tisExportedId: " ++ show (isExportedId v)
+        "\n\tisExportedId: " ++ show (isExportedId v) ++
+        "\n\tidUnfolding: " ++ showOutputable (idUnfolding v) ++
+        "\n\tfreeVars: " ++ showOutputable (exprFreeVars e) ++
+        "\n\tglobal free vars: " ++ showOutputable (exprSomeFreeVars isGlobalId e) ++
+        "\n\tglobal free vars unfoldings: " ++
+            (showOutputable . map (\x -> (x,idUnfolding x)) . varSetElems . exprSomeFreeVars isGlobalId $ e) ++
+        "\n\tglobal free vars unfolding expressions: " ++
+            (showOutputable . map (\x -> (x,maybeUnfoldingTemplate (idUnfolding x))) . varSetElems . exprSomeFreeVars isGlobalId $ e)
 
 processFile :: Params -> FilePath -> IO ()
 processFile params@Params{..} file = do
@@ -91,10 +103,17 @@ processFile params@Params{..} file = do
 
     ((modguts,type_env),dflags) <- desugarAndTypeEnv dsconf file
 
-    let core_binds = mg_binds modguts
+    let init_core_binds = mg_binds modguts
 
-    when dump_init_core (printCore "Original core" core_binds)
-    when db_names $ mapM_ debugName (flattenBinds core_binds)
+    when dump_init_core (printCore "Original core" init_core_binds)
+    when db_names $ mapM_ debugName (flattenBinds init_core_binds)
+
+    -- Find and print unfoldings
+
+    let unfoldings = fetch init_core_binds
+        core_binds = unfoldings ++ init_core_binds
+
+    when dump_unfoldings (printCore "Additional core from unfoldings" unfoldings)
 
     -- Lambda lift using GHC's lambda lifter. This also runs simpleCoreOptExpr
 

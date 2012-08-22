@@ -22,7 +22,7 @@ statementType ty
 isStatementType :: Var -> Bool
 isStatementType v =
     let (args,res) = splitFunTys . dropForAlls . varType $ v
-    in  statementType res && not (any statementType args)
+    in  statementType res && null args -- not (any statementType args)
 
 isStatementAssuming :: Var -> Bool
 isStatementAssuming = contrStrWith ":=>" . show

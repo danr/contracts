@@ -86,7 +86,7 @@ mkTopStmt :: Var -> CoreExpr -> CollectM TopStmt
 mkTopStmt name e = do
     write $ "Making a top statement for " ++ show name
     let fun_deps :: [HCCContent]
-        fun_deps = Function <$> filter (not . isTyVar) (uniqSetToList (exprFreeVars e))
+        fun_deps = Function <$> exprFVs e
     write $ "Fundeps: " ++ show fun_deps
     (ty_deps,stmt) <- mkStatement atTop e
     write $ "Tydeps: " ++ show ty_deps
@@ -110,10 +110,12 @@ mkStatement in_tree e = do
         ,"(perhaps you want to use the All constructor explicitly?"]
     write $ "Translating statement " ++ showExpr e
     case collectArgs e_stripped of
+
         (Var x,[_x_ty,_stmt_ty,Lam y s]) | isStatementAll x -> do
             write $ "Binding " ++ show y ++ " in a statement " ++ showExpr s
             (ty_deps_s,s') <- mkStatement in_tree s
             return $ (ty_deps_s,mkAll y s')
+
         (Var x,[_c_ty,f,c]) | isStatementCon x -> do
             write $ "A contract for: " ++ showExpr f ++ "."
             contr <- mkContract f c
@@ -122,14 +124,16 @@ mkStatement in_tree e = do
             let dict_deps = dictDeps f :: [HCCContent]
             write $ "Dict deps: " ++ show dict_deps
             return $ (ty_deps ++ dict_deps,f ::: contr)
-        (Var x,[_s_ty,_u_ty,s,u]) | isStatementAssuming x -> do
+
+        (Var x,[Type _st_ty,Type _s_ty,Type _u_ty,Coercion _co,s,u]) | isStatementAssuming x -> do
             write $ "Assuming " ++ showExpr s ++ " in the statement " ++ showExpr u
             (ty_deps_s,s') <- mkStatement in_tree s
             (ty_deps_u,u') <- mkStatement in_tree u
             let ty_deps = ty_deps_s `union` ty_deps_u
             write $ "Tydeps: " ++ show ty_deps
             return $ (ty_deps,s' :=> u')
-        (Var x,[_s_ty,_u_ty,s,u]) | isStatementUsing x ->
+
+        (Var x,[Type _st_ty,Type _s_ty,Type _u_ty,Coercion _co,s,u]) | isStatementUsing x ->
             if in_tree
                 then do
                     write $ "A skipped tree using: " ++ showExpr u
@@ -142,7 +146,9 @@ mkStatement in_tree e = do
                     let ty_deps = ty_deps_s `union` ty_deps_u
                     write $ "Tydeps: " ++ show ty_deps
                     return $ (ty_deps,Using s' u')
-        _ -> throw $ "Error: Invalid statement " ++ showExpr e_stripped
+
+        t -> throw $ "Cannot translate this statement: " ++ showExpr e_stripped ++
+                     "\n  current collectedArgs was" ++ showOutputable t
 
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
@@ -151,16 +157,24 @@ mkContract f e = do
         (Var x,[_cf_ty])     | isContrCF x -> return CF
         (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
 
-        (Var x,[Type c1_ty,_c2_ty,e1,Lam y e2]) | isContrPi x -> do
+        -- I don't know why both these appear
+        (Var x,[Type c1_ty,Type _c2_ty,e1,Lam y e2]) | isContrPi x -> do
             y' <- refresh y c1_ty
             Arrow y' <$> mkContract (Var y') (subst e1 y y')
                      <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
 
+        (Var x,[Type _c_ty,Type c1_ty,Type _c2_ty,Coercion _co,e1,Lam y e2]) | isContrPi x -> do
+            y' <- refresh y c1_ty
+            Arrow y' <$> mkContract (Var y') (subst e1 y y')
+                     <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
+
+{-
         (Var x,[Type c1_ty,_c2_ty,e1,e2])
             | isContrArr x -> do
                 v <- mkFreshVar c1_ty
                 Arrow v <$> mkContract (Var v) e1
                         <*> mkContract (f @@ Var v) e2
+-}
 
         (Var x,[_and_ty,e1,e2])
             | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
@@ -170,7 +184,7 @@ mkContract f e = do
             mkContract f e'
 
         t -> throw $ "Found weird expression " ++ showExpr e ++
-                     " when making a contract for " ++ showExpr f ++
+                     "\n  when making a contract for " ++ showExpr f ++
                      "\n  current trimmedTyApp was" ++ showOutputable t
 
 getUnique' :: CollectM Unique

@@ -45,6 +45,7 @@ data Params = Params
     , dump_inlined_core :: Bool
     , dump_final_core   :: Bool
     , dump_fpi_core     :: Bool
+    , dump_unfoldings   :: Bool
     , dump_tptp         :: Bool
     , dump_contracts    :: Bool
     , dump_subthys      :: Bool
@@ -102,6 +103,7 @@ defParams = Params
     , dump_inlined_core = False   &= help "Dump core after inliner"
     , dump_final_core   = False   &= help "Dump (final) core without Statements"
     , dump_fpi_core     = False   &= help "Dump core after fixpoint generation"
+    , dump_unfoldings   = False   &= help "Dump unfoldings of non-local Ids"
     , dump_tptp         = False   &= help "Dump all generated tptp"
     , dump_contracts    = False   &= help "Dump the internal representation of contracts"
     , dump_subthys      = False   &= help "Dump the subtheories needed for contracts"
