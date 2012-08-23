@@ -27,6 +27,7 @@ import Control.Monad.Reader
 
 import qualified Data.Map as M
 import Data.Maybe
+import Data.List
 
 data Variance = Pos | Neg deriving (Eq,Show)
 
@@ -82,22 +83,6 @@ trPlain deps stmt = do
         , conj_kind         = Plain
         }
 
--- | The top variable, suitable for fixed point induction
-topVar :: CoreExpr -> Maybe Var
-topVar (Var v)    = Just v
-topVar (App e _)  = topVar e
-topVar (Lam _ e)  = topVar e
-topVar (Cast e _) = topVar e
-topVar (Tick _ e) = topVar e
-topVar _          = Nothing
-
--- | Top variable of a statement, for fpi
-topStmtVar :: Statement -> Maybe Var
-topStmtVar (e ::: _)   = topVar e
-topStmtVar (_ :=> t)   = topStmtVar t
-topStmtVar (All _ s)   = topStmtVar s
-topStmtVar (Using s _) = topStmtVar s
-
 -- | Try to translate this statement using FPI
 trFPI :: [HCCContent] -> Statement -> TransM [Conjecture]
 trFPI deps stmt = do
@@ -120,12 +105,14 @@ trFixated deps stmt f = do
         rename_f Step v | v == f = f_concl
         rename_f _    v = v
 
+        rename_to_case :: FriendCase -> [HCCContent] -> [HCCContent]
+        rename_to_case fc = map (mapFunctionContent rn)
+          where rn = fpiFriendName fix_info f fc . rename_f fc
+
         -- We use the original dependencies, but rename f to
         -- f_base or f_concl in dependencies
         mk_deps :: FriendCase -> [HCCContent]
-        mk_deps friend_case =
-            map (mapFunctionContent ( fpiFriendName fix_info f friend_case
-                                    . rename_f friend_case)) deps
+        mk_deps = (`rename_to_case` deps)
 
         -- How to rename an entire statement
         rename_stmt = substStatementList stmt . fpiGetSubstList fix_info f
@@ -139,23 +126,34 @@ trFixated deps stmt f = do
         mk_fixpointcase Base = FixpointBase
         mk_fixpointcase Step = FixpointStep
 
-    sequence
+        step_stmt = mk_stmt Step
+
+    -- Also split the goal if possible
+    splits <- trSplit step_stmt
+
+    ret <- sequence
         [ do (tr,extra_deps) <- capturePtrs' (trStmt (mk_stmt cs))
              return $ Conjecture tr (mk_deps cs ++ extra_deps) (mk_fixpointcase cs)
         | cs <- [Base | not fpi_no_base] ++ [Step]
         ]
 
-{- -- Splits are inactivated for now
-    -- Also split the goal if possible
-    splits <- trSplit (subst e f f_concl) (rename_c Concl)
-
-        [ Conjecture tr_split deps_split (FixpointStepSplit split_num)
+    return $ ret ++
+        [ Conjecture split_clauses deps_split (FixpointStepSplit split_num)
         | fpi_split
         , Split{..} <- splits
-        , let -- Add the induction hypothesis
-              tr_split = tr_hyp ++ split_clauses
-              -- We take the dependencies in the contract using f_concl
-              deps_split = split_deps `union` delete (Function f_concl) deps_concl
+        , let fc = Function f_concl
+              maybe_add_f
+                  | inAssumption fc step_stmt
+                      || inTopPredicate fc step_stmt = insert fc
+                  | otherwise                        = delete fc
+              deps_split = split_deps `union` maybe_add_f (mk_deps Step)
+              -- ^ We take the dependencies in the contract using f_concl,
+              --   and happily remove f_concl from the dependencies, but
+              --   not if it exists in the statement somewhere else than in the top
+              --   (think of "x == y :=> y == x", there "y == x" is the top, but
+              --    we need the entire definition of == as it exists in the assumption)
+              --   Similarily, if the function appears in a predicate, we need to
+              --   keep it as well.
         ]
 
 data Split = Split
@@ -166,9 +164,10 @@ data Split = Split
 
 -- Chop this contract up in several parts, enables us to "cursor" through the
 -- definition of the function instead of trying it in one go
-trSplit :: CoreExpr -> Contract -> TransM [Split]
-trSplit expr contract = do
-    let f = fromMaybe (error "trSplit: topVar returned Nothing") (topVar expr)
+trSplit :: Statement -> TransM [Split]
+trSplit stmt = do
+    let (e,contract) = stmtContract stmt
+        (f,pap_args) = fromMaybe (error "trSplit: no topExpr?") (topExpr e)
 
     bind_parts <- getBindParts f
 
@@ -181,17 +180,22 @@ trSplit expr contract = do
     let contract_args :: [Var]
         contract_args = (map fst . fst . telescope inf) contract
 
+        all_args :: [CoreExpr]
+        all_args = pap_args ++ map Var contract_args
+
     -- The contract only needs to be translated once
-    (tr_contr,ptr_deps) <- first (axioms . splitFormula)
-        <$> capturePtrs' (trContract Neg Skolemise expr contract)
+    (tr_contr,ptr_deps) <- capturePtrs' (trStmt stmt)
 
     -- The rest of the work is carried out by the bindToSplit function,
     -- by iterating over the (non-min) BindParts.
-    zipWithM (bindToSplit f contract_args tr_contr ptr_deps) decl_parts [0..]
+    splits <- mapM (bindToSplit f all_args tr_contr ptr_deps) decl_parts
 
-bindToSplit :: Var -> [Var] -> [Clause'] -> [HCCContent]
-            -> HCCBindPart -> Int -> TransM Split
-bindToSplit f contract_args tr_contr contr_deps decl_part@BindPart{..} num = do
+    -- Enumerate the splits
+    return (zipWith ($) splits [0..])
+
+bindToSplit :: Var -> [CoreExpr] -> [Clause'] -> [HCCContent]
+            -> HCCBindPart -> TransM (Int -> Split)
+bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
 
     (tr_part,part_ptrs) <- lift $ capturePtrs $ do
 
@@ -200,19 +204,18 @@ bindToSplit f contract_args tr_contr contr_deps decl_part@BindPart{..} num = do
 
         -- Foreach argument e, match up the variable v
         -- introduce e's arguments as skolems and make them equal
-        let sks :: [Var]
-            sks = concatMap exprFVs bind_args
+        let skolems :: [Var]
+            skolems = nub (concatMap exprFVs (bind_args ++ all_args))
 
         -- Everything under here considers the otherwise quantified
         -- vars in the arguments as skolem variables, now quantified
         -- over the whole theory instead
-        tr_goal <- local (addSkolems (nub $ sks ++ contract_args)) $ do
+        tr_goal <- local (addSkolems skolems) $ do
 
             -- Make the arguments to the function equal to the
             -- contract variables from the telescope
-            tr_eqs <- axioms .:
-                zipWith (===) <$> mapM (trExpr . Var) contract_args
-                              <*> mapM trExpr bind_args
+            tr_eqs <- axioms .: zipWith (===) <$> mapM trExpr all_args
+                                              <*> mapM trExpr bind_args
 
             -- Translate the constraints, but instead of having them
             -- as an antecedents, they are now asserted
@@ -232,13 +235,13 @@ bindToSplit f contract_args tr_contr contr_deps decl_part@BindPart{..} num = do
     -- to the theory as well.
     let dep = delete (Function f) $ contr_deps ++ bind_deps ++ part_ptrs
 
-    return $ Split
+    return $ \num -> Split
         { split_clauses = tr_part ++ [comment "Contract"] ++ tr_contr
         , split_deps    = dep
         , split_num     = num
         }
--}
 
+-- | Translate a statement
 trStmt :: Statement -> TransM [Clause']
 trStmt = fmap (clauseSplit axiom) . go Neg True
   where
@@ -254,6 +257,7 @@ trStmt = fmap (clauseSplit axiom) . go Neg True
     go v   top   (Using s _) = go v top s
 
 
+-- | Translate a contract for an expression
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
 trContract variance skolemise_init e_init contract = do
 
@@ -272,13 +276,13 @@ trContract variance skolemise_init e_init contract = do
         vars               = map fst arguments
         e_result           = foldl (@@) e_init (map Var vars)
 
-    lift $ write $ "trContract (" ++ show skolemise ++ ")" ++ " " ++ show variance
-                ++ "\n    e_init    :" ++ showExpr e_init
-                ++ "\n    e_result  :" ++ showExpr e_result
-                ++ "\n    contract  :" ++ show contract
-                ++ "\n    result    :" ++ show result
-                ++ "\n    arguments :" ++ show arguments
-                ++ "\n    vars      :" ++ show vars
+    lift $ write $ "trContract (" ++ show skolemise ++ ") " ++ show variance
+                ++ "\n    e_init:    " ++ showExpr e_init
+                ++ "\n    e_result:  " ++ showExpr e_result
+                ++ "\n    contract:  " ++ show contract
+                ++ "\n    result:    " ++ show result
+                ++ "\n    arguments: " ++ show arguments
+                ++ "\n    vars:      " ++ show vars
 
     tr_contract <- local' (skolemise == Skolemise ? addSkolems vars) $ do
 

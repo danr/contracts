@@ -5,6 +5,7 @@ import System.Console.CmdArgs
 
 data Params = Params
     { files             :: [FilePath]
+    , only              :: Maybe FilePath
 
     , paradox_file      :: Maybe FilePath
     , paradox_timeout   :: Int
@@ -62,6 +63,7 @@ sanitizeParams p = p
 defParams :: Params
 defParams = Params
     { files             = []      &= args   &= typFile
+    , only              = Nothing &= help "Only produce this tptp file"
 
     , paradox_file      = Nothing &= groupname "\nPrinting models"
                                   &= help "Pretty-print this file's counter satisfiable model (uses paradox)"

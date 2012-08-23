@@ -293,16 +293,14 @@ processFile params@Params{..} file = do
 
                     writeFile filename tptp
 
-
             case paradox_file of
-                Just f
-                    | f == filename -> do
-                        write_file
-                        putStrLn $ "Piping this file " ++ f ++ " to paradox, wish me luck!"
-                        let env = M.map varType rep_map
-                        pipe params env f
-                    | otherwise -> return ()
-                Nothing -> write_file
+                Just f | f == filename -> do
+                    write_file
+                    putStrLn $ "Piping this file " ++ f ++ " to paradox, wish me luck!"
+                    let env = M.map varType rep_map
+                    pipe params env f
+                Nothing | maybe True (== filename) only -> write_file
+                _ -> return ()
 
 main :: IO ()
 main = do

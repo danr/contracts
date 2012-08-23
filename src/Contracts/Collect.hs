@@ -21,16 +21,11 @@ import Var hiding (varName)
 
 import Contracts.SrcRep
 import Contracts.Types
-import Contracts.Theory
 
 import Halo.Util
 import Halo.Shared
-import Halo.Subtheory
-import Halo.FreeTyCons
-import Halo.Class
 
 import Data.Either
-import Data.List
 
 import Control.Monad
 import Control.Monad.Writer
@@ -83,24 +78,15 @@ trimTyApp _       = Nothing
 mkTopStmt :: Var -> CoreExpr -> CollectM TopStmt
 mkTopStmt name e = do
     write $ "Making a top statement for " ++ show name
-    let fun_deps :: [HCCContent]
-        fun_deps = Function <$> exprFVs e
-    write $ "Fundeps: " ++ show fun_deps
-    (ty_deps,stmt) <- mkStatement atTop e
-    write $ "Tydeps: " ++ show ty_deps
-    let deps     = fun_deps ++ ty_deps
+    stmt <- unTreeStmt <$> mkStatement e
     return $ TopStmt
         { top_name = name
         , top_stmt = stmt
-        , top_deps = deps
+        , top_deps = stmtDeps stmt
         }
 
-inTree,atTop :: Bool
-inTree = True
-atTop = False
-
-mkStatement :: Bool -> CoreExpr -> CollectM ([HCCContent],Statement)
-mkStatement in_tree e = do
+mkStatement :: CoreExpr -> CollectM Statement
+mkStatement e = do
     let (_ty,args,e_stripped) = collectTyAndValBinders e
     unless (null args) $ throw $ unlines
         ["Cannot have arguments to a Statement"
@@ -112,39 +98,22 @@ mkStatement in_tree e = do
         (Var x,as)
             | isStatementAll x , not (null as) , Lam y s <- last as -> do
                 write $ "Binding " ++ show y ++ " in a statement " ++ showExpr s
-                (ty_deps_s,s') <- mkStatement in_tree s
-                return $ (ty_deps_s,mkAll y s')
+                mkAll y <$> mkStatement s
 
-        (Var x,[_c_ty,f,c]) | isStatementCon x -> do
-            write $ "A contract for: " ++ showExpr f ++ "."
-            contr <- mkContract f c
-            let ty_deps = Data <$> freeTyCons f :: [HCCContent]
-            write $ "Tydeps: " ++ show ty_deps
-            let dict_deps = dictDeps f :: [HCCContent]
-            write $ "Dict deps: " ++ show dict_deps
-            return $ (ty_deps ++ dict_deps,f ::: contr)
+        (Var x,[_c_ty,f,c])
+            | isStatementCon x -> do
+                write $ "A contract for: " ++ showExpr f ++ "."
+                (f :::) <$> mkContract f c
 
-        (Var x,[Type _st_ty,Type _s_ty,Type _u_ty,Coercion _co,s,u]) | isStatementAssuming x -> do
-            write $ "Assuming " ++ showExpr s ++ " in the statement " ++ showExpr u
-            (ty_deps_s,s') <- mkStatement in_tree s
-            (ty_deps_u,u') <- mkStatement in_tree u
-            let ty_deps = ty_deps_s `union` ty_deps_u
-            write $ "Tydeps: " ++ show ty_deps
-            return $ (ty_deps,s' :=> u')
+        (Var x,[Type _st_ty,Type _s_ty,Type _u_ty,Coercion _co,s,u])
+            | isStatementAssuming x -> do
+                write $ "Assuming " ++ showExpr s ++ " in the statement " ++ showExpr u
+                (:=>) <$> mkStatement s <*> mkStatement u
 
-        (Var x,[Type _st_ty,Type _s_ty,Type _u_ty,Coercion _co,s,u]) | isStatementUsing x ->
-            if in_tree
-                then do
-                    write $ "A skipped tree using: " ++ showExpr u
-                    (t,s') <- mkStatement inTree s
-                    return (t,s')
-                else do
-                    write $ "A contract using: " ++ showExpr u
-                    (ty_deps_s,s') <- mkStatement atTop s
-                    (ty_deps_u,u') <- mkStatement inTree u
-                    let ty_deps = ty_deps_s `union` ty_deps_u
-                    write $ "Tydeps: " ++ show ty_deps
-                    return $ (ty_deps,Using s' u')
+        (Var x,[Type _st_ty,Type _s_ty,Type _u_ty,Coercion _co,s,u])
+            | isStatementUsing x -> do
+                write $ "A contract using: " ++ showExpr u
+                Using <$> mkStatement s <*> mkStatement u
 
         t -> throw $ "Cannot translate this statement: " ++ showExpr e_stripped ++
                      "\n  current collectedArgs was" ++ showOutputable t
@@ -157,15 +126,17 @@ mkContract f e = do
         (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
 
         -- I don't know why both these appear
-        (Var x,[Type c1_ty,Type _c2_ty,e1,Lam y e2]) | isContrPi x -> do
-            y' <- refresh y c1_ty
-            Arrow y' <$> mkContract (Var y') (subst e1 y y')
-                     <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
+        (Var x,[Type c1_ty,Type _c2_ty,e1,Lam y e2])
+            | isContrPi x -> do
+                y' <- refresh y c1_ty
+                Arrow y' <$> mkContract (Var y') (subst e1 y y')
+                         <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
 
-        (Var x,[Type _c_ty,Type c1_ty,Type _c2_ty,Coercion _co,e1,Lam y e2]) | isContrPi x -> do
-            y' <- refresh y c1_ty
-            Arrow y' <$> mkContract (Var y') (subst e1 y y')
-                     <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
+        (Var x,[Type _c_ty,Type c1_ty,Type _c2_ty,Coercion _co,e1,Lam y e2])
+            | isContrPi x -> do
+                y' <- refresh y c1_ty
+                Arrow y' <$> mkContract (Var y') (subst e1 y y')
+                         <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
 
         (Var x,[_and_ty,e1,e2])
             | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2

@@ -5,9 +5,14 @@ import Var
 import CoreSyn
 
 import Halo.Shared
+import Halo.Util
 import Halo.FOL.Abstract
+import Halo.FreeTyCons
+import Halo.Subtheory
+import Halo.Class
 
 import Data.Maybe
+import Data.List
 
 import Contracts.Theory
 
@@ -90,6 +95,7 @@ data TopStmt = TopStmt
     { top_name :: Var
     , top_stmt :: Statement
     , top_deps :: [HCCContent]
+    -- ^ Cached dependencies
     }
 
 mkAll :: Var -> Statement -> Statement
@@ -120,3 +126,82 @@ instance Show Statement where
 instance Show TopStmt where
     show TopStmt{..} = show top_name ++ " = " ++ show top_stmt
                         ++ " [deps: " ++ unwords (map show top_deps) ++ "]"
+
+-- | Removes nested right branches of Usings
+unTreeStmt :: Statement -> Statement
+unTreeStmt = go False
+  where
+    go i (Using s t)
+        | i         = go i s
+        | otherwise = go i s `Using` go True t
+    go i (s :=> t)  = go i s :=> go i t
+    go i (All vs s) = All vs (go i s)
+    go _ (e ::: c)  = e ::: c
+
+-- | Get the top contract for a statement
+stmtContract :: Statement -> (CoreExpr,Contract)
+stmtContract (e ::: c)   = (e,c)
+stmtContract (_ :=> t)   = stmtContract t
+stmtContract (All _ s)   = stmtContract s
+stmtContract (Using s _) = stmtContract s
+
+-- | The top function and arguments of an expression
+--   (with types stripped off)
+topExpr :: CoreExpr -> Maybe (Var,[CoreExpr])
+topExpr e0 = case e0 of
+    e@App{}  -> case second trimTyArgs (collectArgs e) of
+        (Var x,es) -> Just (x,es)
+        _          -> Nothing
+    Var x    -> Just (x,[])
+    Lam _ e  -> topExpr e
+    Cast e _ -> topExpr e
+    Tick _ e -> topExpr e
+    _        -> Nothing
+
+-- | Top variable of a statement, for fpi
+topStmtVar :: Statement -> Maybe Var
+topStmtVar = fmap fst . topStmtExpr
+
+-- | Top of a statement, the function + its arguments
+topStmtExpr :: Statement -> Maybe (Var,[CoreExpr])
+topStmtExpr = topExpr . fst . stmtContract
+
+-- | Dependencies of an expression
+exprDeps :: CoreExpr -> [HCCContent]
+exprDeps e = foldl1 union $
+    map ($e)
+        [functions . exprFVs
+        ,datas . freeTyCons
+        ,dictDeps]
+
+-- | Dependencies of a statement
+stmtDeps :: Statement -> [HCCContent]
+stmtDeps (e ::: c)   = exprDeps e `union` contrDeps c
+stmtDeps (All vs s)  = stmtDeps s \\ functions vs
+stmtDeps (s :=> t)   = stmtDeps s `union` stmtDeps t
+stmtDeps (Using s t) = stmtDeps s `union` stmtDeps t
+
+-- | Is this the top of a statement?
+isTop :: Statement -> Bool
+isTop (_ ::: _) = True
+isTop (All _ s) = isTop s
+isTop _         = False
+
+-- | Does this content appear in an assumption in a statement?
+inAssumption :: HCCContent -> Statement -> Bool
+inAssumption c s0 = case s0 of
+    s :=> t   -> c `elem` stmtDeps s || (not (isTop t) && inAssumption c t)
+    All _ s   -> inAssumption c s
+    Using s _ -> inAssumption c s
+    _ ::: _   -> False
+
+inTopPredicate :: HCCContent -> Statement -> Bool
+inTopPredicate c = (c `elem`) . contrDeps . snd . stmtContract
+
+-- | Dependencies of a contract
+contrDeps :: Contract -> [HCCContent]
+contrDeps CF              = []
+contrDeps (Pred e)        = exprDeps e
+contrDeps (And c1 c2)     = contrDeps c1 `union` contrDeps c2
+contrDeps (Arrow x c1 c2) = delete (Function x) (contrDeps c1 `union` contrDeps c2)
+
