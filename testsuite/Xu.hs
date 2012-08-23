@@ -1,18 +1,8 @@
 module Xu where
 
 import Contracts
-import Prelude (Bool(..))
-
-data Nat = S Nat | Z
-
-(+) :: Nat -> Nat -> Nat
-Z     + y = y
-(S x) + y = S (x + y)
-
-plus_cf = (+) ::: CF --> CF --> CF
-
-True && x = x
-_    && _ = False
+import Prelude (Bool(..),(&&))
+import Nat
 
 data T = T1 Bool | T2 Nat | T3 T T
 

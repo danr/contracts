@@ -1,6 +1,6 @@
 module Simplify where
 
-import Prelude(Bool(..),error)
+import Prelude(Bool(..),error,(&&))
 import Contracts
 
 data Formula v
@@ -17,9 +17,6 @@ isSimplified f = case f of
     Implies _ _ -> False
     Not f       -> isSimplified f
     Var _       -> True
-
-True  && b = b
-False && _ = False
 
 simplify :: Formula v -> Formula v
 simplify f = case f of

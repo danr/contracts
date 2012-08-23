@@ -111,10 +111,11 @@ mkStatement in_tree e = do
     write $ "Translating statement " ++ showExpr e
     case collectArgs e_stripped of
 
-        (Var x,[_x_ty,_stmt_ty,Lam y s]) | isStatementAll x -> do
-            write $ "Binding " ++ show y ++ " in a statement " ++ showExpr s
-            (ty_deps_s,s') <- mkStatement in_tree s
-            return $ (ty_deps_s,mkAll y s')
+        (Var x,args)
+            | isStatementAll x , not (null args) , Lam y s <- last args -> do
+                write $ "Binding " ++ show y ++ " in a statement " ++ showExpr s
+                (ty_deps_s,s') <- mkStatement in_tree s
+                return $ (ty_deps_s,mkAll y s')
 
         (Var x,[_c_ty,f,c]) | isStatementCon x -> do
             write $ "A contract for: " ++ showExpr f ++ "."
@@ -167,14 +168,6 @@ mkContract f e = do
             y' <- refresh y c1_ty
             Arrow y' <$> mkContract (Var y') (subst e1 y y')
                      <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
-
-{-
-        (Var x,[Type c1_ty,_c2_ty,e1,e2])
-            | isContrArr x -> do
-                v <- mkFreshVar c1_ty
-                Arrow v <$> mkContract (Var v) e1
-                        <*> mkContract (f @@ Var v) e2
--}
 
         (Var x,[_and_ty,e1,e2])
             | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2

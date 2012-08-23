@@ -1,16 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 module Risers where
 
-import Prelude (Bool(..),otherwise,error)
+import Prelude (Bool(..),otherwise,error,not,null,(.))
+import Nat
 import Contracts
-
-data Nat = S Nat | Z
-
-(<=) :: Nat -> Nat -> Bool
-Z   <= Z   = True
-Z   <= S _ = True
-S _ <= Z   = False
-S x <= S y = x <= y
 
 risers :: [Nat] -> [[Nat]]
 risers [] = []
@@ -21,25 +14,13 @@ risers (x:y:xs) = case risers (y:xs) of
     [] -> error "internal error"
 --    where !(s:ss) = risers (y:xs)
 
-null []    = True
-null (_:_) = False
-
 nonEmpty []    = False
 nonEmpty (_:_) = True
-
-not True = False
-not False = True
-
--- Bug in lambda lifter
-{-# NOINLINE (.) #-}
-f . g = \x -> f (g x)
-
-le = (<=) ::: CF --> CF --> CF
 
 risers_cf = risers
     ::: CF :&: Pred (not . null)
     --> CF :&: Pred (not . null)
-  `Using` le
+  `Using` le_cf
 
 broken_risers_missing_le = risers
     ::: CF :&: Pred (not . null)
@@ -47,15 +28,15 @@ broken_risers_missing_le = risers
 
 broken_risers_1 = risers
     ::: CF :&: Pred (not . null) --> CF
-  `Using` le
+  `Using` le_cf
 
 broken_risers_2 = risers
     ::: CF --> CF
-  `Using` le
+  `Using` le_cf
 
 broken_risers_3 = risers
     ::: CF --> CF :&: Pred (not.null)
-  `Using` le
+  `Using` le_cf
 
 risersBy :: (a -> a -> Bool) -> [a] -> [[a]]
 risersBy (<) [] = []

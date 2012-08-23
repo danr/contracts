@@ -1,7 +1,8 @@
 module PredLog where
 
-import Prelude(Bool(..),error)
+import Prelude(Bool(..),error,(&&))
 import Contracts
+import List
 
 data Formula
     = And [Formula]
@@ -9,6 +10,21 @@ data Formula
     | Implies (Formula) (Formula)
     | Neg (Formula)
     | Lit Bool
+
+-- * Auxiliary functions
+
+properList :: [a] -> Bool
+properList []  = False
+properList [_] = False
+properList _   = True
+
+isAnd And{} = True
+isAnd _     = False
+
+isOr Or{} = True
+isOr _    = False
+
+-- * The invariant
 
 invariant :: Formula -> Bool
 invariant f = case f of
@@ -39,9 +55,6 @@ neg (Lit b)         = Lit b
 -- | What it means to retain a predicate
 retain :: (a -> Bool) -> Contract (a -> a)
 retain p = Pred p :-> \x -> Pred (\ r -> p x && p r)
-
--- | Invariant is crash free
-all_cf = all ::: (CF --> CF) --> CF --> CF
 
 -- | Invariant is crash free
 invariant_cf = invariant ::: CF --> CF
@@ -88,12 +101,6 @@ flattenAnd :: Formula -> [Formula]
 flattenAnd (And fs) = concatMap flattenAnd fs
 flattenAnd f        = [f]
 
-(++) :: [a] -> [a] -> [a]
-[]     ++ ys = ys
-(x:xs) ++ ys = x : (xs ++ ys)
-
-append_cf    = (++) ::: CF --> CF --> CF
-
 concatMap :: (a -> [b]) -> [a] -> [b]
 concatMap f (x:xs) = f x ++ concatMap f xs
 concatMap f []     = []
@@ -113,9 +120,6 @@ append_retains_invariant =
     (++) ::: (Pred (all invariant) :-> \xs
           -> Pred (all invariant) :-> \ys
           -> Pred (\rs -> all invariant xs && all invariant ys && all invariant rs))
-
--- | all p xs ++ all p ys = all p (xs ++ ys)
-all_homomorphism = All (\p -> (++) ::: Pred (all p) --> Pred (all p) --> Pred (all p))
 
 -- | Retaining is preserved by concat mapping
 --   This one needs that all is a list homomorphism
@@ -166,42 +170,3 @@ ands_retains_invariant =
 
      -}
 
--- * Auxiliary functions
-
-
-map :: (a -> b) -> [a] -> [b]
-map f (x:xs) = f x:map f xs
-map f []     = []
-
-all :: (a -> Bool) -> [a] -> Bool
-all p (x:xs) = p x && all p xs
-all p []     = True
-
-any :: (a -> Bool) -> [a] -> Bool
-any p (x:xs) = p x || any p xs
-any p []     = False
-
-properList :: [a] -> Bool
-properList []  = False
-properList [_] = False
-properList _   = True
-
-True  && b = b
-False && _ = False
-
-False || b = b
-True  || _ = True
-
-not True  = False
-not False = True
-
-nonEmpty []    = False
-nonEmpty (_:_) = True
-
-f . g = \x -> f (g x)
-
-isAnd And{} = True
-isAnd _     = False
-
-isOr Or{} = True
-isOr _    = False
