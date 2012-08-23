@@ -24,8 +24,8 @@ _     == _     = False
 
 -- Should succeed --
 
-false_assumption1      = bad   ::: CF       :=> bad   ::: CF
-false_assumption2      = False ::: Pred id  :=> False ::: Pred id
+false_assumption1_      = bad   ::: CF       :=> bad   ::: CF
+false_assumption2_      = False ::: Pred id  :=> False ::: Pred id
 
 flip_const_bad_cf      = flip const bad ::: CF --> CF
 
@@ -49,12 +49,16 @@ param_unjuggle_cf_not  = All (\x -> (x ::: CF :&: Pred id ) :=> not x ::: CF :&:
 param_unjuggle_id      = All (\x -> (x ::: CF :&: Pred not) :=> id x  ::: Pred not)
 param_unjuggle_not     = All (\x -> (x ::: CF :&: Pred id ) :=> not x ::: Pred not)
 
+unused_false_assumption1_ = bad   ::: CF       :=> False ::: Pred id
+unused_false_assumption2_ = False ::: Pred id  :=> bad   ::: CF
+unused_false_assumption3_ = True  ::: Pred not :=> bad   ::: CF
+
 -- Should fail --
 
-sat_true_assumption1  = True ::: Pred id :=> bad ::: CF
-sat_true_assumption2  = True ::: CF      :=> bad ::: CF
-sat_true_assumption3  = True ::: CF      :=> False ::: Pred id
-sat_true_assumption4  = True ::: Pred id :=> False ::: Pred id
+sat_true_assumption1_  = True ::: Pred id :=> bad ::: CF
+sat_true_assumption2_  = True ::: CF      :=> bad ::: CF
+sat_true_assumption3_  = True ::: CF      :=> False ::: Pred id
+sat_true_assumption4_  = True ::: Pred id :=> False ::: Pred id
 
 sat_const_bad_cf      = const bad ::: CF --> CF
 
@@ -71,15 +75,3 @@ sat_param_not_cf_not  = All (\x -> (x ::: CF) :=> not x ::: CF :&: Pred not)
 sat_param_not_id      = All (\x -> (x ::: CF) :=> not x ::: Pred id)
 sat_param_not_not     = All (\x -> (x ::: CF) :=> not x ::: Pred not)
 
-{-
--- Behaves differently when min is on/off
-
-unused_false_assumption1 = bad   ::: CF       :=> False ::: Pred id
-unused_false_assumption2 = False ::: Pred id  :=> bad   ::: CF
-unused_false_assumption3 = True  ::: Pred not :=> bad   ::: CF
-
--- In the first example, BAD is said to be CF, but only if it is min.
--- But we never make BAD min, so the contract is countersatisfiable.
-
--- A bit ugly, but I guess the consensus is, don't have false hypotheses :)
--}

@@ -4,11 +4,17 @@ module Contracts.SrcRep where
 import Var
 import Outputable
 import Type
+import Name
+import Module
 
 import Data.List
 
--- isContractTyCon :: TyCon -> Bool
--- isContractTyCon =
+-- | Is this name defined in the `Contracts' module?
+contractModuleName :: Name -> Bool
+contractModuleName
+    = maybe False (== "Contracts")
+    . fmap (moduleNameString . moduleName)
+    . nameModule_maybe
 
 contrStrWith :: String -> String -> Bool
 contrStrWith end str = "Contracts." `isPrefixOf` str && end `isSuffixOf` str
@@ -22,7 +28,7 @@ statementType ty
 isStatementType :: Var -> Bool
 isStatementType v =
     let (args,res) = splitFunTys . dropForAlls . varType $ v
-    in  statementType res && null args -- not (any statementType args)
+    in  statementType res && null args
 
 isStatementAssuming :: Var -> Bool
 isStatementAssuming = contrStrWith ":=>" . show

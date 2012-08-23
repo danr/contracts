@@ -35,7 +35,7 @@
         odd_even_step Z     = False
         odd_even_step (S x) = even_hyp x
 
-    We call even the /focused/ function, and /odd/ the friend function.
+    We call @even@ the /focused/ function, and @odd@ the /friend/ function.
 
     Obviously, the focused function is renamed thrice: to base,
     hypothesis and conclusion, and the friend functions are only
@@ -169,7 +169,7 @@ fixateBind :: CoreBind -> UniqSM ([CoreBind],FixInfo)
 fixateBind b = case b of
     NonRec f e
         -- Function does not seem to be recursive
-        | not (f `elementOfUniqSet` exprFreeIds e) -> return ([b],mempty)
+        | f `notElem` exprFVs e -> return ([b],mempty)
 
     NonRec f e -> fixateGroup [(f,e)]
     Rec fses -> fixateGroup fses

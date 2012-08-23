@@ -43,16 +43,15 @@ eq_refl_broken = All (\x -> x ::: CF :=> True ::: Pred ((x == x) <=>))
 eq_sym = All (\x -> All (\y -> x ::: CF :=> y ::: CF :=>
     (y == x ::: CF :&: Pred ((x == y) <=>))))
 
-{-
+
 -- This one is Unsatisfiable with min, but Satisfiable without min!
--- Bleh :(
 eq_sym' = All $ \x -> All $ \y ->
     x ::: CF :=> y ::: CF :=>
     x == y ::: CF :&: Pred id :=>
     y == x ::: CF :&: Pred id
--}
 
-eq_trans_broken = (All $ \x -> All $ \y -> All $ \z ->
+
+eq_trans = (All $ \x -> All $ \y -> All $ \z ->
     x ::: CF :=> y ::: CF :=> z ::: CF :=>
     x == y ::: CF :&: Pred id :=>
     y == z ::: CF :&: Pred id :=>

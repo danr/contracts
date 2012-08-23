@@ -23,12 +23,12 @@ f b h = True
 counter_oops = (f ::: CF :-> \ b -> (CF --> CF --> CF) :-> \ (|||) -> CF)
   `Using` (loop ::: CF)
 
--- This was the one written in the POPL submission, but it actually holds
+-- A simplified version from the POPL submission
 f_popl :: (Bool -> Bool -> Bool) -> Bool
 f_popl h = if (h True True) && (not (h False False))
             then if (h True loop) && (h loop True)
                     then undefined else True
             else True
 
-counter_popl = f_popl ::: (CF --> CF --> CF) --> CF
+counter_popl_oops = (f_popl ::: (CF --> CF --> CF) :-> \ (|||) -> CF)
   `Using` (loop ::: CF)

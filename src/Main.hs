@@ -1,7 +1,6 @@
-{-# LANGUAGE RecordWildCards,ViewPatterns,DisambiguateRecordFields,PatternGuards #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, DisambiguateRecordFields, PatternGuards #-}
 module Main where
 
-import BasicTypes
 import Class
 import CoreSyn
 import GHC
@@ -51,6 +50,7 @@ import Contracts.Params
 import Contracts.Theory
 import Contracts.Trans
 import Contracts.Types
+import Contracts.SrcRep
 
 import Control.Monad
 import Control.Monad.Reader
@@ -110,10 +110,33 @@ processFile params@Params{..} file = do
 
     -- Find and print unfoldings
 
-    let unfoldings = fetch init_core_binds
+    let (unfoldings,debug_unfoldings) = fetch init_core_binds
         core_binds = unfoldings ++ init_core_binds
 
+    when db_unfoldings (putStrLn debug_unfoldings)
     when dump_unfoldings (printCore "Additional core from unfoldings" unfoldings)
+
+    -- Get type constructors
+
+    let ty_cons :: [TyCon]
+        ty_cons = filter (not . contractModuleName . tyConName)
+                         (insert boolTyCon (fetchTyCons core_binds))
+
+    -- Debug tycons
+
+    when db_ty_cons $ do
+        putStrLn $ "ty_cons: " ++ showOutputable ty_cons
+        void $ sequence $
+            [ putStrLn $ "ty_cons, tyConDataCons with " ++ t ++ " on " ++ s ++ ": "
+               ++ showOutputable (map (map ((id &&& l) . k) . tyConDataCons) ty_cons)
+            | (l,t) <- [(isConLikeId,"isConLikeId")
+                       ,(isNewtypeConId,"isNewtypeConId")
+                       ]
+            , (k,s) <- [(dataConWorkId,"dataConWorkId")
+                       ,(dataConWrapId,"dataConWrapId")
+                       ]
+            ]
+        putStrLn $ "is newtype: " ++ showOutputable (map isNewTyCon ty_cons)
 
     -- Lambda lift using GHC's lambda lifter. This also runs simpleCoreOptExpr
 
@@ -172,36 +195,6 @@ processFile params@Params{..} file = do
 
     when dump_final_core (printCore "Final core without Statements" program)
 
-    -- Get type constructors
-
-    let ty_cons :: [TyCon]
-        ty_cons = mg_tcs modguts
-
-    -- Debug (non-builtin) tycons
-
-    when db_ty_cons $ do
-        putStrLn $ "ty_cons: " ++ showOutputable ty_cons
-        void $ sequence $
-            [ putStrLn $ "ty_cons, tyConDataCons with " ++ t ++ " on " ++ s ++ ": "
-               ++ showOutputable (map (map ((id &&& l) . k) . tyConDataCons) ty_cons)
-            | (l,t) <- [(isConLikeId,"isConLikeId")
-                       ,(isNewtypeConId,"isNewtypeConId")
-                       ]
-            , (k,s) <- [(dataConWorkId,"dataConWorkId")
-                       ,(dataConWrapId,"dataConWrapId")
-                       ]
-            ]
-        putStrLn $ "is newtype: " ++ showOutputable (map isNewTyCon ty_cons)
-
-    let ty_cons_with_builtin :: [TyCon]
-        ty_cons_with_builtin
-            = listTyCon : boolTyCon : unitTyCon
-            : [ tupleTyCon BoxedTuple size
-              | size <- [0..8]
-              -- ^ choice: only tuples of size 0 to 8 supported!
-              ]
-            ++ (map classTyCon classes `union` ty_cons)
-
     -- Translate definitions
 
     let halo_conf :: HaloConf
@@ -220,7 +213,7 @@ processFile params@Params{..} file = do
             = initUs us3 (fixpointCoreProgram program)
 
         halo_env_without_hyp_arities
-            = mkEnv halo_conf ty_cons_with_builtin fix_prog
+            = mkEnv halo_conf ty_cons fix_prog
 
         halo_env = halo_env_without_hyp_arities
             { arities = fpiFixHypArityMap fix_info
@@ -229,7 +222,7 @@ processFile params@Params{..} file = do
 
         ((binds_thy,binds_map),msgs_trans) = runHaloM halo_env (trBinds fix_prog)
 
-        background_thy = backgroundTheory halo_conf ty_cons_with_builtin
+        background_thy = backgroundTheory halo_conf ty_cons
                       ++ map (mkDummySubtheory . Function) (fpiHypVars fix_info)
 
         app_theory = Subtheory
@@ -240,7 +233,7 @@ processFile params@Params{..} file = do
             }
 
         subtheories
-            = primConAxioms : primConApps : app_theory : mkCF ty_cons_with_builtin
+            = primConAxioms : primConApps : app_theory : mkCF ty_cons
             ++ map makeDataDepend (binds_thy ++ background_thy)
 
     when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)
@@ -264,6 +257,10 @@ processFile params@Params{..} file = do
             . concatMap toClauses
 
     when dump_tptp . putStrLn . fst $ toTPTP [] subtheories
+
+    when dump_subthys $ do
+        putStrLn "All subtheories"
+        mapM_ print subtheories
 
     let specialised_trim = trim subtheories
 
