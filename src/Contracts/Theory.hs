@@ -1,4 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
+{-
+
+    The extra theory the contracts checker does on top of HALO,
+    i.e. subtheories about CF,UNR and BAD.
+
+-}
 module Contracts.Theory where
 
 import TyCon

@@ -1,4 +1,9 @@
 {-# LANGUAGE PatternGuards #-}
+{-
+
+    The source representation of contracts.
+
+-}
 module Contracts.SrcRep where
 
 import Var

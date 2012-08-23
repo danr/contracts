@@ -1,4 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-
+
+    Command line parameters, using Neil Mitchell's cmdargs package.
+
+-}
 module Contracts.Params where
 
 import System.Console.CmdArgs

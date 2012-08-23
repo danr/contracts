@@ -1,4 +1,8 @@
--- "Pipe" a problem to paradox with some timeout and print the result
+{-
+
+    "Pipe" a problem to paradox with some timeout and print the result
+
+-}
 module Models.Pipe where
 
 import Type

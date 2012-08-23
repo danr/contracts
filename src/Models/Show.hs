@@ -1,6 +1,8 @@
 {-# LANGUAGE RecordWildCards,ScopedTypeVariables,ExplicitForAll #-}
 {-
 
+    Printing a model. Random thoughts about printing models:
+
 How do we print a value !1?
 
 How do we print a value !1, with a type tau?
@@ -144,14 +146,11 @@ something not min, and we can just write it as a metavariable.
 the function is not min, then don't write this case)
 
 
-
-
     Questions
 
     When should we use maps and when should we use lists?
     Hmm... These are going to be so small so we could just as
     well use lists.
-
 
 
 -}

@@ -1,4 +1,42 @@
 {-# LANGUAGE RecordWildCards, ViewPatterns, DisambiguateRecordFields, PatternGuards #-}
+{-
+
+    The - admittedly oversized - entry point to the contracts checker.
+
+    The pipeline is approximately this:
+
+        * Get CoreBinds from a file via the GHC API,
+
+        * Find /unfoldings/ from all unknown global identifiers from
+          other modules and make CoreBinds from them,
+
+        * Find all used data types from used constructors,
+
+        * Lambda lift using GHC's lambda lifter,
+
+        * Case/let lift, and also lift remaining lambdas,
+
+        * Remove DEFAULT alternatives,
+
+        * Inline all non-recursive, non-casing definitions without
+          introducing any lambdas. Exception: after HOAS constructs
+          like (:->), Pred and All, it is OK to introduce lambdas,
+
+        * Collect statements, i.e. go from Core -> internal representation,
+
+        * Make fixed point induction versions of recursive functions,
+
+        * Translate definitions to FOL,
+
+        * Translate internal representation of statements to FOL,
+          possibly chopped up in separate goals,
+
+        * Make as minimal theories as possible for each goal,
+          and save them to tptp-files.
+
+        * The paradox-pretty printer can be run, with type information.
+
+-}
 module Main where
 
 import Class
@@ -195,6 +233,13 @@ processFile params@Params{..} file = do
 
     when dump_final_core (printCore "Final core without Statements" program)
 
+    -- Change recursive definitions for fixed point induction
+
+    let ((fix_prog,fix_info),_us4)
+            = initUs us3 (fixpointCoreProgram program)
+
+    when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)
+
     -- Translate definitions
 
     let halo_conf :: HaloConf
@@ -208,9 +253,6 @@ processFile params@Params{..} file = do
             , or_discr          = or_discr
             , var_scrut_constr  = var_scrut_constr
             }
-
-        ((fix_prog,fix_info),_us4)
-            = initUs us3 (fixpointCoreProgram program)
 
         halo_env_without_hyp_arities
             = mkEnv halo_conf ty_cons fix_prog
@@ -236,7 +278,6 @@ processFile params@Params{..} file = do
             = primConAxioms params : primConApps : app_theory : mkCF ty_cons
             ++ map makeDataDepend (binds_thy ++ background_thy)
 
-    when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)
     when db_halo       (printMsgs msgs_trans)
 
     let style_conf = StyleConf

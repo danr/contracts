@@ -1,4 +1,8 @@
--- A prototype type
+{-
+
+    A prototype type, for debugging
+
+-}
 module Models.ProtoType where
 
 import Models.Show (Typelike(..))

@@ -1,7 +1,10 @@
 {-# LANGUAGE RecordWildCards,NamedFieldPuns #-}
 {-
 
-    Translates contracts in the datatypes in Contracts.Types to FOL
+    Translates statements and contracts from the internal
+    representation defined in Contracts.Types to FOL.
+
+    Splits goals into several conjectures.
 
 -}
 module Contracts.Trans where

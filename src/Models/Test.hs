@@ -1,3 +1,9 @@
+{-
+
+    A test run of the printer, with some hard-coded types using the
+    ProtoType instance for Typelike.
+
+-}
 module Models.Test where
 
 import Models.Model

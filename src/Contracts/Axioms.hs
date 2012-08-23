@@ -1,4 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
+{-
+
+    The built-in axioms about CF, UNR and BAD
+
+-}
 module Contracts.Axioms where
 
 import Outputable

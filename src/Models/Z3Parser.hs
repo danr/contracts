@@ -1,6 +1,6 @@
 {-
 
-    Unfinished, but here is an example output:
+    Unfinished, but here is an example output of a z3 model:
 
 c_False -> $i!val!0
 c_BAD -> $i!val!2

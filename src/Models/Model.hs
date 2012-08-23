@@ -1,4 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-
+
+    A prover-agnostic representation of the different components of a model
+
+-}
 module Models.Model where
 
 -- | We call everything that is deemed a function in FOL a Symbol here

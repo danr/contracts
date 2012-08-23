@@ -3,6 +3,9 @@
 
     Parsing models from paradox
 
+    Written in a weird way using prelude functions and what not.
+    Lesson learned: use attoparsec instead of a jumble of break and dropWhile.
+
     Typical input:
 
 +++ BEGIN MODEL

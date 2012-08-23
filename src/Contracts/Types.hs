@@ -1,4 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
+{-
+
+    The internal representations of contracts and statements,
+    and various related helper functions.
+
+-}
 module Contracts.Types where
 
 import Var
@@ -16,13 +22,14 @@ import Data.List
 
 import Contracts.Theory
 
+-- | The contract data type
 data Contract
     = CF
     | Pred CoreExpr
     | And Contract Contract
     | Arrow Var Contract Contract
 
--- "Natural" numbers
+-- | "Natural" numbers
 data Nat = S Nat | Z
 
 one,inf :: Nat
@@ -83,6 +90,7 @@ extendConj cls deps c = c
     , conj_dependencies = deps ++ conj_dependencies c
     }
 
+-- | File name suffix for a given kind of conjecture
 conjKindSuffix :: ConjectureKind -> String
 conjKindSuffix p = case p of
     Plain               -> ""
@@ -98,10 +106,12 @@ data TopStmt = TopStmt
     -- ^ Cached dependencies
     }
 
+-- | Collapse all bindings
 mkAll :: Var -> Statement -> Statement
 mkAll x (All xs s) = All (x:xs) s
 mkAll x s          = All [x]    s
 
+-- | The statement data type
 data Statement
     = CoreExpr ::: Contract
     | All [Var] Statement
@@ -195,6 +205,7 @@ inAssumption c s0 = case s0 of
     Using s _ -> inAssumption c s
     _ ::: _   -> False
 
+-- | Does this content appear in a predicate in the top contract?
 inTopPredicate :: HCCContent -> Statement -> Bool
 inTopPredicate c = (c `elem`) . contrDeps . snd . stmtContract
 

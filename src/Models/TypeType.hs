@@ -1,5 +1,10 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-
+
+    The Typelike instance for GHC's Type.
+
+-}
 module Models.TypeType where
 
 import Type
