@@ -7,6 +7,7 @@ data Params = Params
     { files             :: [FilePath]
 
     , paradox_file      :: Maybe FilePath
+    , paradox_timeout   :: Int
     , print_raw_model   :: Bool
     , typed_metas       :: Bool
 
@@ -17,11 +18,12 @@ data Params = Params
     , comments          :: Bool
     , core_optimise     :: Bool
     , dollar_min        :: Bool
-    , or_discr          :: Bool
     , fpi_split         :: Bool
     , fpi_no_plain      :: Bool
     , fpi_no_base       :: Bool
     , quick_tptp        :: Bool
+    , or_discr          :: Bool
+    , min_or_unr        :: Bool
 
     , no_skolemisation  :: Bool
     , no_pull_quants    :: Bool
@@ -63,18 +65,20 @@ defParams = Params
 
     , paradox_file      = Nothing &= groupname "\nPrinting models"
                                   &= help "Pretty-print this file's counter satisfiable model (uses paradox)"
+    , paradox_timeout   = 20      &= help "Timeout to paradox (default 20s)"
     , print_raw_model   = False   &= help "Print the raw model from paradox, too"
     , typed_metas       = False   &= name "t" &= help "Print type signatures on meta variables"
 
     , no_min            = False   &= groupname "\nSettings for generated theories"
                                   &= name "m" &= help "Remove all occurences of min in generated theories"
     , min_as_not_unr    = False   &= name "u" &= help "Replace all occurences of min in generated theories with not unr"
+    , or_discr          = False   &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
+    , min_or_unr        = False               &= help "Add the axiom forall x . ~min(x) => cf(x)"
 
     , fof               = False   &= name "f" &= help "Always generate clauses in fof"
     , comments          = False   &= name "C" &= help "Print comments in TPTP file"
     , core_optimise     = False   &= name "O" &= help "Run the core2core optimising pass"
     , dollar_min        = False   &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
-    , or_discr          = False   &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , fpi_split         = False   &= name "s" &= help "Split into many goals when doing fpi"
     , fpi_no_base       = False   &= name "b" &= help "If fpi is applicable, don't generate the base case"
     , fpi_no_plain      = False   &= name "i" &= help "If fpi is applicable, don't generate without induction"

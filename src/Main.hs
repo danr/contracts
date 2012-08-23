@@ -233,7 +233,7 @@ processFile params@Params{..} file = do
             }
 
         subtheories
-            = primConAxioms : primConApps : app_theory : mkCF ty_cons
+            = primConAxioms params : primConApps : app_theory : mkCF ty_cons
             ++ map makeDataDepend (binds_thy ++ background_thy)
 
     when dump_fpi_core (printCore "Fixpoint induction core" fix_prog)

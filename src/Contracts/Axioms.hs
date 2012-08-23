@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Contracts.Axioms where
 
 import Outputable
@@ -11,6 +12,7 @@ import Halo.Shared
 import Halo.Subtheory
 
 import Contracts.Theory
+import Contracts.Params
 
 import Control.Monad
 
@@ -45,8 +47,8 @@ mkCF ty_cons = do
         }
 
 -- | The essentials about BAD and UNR
-primConAxioms :: HCCSubtheory
-primConAxioms = Subtheory
+primConAxioms :: Params -> HCCSubtheory
+primConAxioms Params{..} = Subtheory
     { provides    = Specific PrimConAxioms
     , depends     = []
     , description = "Axioms for BAD and UNR"
@@ -55,8 +57,8 @@ primConAxioms = Subtheory
          , neg (cf bad)
          , unr =/= bad
          , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
---         , forall' [x] $ min' x' \/ x' === unr
-         ]
+         ] ++
+         [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
     }
 
 -- | App on BAD and UNR

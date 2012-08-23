@@ -21,7 +21,7 @@ import Control.Monad
 
 pipe :: Params -> Map String Type -> FilePath -> IO ()
 pipe params ty_env f = do
-    result <- runParadox 20 f
+    result <- runParadox (paradox_timeout params) f
     case result of
         Just raw_model -> do
             when (print_raw_model params) (putStrLn raw_model)

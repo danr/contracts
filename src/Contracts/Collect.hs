@@ -10,13 +10,11 @@
 -}
 module Contracts.Collect where
 
-import CoreFVs
 import CoreSyn
 import Id
 import Name
 import SrcLoc
 import Type
-import UniqSet
 import UniqSupply
 import Unique
 import Var hiding (varName)
@@ -111,8 +109,8 @@ mkStatement in_tree e = do
     write $ "Translating statement " ++ showExpr e
     case collectArgs e_stripped of
 
-        (Var x,args)
-            | isStatementAll x , not (null args) , Lam y s <- last args -> do
+        (Var x,as)
+            | isStatementAll x , not (null as) , Lam y s <- last as -> do
                 write $ "Binding " ++ show y ++ " in a statement " ++ showExpr s
                 (ty_deps_s,s') <- mkStatement in_tree s
                 return $ (ty_deps_s,mkAll y s')

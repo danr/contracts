@@ -1,5 +1,5 @@
 name:               hcc
-version:            0.2
+version:            0.3
 author:             Dan Rosén
 maintainer:         danr@student.gu.se
 synopsis:           Haskell Contract Checker
