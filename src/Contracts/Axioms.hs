@@ -55,6 +55,7 @@ primConAxioms = Subtheory
          , neg (cf bad)
          , unr =/= bad
          , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
+--         , forall' [x] $ min' x' \/ x' === unr
          ]
     }
 

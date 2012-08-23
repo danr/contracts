@@ -296,17 +296,15 @@ trContract variance skolemise_init e_init contract = do
             Pred p -> do
                 ex <- lift $ trExpr e_result
                 px <- lift $ trExpr p
-                return $ case variance of
-                    Neg -> min' ex /\ min' px /\ ex =/= unr /\
-                                            (px === false \/ px === bad)
-                    Pos -> min' ex ==>
-                           (min' px /\ (ex === unr \/ px === unr \/ px === true))
+                return $ min' ex /\ min' px /\ (case variance of
+                    Neg -> ex =/= unr /\ (px === false \/ px === bad)
+                    Pos -> ex === unr \/ px === unr \/ px === true)
 
             CF -> do
                 e_tr <- lift $ trExpr e_result
                 return $ case variance of
                     Neg -> min' e_tr /\ neg (cf e_tr)
-                    Pos -> min' e_tr ==> cf e_tr
+                    Pos -> cf e_tr
 
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]
@@ -317,9 +315,16 @@ trContract variance skolemise_init e_init contract = do
 
         return $ tr_arguments ++ [tr_result]
 
-    return $ case variance of
-        Neg -> (skolemise == Quantify ? exists' vars) (ands tr_contract)
-        Pos -> forall' vars (ors tr_contract)
+    case variance of
+        Neg -> return $ (skolemise == Quantify ? exists' vars) (ands tr_contract)
+        Pos -> do
+            min_guard <-
+                if null vars
+                    then return id
+                    else do
+                        e_tr <- lift (trExpr e_result)
+                        return (\f -> min' e_tr ==> f)
+            return $ forall' vars (min_guard (ors tr_contract))
 
 local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a
 local' k m = do
