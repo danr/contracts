@@ -176,6 +176,8 @@ eq_refl_broken = All (\x -> x ::: CF :=> True ::: Pred ((x == x) <=>))
 eq_sym_boolean = All (\x -> All (\y -> x ::: CF :=> y ::: CF :=>
     (y == x ::: CF :&: Pred ((x == y) <=>))))
 
+eq_sym_boolean2_ = (==) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred ((y == x) <=>)
+
 -- Some properties about max and min and plus
 
 (*) `idempotentOver` (===)  = All $ \x -> x ::: CF :=> x * x ::: CF :&: Pred (=== x)
