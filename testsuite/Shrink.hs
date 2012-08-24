@@ -1,7 +1,7 @@
 module Shrink where
 
 import Contracts
-import Prelude(Bool(..),Maybe(..),error,(&&),not,(.),null)
+import Prelude(Bool(..),Maybe(..),error,undefined,(&&),(||),not,(.),null,flip,uncurry,fst,snd,head,tail)
 import Data.Maybe (fromJust)
 import List
 import Nat
@@ -9,8 +9,6 @@ import Nat
 isJust :: Maybe a -> Bool
 isJust (Just x) = True
 isJust Nothing  = False
-
-fromJust_contr = fromJust ::: CF :&: Pred isJust --> CF
 
 shrink :: (a -> a -> a) -> [Maybe a] -> a
 shrink op []          = error "Empty list!"
@@ -64,6 +62,17 @@ broken_shrink_lazy_def_using_all_cf = broken_shrink_lazy_def `Using` all_cf
 -- This small HOF and recursive function is SAT without min or unr,
 -- bit diverges with it (which is strange, because this contract is in
 -- many senses smaller than the one for shrink_lazy)
+--
+-- Cannot prove this with induction, we get this counterexample:
+--
+--    xs = [UNR,Nothing] (obviously CF)
+--    justMap_hyp f [Nothing] #= BAD
+--
+-- The thing is that
+--
+--    isJust UNR && all isJust [Nothing] = UNR,
+--
+-- so we cannot appeal to the induction hypothesis
 justMap :: (a -> b) -> [Maybe a] -> [b]
 justMap f (x:xs) = f (fromJust x) : justMap f xs
 justMap f []     = []
@@ -72,7 +81,16 @@ justMap_cf_broken = justMap ::: (CF --> CF) --> CF :&: Pred (all isJust) --> CF
 
 justMap_cf_broken_using_all_cf = justMap_cf_broken `Using` all_cf
 
--- This is UNSAT regardless, so it is something with the higher-orderness
+-- With pattern matching
+justMap_pm :: (a -> b) -> [Maybe a] -> [b]
+justMap_pm f (Just x:xs) = f x : justMap_pm f xs
+justMap_pm f []          = []
+
+justMap_pm_cf = justMap_pm ::: (CF --> CF) --> CF :&: Pred (all isJust) --> CF
+
+justMap_pm_cf_using_all_cf = justMap_pm_cf `Using` all_cf
+
+-- This is UNSAT, but that is because + is strict in its first argument
 sum :: [Maybe Nat] -> Nat
 sum []     = Z
 sum (x:xs) = fromJust x + sum xs
@@ -80,6 +98,69 @@ sum (x:xs) = fromJust x + sum xs
 sum_cf = sum ::: CF :&: Pred (all isJust) --> CF
   `Using` plus_cf
 
+-- This has the counterexample [UNR,Nothing], and then the induction
+-- hypothesis cannot be appealed to.
+-- Doesn't use a HOF
+fromJusts :: [Maybe a] -> [a]
+fromJusts []     = []
+fromJusts (x:xs) = fromJust x : fromJusts xs
+
+fromJusts_cf_broken = fromJusts ::: CF :&: Pred (all isJust) --> CF
+
+-- Trying to prove it with allSat, which is all from both directions ;)
+all' :: (a -> Bool) -> [a] -> Bool
+all' p (x:xs) = all p xs && p x
+all' p []     = True
+
+allSat p = Pred (all p) :&: Pred (all' p)
+
+fromJusts_cf_allSat_broken = fromJusts ::: CF :&: allSat isJust --> CF
+fromJusts_cf_allSat_broken_ = fromJusts ::: CF :&: allSat isJust --> CF
+    `Using` (all' isJust ::: CF --> CF)
+    `Using` (all isJust ::: CF --> CF)
+
+-- An attempt to prove it with some lookahead
+
+fromJusts_cf_head_tail_broken =
+    fromJusts
+        ::: CF :&: Pred (\xs -> null xs || isJust (head xs))
+               :&: Pred (\xs -> null xs || all isJust (tail xs))
+        --> CF
+
+-- But writing it in terms of pattern matching is an option
+fromJusts_pm :: [Maybe a] -> [a]
+fromJusts_pm []          = []
+fromJusts_pm (Just x:xs) = x : fromJusts_pm xs
+
+fromJusts_pm_cf = fromJusts_pm ::: CF :&: Pred (all isJust) --> CF
+
+-- We can actually do the same thing without using recursion
+unJustPair    (x,y) = (fromJust x,fromJust y)
+unJustPair_pm (Just x,Just y) = (x,y)
+
+bothJust (x,y) = isJust x && isJust y
+
+unJustPair_cf_broken = unJustPair ::: CF :&: Pred bothJust --> CF
+unJustPair_pm_cf     = unJustPair_pm ::: CF :&: Pred bothJust --> CF
+
+swap = uncurry (flip (,))
+
+-- However, if we make sure to examine that they both are Just, then we're OK
+unJustPair_cf     = unJustPair ::: CF :&: Pred bothJust :&: Pred (bothJust . swap) --> CF
+unJustPair_cf_alt = unJustPair ::: CF :&: Pred (isJust . fst) :&: Pred (isJust . snd) --> CF
+
+
+sumMaybes :: (Maybe Nat,Maybe Nat) -> Nat
+sumMaybes (x,y) = fromJust x + fromJust y
+
+sumMaybes_cf = sumMaybes ::: CF :&: Pred bothJust --> CF
+  `Using` plus_cf
+
+sumMaybes_swap :: (Maybe Nat,Maybe Nat) -> Nat
+sumMaybes_swap (x,y) = fromJust y + fromJust x
+
+sumMaybes_swap_cf = sumMaybes ::: CF :&: Pred bothJust --> CF
+  `Using` plus_cf
 
 -- Failed attempts to do shrink_lazy simpler
 
@@ -98,4 +179,3 @@ combine :: (a -> b -> c) -> Maybe a -> Maybe b -> c
 combine op m1 m2 = fromJust m1 `op` fromJust m2
 
 combine_cf = combine ::: (CF --> CF --> CF) --> CF :&: Pred isJust --> CF :&: Pred isJust --> CF
-
