@@ -62,10 +62,8 @@ module Contracts.FixpointInduction
     ) where
 
 import CoreSyn
-import CoreFVs
 import Var
 import Name hiding (varName)
-import UniqSet
 import UniqSupply
 
 import Halo.Shared
@@ -214,7 +212,7 @@ fixate f e friends = do
         subst_base = (f,f_base):[ (g,g_base) | (g,_,g_base) <- friends_base ]
 
         friends_base' :: [(Var,CoreExpr)]
-        friends_base' = [ (g_base,substList g_e subst_base)
+        friends_base' = [ (g_base,substGblIds subst_base g_e)
                         | (_,g_e,g_base) <- friends_base ]
 
         base_bind :: CoreBind
@@ -237,10 +235,10 @@ fixate f e friends = do
         subst_step = (f,f_hyp):[ (g,g_step) | (g,_,g_step) <- friends_step ]
 
         e_step :: CoreExpr
-        e_step = substList e subst_step
+        e_step = substGblIds subst_step e
 
         friends_step' :: [(Var,CoreExpr)]
-        friends_step' = [ (g_step,substList g_e subst_step)
+        friends_step' = [ (g_step,substGblIds subst_step g_e)
                         | (_,g_e,g_step) <- friends_step ]
 
         step_bind :: CoreBind

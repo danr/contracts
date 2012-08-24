@@ -53,17 +53,17 @@ instance Show Contract where
 --
 --   Notice that you cannot substitute the binder in the arrow
 --   contract with this implementation
-substContractList :: Contract -> [(Var,Var)] -> Contract
-substContractList c xs = go c
+substContractList :: [(Var,Var)] -> Contract -> Contract
+substContractList xs = go
   where
     go CF              = CF
-    go (Pred e)        = Pred (substList e xs)
+    go (Pred e)        = Pred (substGblIds xs e)
     go (And c1 c2)     = And (go c1) (go c2)
     go (Arrow x c1 c2) = Arrow x (go c1) (go c2)
 
--- | Subst the contract structure, see notice above
-substContract :: Contract -> Var -> Var -> Contract
-substContract c xold xnew = substContractList c [(xold,xnew)]
+-- | Subst the contract structure, but not binders
+substContract :: Var -> Var -> Contract -> Contract
+substContract xold xnew = substContractList [(xold,xnew)]
 
 -- | The translated clauses and its dependencies, and what kind of
 --   conjecture it is (plain / fixpoint base / fixpoint step)
@@ -119,13 +119,13 @@ data Statement
     | Using Statement Statement
 
 -- | Apply a list of substitutions on a Statement
-substStatementList :: Statement -> [(Var,Var)] -> Statement
-substStatementList s0 xs = case s0 of
-    e ::: c   -> substList e xs ::: substContractList c xs
+substStatementList :: [(Var,Var)] -> Statement -> Statement
+substStatementList xs s0 = case s0 of
+    e ::: c   -> substGblIds xs e ::: substContractList xs c
     All vs s  -> All [fromMaybe v (lookup v xs) | v <- vs]
-                     (substStatementList s xs)
-    s :=> t   -> substStatementList s xs :=> substStatementList t xs
-    Using s t -> Using (substStatementList s xs) (substStatementList t xs)
+                     (substStatementList xs s)
+    s :=> t   -> substStatementList xs s :=> substStatementList xs t
+    Using s t -> Using (substStatementList xs s) (substStatementList xs t)
 
 instance Show Statement where
     show (e ::: c)   = showExpr e ++ " ::: " ++ show c

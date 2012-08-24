@@ -64,6 +64,10 @@ type CollectM =
     UniqSM)))
     -- ^ Making variable names
 
+-- | Run the monad
+--
+--   TODO: Would rather want to get the debug messages together with
+--   the error message.
 runCollectM :: CollectM a -> ErrorT String UniqSM (a,[String])
 runCollectM m = runWriterT m `evalStateT` names
   where
@@ -121,22 +125,22 @@ mkStatement e = do
 mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
 mkContract f e = do
     write $ showExpr f ++ ": " ++ showExpr e
+
+    let mkPi c1_ty e1 y e2 = do
+            y' <- refresh y c1_ty
+            Arrow y' <$> mkContract (Var y') (subst y y' e1)
+                     <*> mkContract (subst y y' f @@ Var y') (subst y y' e2)
+
     case collectArgs e of
         (Var x,[_cf_ty])     | isContrCF x -> return CF
         (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
 
         -- I don't know why both these appear
         (Var x,[Type c1_ty,Type _c2_ty,e1,Lam y e2])
-            | isContrPi x -> do
-                y' <- refresh y c1_ty
-                Arrow y' <$> mkContract (Var y') (subst e1 y y')
-                         <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
+            | isContrPi x -> mkPi c1_ty e1 y e2
 
         (Var x,[Type _c_ty,Type c1_ty,Type _c2_ty,Coercion _co,e1,Lam y e2])
-            | isContrPi x -> do
-                y' <- refresh y c1_ty
-                Arrow y' <$> mkContract (Var y') (subst e1 y y')
-                         <*> mkContract (subst f y y' @@ Var y') (subst e2 y y')
+            | isContrPi x ->  mkPi c1_ty e1 y e2
 
         (Var x,[_and_ty,e1,e2])
             | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2
@@ -149,6 +153,7 @@ mkContract f e = do
                      "\n  when making a contract for " ++ showExpr f ++
                      "\n  current trimmedTyApp was" ++ showOutputable t
 
+-- | Get a Unique from this monad
 getUnique' :: CollectM Unique
 getUnique' = lift $ lift $ lift $ getUniqueM
 
@@ -159,6 +164,7 @@ refresh v ty = do
     u <- getUnique'
     return (setVarType (setVarUnique v u) ty)
 
+-- | Makes a local variable witha given type
 mkFreshVar :: Type -> CollectM Var
 mkFreshVar ty = do
     v <- gets head
@@ -168,8 +174,10 @@ mkFreshVar ty = do
     let name = mkInternalName u (mkOccName varName v) wiredInSrcSpan
     return (mkLocalId name ty)
 
+-- | Write a debug message
 write :: String -> CollectM ()
 write = tell . return
 
+-- | Throw an error
 throw :: String -> CollectM a
 throw = throwError . strMsg

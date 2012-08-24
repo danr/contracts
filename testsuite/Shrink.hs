@@ -61,6 +61,17 @@ broken_shrink_lazy_def = shrink_lazy_def
 
 broken_shrink_lazy_def_using_all_cf = broken_shrink_lazy_def `Using` all_cf
 
+-- This small HOF and recursive function is SAT without min or unr,
+-- bit diverges with it (which is strange, because this contract is in
+-- many senses smaller than the one for shrink_lazy)
+justMap :: (a -> b) -> [Maybe a] -> [b]
+justMap f (x:xs) = f (fromJust x) : justMap f xs
+justMap f []     = []
+
+justMap_cf_broken = justMap ::: (CF --> CF) --> CF :&: Pred (all isJust) --> CF
+
+justMap_cf_broken_using_all_cf = justMap_cf_broken `Using` all_cf
+
 -- This is UNSAT regardless, so it is something with the higher-orderness
 sum :: [Maybe Nat] -> Nat
 sum []     = Z
@@ -69,17 +80,6 @@ sum (x:xs) = fromJust x + sum xs
 sum_cf = sum ::: CF :&: Pred (all isJust) --> CF
   `Using` plus_cf
 
--- Is it higher-orderness and recursion?
--- This is SAT without min or unr, bit diverges with it
--- (which is strange, because this contract is in many senses smaller
--- than the one for shrink_lazy)
-justMap :: (a -> b) -> [Maybe a] -> [b]
-justMap f (x:xs) = f (fromJust x) : justMap f xs
-justMap f []     = []
-
-justMap_cf = justMap ::: (CF --> CF) --> CF :&: Pred (all isJust) --> CF
-
-justMap_cf_using_all_cf = justMap_cf `Using` all_cf
 
 -- Failed attempts to do shrink_lazy simpler
 

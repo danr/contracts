@@ -118,7 +118,7 @@ trFixated deps stmt f = do
         mk_deps = (`rename_to_case` deps)
 
         -- How to rename an entire statement
-        rename_stmt = substStatementList stmt . fpiGetSubstList fix_info f
+        rename_stmt = (`substStatementList` stmt) . fpiGetSubstList fix_info f
 
         -- Translate the contract for the base, hyp and conclusion focus,
         -- registering pointers and calculating the final dependencies

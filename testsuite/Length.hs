@@ -1,7 +1,7 @@
 module Length where
 
 import Contracts
-import Prelude (Bool(..),(||),not)
+import Prelude (Bool(..),(||),not,error)
 import Nat
 import List
 
@@ -15,24 +15,33 @@ zipWith_length = zipWith
         CF :-> \ys ->
         CF :&: Pred (\zs -> length zs == min (length xs) (length ys))
 
--- Seems to work now, but once said:
+-- From ghc/utils/Util.lhs
+zipEqual []     []     = []
+zipEqual (a:as) (b:bs) = (a,b) : zipEqual as bs
+zipEqual _      _      = error "zipEqual: unequal lists"
+
+zipEqual_cf = zipEqual
+    ::: CF :-> \xs ->
+        CF :&: Pred (\ys -> length ys == length xs) -->
+        CF :&: Pred (\zs -> length zs == length xs)
+
+
 --     (==) :: Length.Nat -> Length.Nat -> GHC.Types.Bool
 --     (S ?1) == (S ?1) =  False
 -- But somehow asserting that (+) is CF works around this lack of reflexivity
-drop_length = drop
+drop_length_broken = drop
     ::: CF :-> \n ->
         CF :-> \xs ->
         CF :&: Pred (\ys -> n + length ys == length xs)
 
 
--- Seems to work now, but once said:
 -- Says:
 --     n :: Length.Nat
 --     n =  S n
 --
 --     xs :: [a]
 --     xs =  []
-drop_length_ok = drop
+drop_length_2_broken = drop
     ::: (CF :-> \n ->
         CF :-> \xs ->
         CF :&: Pred (\ys -> n + length ys == length xs))
@@ -42,14 +51,13 @@ drop_length_ok = drop
 
 
 
--- Seems to work now, but once said:
 -- Now:
 --     n :: Length.Nat
 --     n =  Z
 --
 --     xs :: [a]
 --     xs =  ?4 : xs
-drop_length_ok_2 = drop
+drop_length_3_broken = drop
     ::: (CF :-> \n ->
         CF :-> \xs ->
         CF :&: Pred (\ys -> min n (length xs) + length ys == length xs))
@@ -57,12 +65,11 @@ drop_length_ok_2 = drop
     ((+) ::: CF --> CF --> CF)
 
 
--- Seems to work now, but once said:
 -- We're stuck at reflexivity now, but it seems to require a lot of other things too.
 --
 --    (==) :: Length.Nat -> Length.Nat -> GHC.Types.Bool
 --    (S ?1) == (S ?1) =  False
-drop_length_ok_3 = drop
+drop_length_4_broken = drop
     ::: (CF :-> \n ->
         CF :-> \xs ->
         CF :&: Pred (\ys -> (n + length ys == length xs) || (n > length xs)))
