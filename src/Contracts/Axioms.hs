@@ -21,6 +21,11 @@ import Contracts.Params
 
 import Control.Monad
 
+impliesOr :: Formula q v -> [Formula q v] -> Formula q v
+phi `impliesOr` [] = neg phi
+phi `impliesOr` xs = phi ==> ors xs
+
+
 -- | Make axioms about CF
 mkCF :: [TyCon] -> [HCCSubtheory]
 mkCF ty_cons = do
@@ -34,14 +39,13 @@ mkCF ty_cons = do
         , description = "CF " ++ showSDoc (pprSourceTyCon ty_con)
         , formulae    = concat $
             [
-                [ cf kxbar | arity == 0] ++
-
-                [ foralls $ [cf kxbar] ===> ands (map cf xbar) | arity > 0 ] ++
+                -- cf(K xs) ==> BigAnd_i (cf (x_i))
+                [ foralls $ cf kxbar ==> ands (map cf xbar) | arity > 0 ] ++
 
                 -- min(K xs) /\ not (cf (K xs)) ==> BigOr_i (min(x_i) /\ not (cf (x_i))
-                [ foralls $ min' kxbar : [ neg (cf kxbar) ] ===>
-                                 ors [ ands [neg (cf y),min' y] | y <- xbar ]
-                | arity > 0 ]
+                [ foralls $ (min' kxbar /\ neg (cf kxbar)) `impliesOr`
+                                 [ ands [neg (cf y),min' y] | y <- xbar ]
+                ]
 
             | dc <- dcs
             , let (k,arity)       = dcIdArity dc
