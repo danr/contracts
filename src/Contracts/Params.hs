@@ -121,6 +121,17 @@ defParams = Params
     , dump_contracts    = False   &= help "Dump the internal representation of contracts"
     , dump_subthys      = False   &= help "Dump the subtheories needed for contracts"
     }
-    &= summary "Haskell Contracts Checker v0.2 Dan Rosén danr@student.gu.se"
+    &= summary "\n\
+    \    888                      \n\
+    \    888                      \n\
+    \    888                      \n\
+    \    888888b.  .d8888  .d8888 \n\
+    \    888  888 d8P     d8P     \n\
+    \    888  888 888     888     \n\
+    \    888  888 Y8b.    Y8b.    \n\
+    \    888  888  \"Y8888  \"Y8888 \n\
+    \    haskell contracts checker\n\
+    \\n\
+    \Dan Rosén danr@student.chalmers.se"
     &= program "hcc"
     &= verbosity

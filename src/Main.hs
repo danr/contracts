@@ -1,6 +1,16 @@
 {-# LANGUAGE RecordWildCards, ViewPatterns, DisambiguateRecordFields, PatternGuards #-}
 {-
 
+        888
+        888
+        888
+        888888b.  .d8888  .d8888
+        888  888 d8P     d8P
+        888  888 888     888
+        888  888 Y8b.    Y8b.
+        888  888  "Y8888  "Y8888
+        haskell contracts checker
+
     The - admittedly oversized - entry point to the contracts checker.
 
     The pipeline is approximately this:
