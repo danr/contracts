@@ -2,6 +2,7 @@ module ManyConstructors where
 
 import Contracts
 import Prelude(Bool(..))
+import Properties
 
 data K = A | B | C | D | E | F
 
@@ -71,3 +72,26 @@ Fd ==== Fd = True
 _  ==== _  = False
 
 eq_4_cf = (====) ::: CF --> CF --> CF
+
+-- Reflexivity, symmetry and transitivity
+
+-- Transitivity does not hold since
+--    A === UNR is True or UNR
+--    UNR === B is True or UNR
+--    But A === B is not True and not UNR.
+
+eq_refl           = reflexive (==)
+eq_sym            = symmetric (==)
+eq_trans_broken   = transitive (==)
+eq_trans_broken_  = transitive (==) `Using` eq_refl
+                                    `Using` eq_sym
+                                    `Using` eq_cf
+
+eq_2_refl         = reflexive (===)
+eq_2_sym          = symmetric (===)
+eq_2_trans_broken = transitive (===)
+
+eq_4_refl         = reflexive (====)
+eq_4_sym          = symmetric (====)
+eq_4_trans_broken = transitive (====)
+

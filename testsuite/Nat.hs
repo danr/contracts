@@ -2,6 +2,7 @@ module Nat where
 
 import Contracts
 import Prelude (Bool(..),not,id,($))
+import Properties
 
 data Nat = S Nat | Z
 
@@ -142,20 +143,6 @@ broken_exp_accum_cf_broken = exp_accum ::: CF --> CF --> CF --> CF
 
 -- Some more involving properties about equality
 
--- Reflexive over some equivalence relation
-reflexive (~~) = All (\x -> x ::: CF :=> x ~~ x ::: CF :&: Pred id)
-
-symmetric (~~) = All $ \x -> All $ \y ->
-    x ::: CF :=> y ::: CF :=>
-    x ~~ y ::: CF :&: Pred id :=>
-    y ~~ x ::: CF :&: Pred id
-
-transitive (~~) = (All $ \x -> All $ \y -> All $ \z ->
-    x ::: CF :=> y ::: CF :=> z ::: CF :=>
-    x ~~ y ::: CF :&: Pred id :=>
-    y ~~ z ::: CF :&: Pred id :=>
-    x ~~ z ::: CF :&: Pred id)
-
 eq_refl = reflexive (==)
 
 eq_sym = symmetric (==)
@@ -179,12 +166,6 @@ eq_sym_boolean = All (\x -> All (\y -> x ::: CF :=> y ::: CF :=>
 eq_sym_boolean2_ = (==) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred ((y == x) <=>)
 
 -- Some properties about max and min and plus
-
-(*) `idempotentOver` (===)  = All $ \x -> x ::: CF :=> x * x ::: CF :&: Pred (=== x)
-
-(*) `commutativeOver` (===) = (*) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred (=== (y * x))
-
-(*) `associativeOver` (===) = All $ \z -> z ::: CF :=> (*) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred (\r -> (r * z) === (x * (y * z)))
 
 max_idem          = max `idempotentOver` (==)
 min_idem          = min `idempotentOver` (==)
