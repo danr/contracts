@@ -14,6 +14,8 @@ data Params = Params
 
     , paradox_file      :: Maybe FilePath
     , paradox_timeout   :: Int
+    , all_disjoint      :: Bool
+    , ignore_types      :: Bool
     , print_raw_model   :: Bool
     , typed_metas       :: Bool
 
@@ -73,6 +75,8 @@ defParams = Params
     , paradox_file      = Nothing &= groupname "\nPrinting models"
                                   &= help "Pretty-print this file's counter satisfiable model (uses paradox)"
     , paradox_timeout   = 20      &= help "Timeout to paradox (default 20s)"
+    , all_disjoint      = False   &= help "Make all data constructors and pointers disjoint"
+    , ignore_types      = False   &= help "Ignore type information when priting models"
     , print_raw_model   = False   &= help "Print the raw model from paradox, too"
     , typed_metas       = False   &= name "t" &= help "Print type signatures on meta variables"
 

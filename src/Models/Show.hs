@@ -252,8 +252,8 @@ class Typelike t where
 type TyLookup t = Map String t
 
 -- | Environment needed is a map from the strings in the model to types
-showModel :: forall t . Typelike t => Bool -> TyLookup t -> Model -> String
-showModel typed_metas ty_lookup Model{..} =
+showModel :: forall t . Typelike t => Bool -> Bool -> TyLookup t -> Model -> String
+showModel ignore_ty typed_metas ty_lookup Model{..} =
 
     let min_set,cf :: Elt -> Bool
         [min_set,cf] =
@@ -307,7 +307,7 @@ showModel typed_metas ty_lookup Model{..} =
             , n > 0
             ]
 
-        elt_repr = eltRepr ty_lookup typed_metas skolems ptrs min_set reprs
+        elt_repr = eltRepr ignore_ty ty_lookup typed_metas skolems ptrs min_set reprs
 
         show_funs fs =
             [ f_cnc
@@ -367,7 +367,9 @@ instance Show Repr where
 --
 --   Oh... We probably want to print it as as constructor if there is a nullary one
 eltRepr :: forall t . Typelike t
-        => TyLookup t
+        => Bool
+        -- ^ Ignore type information
+        -> TyLookup t
         -- ^ A mapping from Strings to types
         -> Bool
         -- ^ Write types of metas
@@ -386,7 +388,7 @@ eltRepr :: forall t . Typelike t
         -> t
         -- ^ At which type to show it
         -> Repr
-eltRepr ty_lookup typed_metas skolems ptrs min_set reprs
+eltRepr ignore_ty ty_lookup typed_metas skolems ptrs min_set reprs
     = ((head .) .) . go []
   where
     go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
@@ -398,16 +400,24 @@ eltRepr ty_lookup typed_metas skolems ptrs min_set reprs
         [ Con c []
         | (e',ConRepr c []) <- reprs
         , e' == e
-        , let con_ty = fromMaybe (error $ "showElt nullary ty con lookup: " ++ c)
+        , let con_ty = fromMaybe (error $ "eltRepr nullary ty con lookup: " ++ c)
                                  (M.lookup c ty_lookup)
-        , con_ty `lg` ty
+        , ignore_ty || con_ty `lg` ty
         ] ++
 
         -- Try to print it as a skolem variable if that's ok
-        [ Var s | as_skolem_ok, (s,e',ty') <- skolems, e == e', eqTy ty ty' ] ++
+        [ Var s
+        | as_skolem_ok
+        , (s,e',ty') <- skolems
+        , e == e'
+        , ignore_ty || eqTy ty ty'
+        ] ++
 
         -- Try to print it as a pointer
-        [ Var p | (p,e',ty') <- ptrs, e == e', eqTy ty ty' ] ++
+        [ Var p
+        | (p,e',ty') <- ptrs, e == e'
+        , ignore_ty || eqTy ty ty'
+        ] ++
 
         -- Try to print it as a constructor with arguments
         -- In the recursive case it's OK to write it as a skolem variable again
@@ -417,11 +427,12 @@ eltRepr ty_lookup typed_metas skolems ptrs min_set reprs
         , (e',ConRepr c es) <- reprs
         , length es > 0
         , e' == e
-        , let con_ty = fromMaybe (error $ "showElt ty lookup: " ++ c)
+        , let con_ty = fromMaybe (error $ "eltRepr ty lookup: " ++ c)
                                  (M.lookup c ty_lookup)
               (es_tys,res_ty) = peel (Arity (length es)) con_ty
-        , res_ty `lg` ty
-        , let es_tys' = map (unifySubst res_ty ty) es_tys
+        , ignore_ty || res_ty `lg` ty
+        , let es_tys' | ignore_ty  = es_tys
+                      | otherwise  = map (unifySubst res_ty ty) es_tys
         , arg_reprs <- zipWithM (go ((e,ty):visited) True) es es_tys'
         ] ++
 

@@ -104,6 +104,7 @@ import Control.Monad
 import Control.Monad.Reader
 
 import Data.List
+import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
 
@@ -259,7 +260,6 @@ processFile params@Params{..} file = do
             , unr_and_bad       = True
             , ext_eq            = False
             -- ^ False for now, no good story about min and ext-eq
-            , disjoint_booleans = True -- not squishy_booleans
             , or_discr          = or_discr
             , var_scrut_constr  = var_scrut_constr
             }
@@ -331,7 +331,16 @@ processFile params@Params{..} file = do
                                conj_dependencies
                 subtheories' = specialised_trim important
 
-                (tptp,rep_map) = toTPTP conj_clauses subtheories'
+                -- If printing models, we can make everything disjoint:
+                -- a pass here that makes unrelated data types and
+                -- function pointer disjoint from each other.
+
+                disjoint_clauses
+                    | all_disjoint = extraDisjoint halo_conf subtheories'
+                    | otherwise    = []
+
+                (tptp,rep_map) = toTPTP (disjoint_clauses ++ conj_clauses)
+                                        subtheories'
 
                 filename = show top_name ++ conjKindSuffix conj_kind ++ ".tptp"
 
@@ -352,6 +361,45 @@ processFile params@Params{..} file = do
                     pipe params env f
                 Nothing | maybe True (== filename) only -> write_file
                 _ -> return ()
+
+extraDisjoint :: HaloConf -> [Subtheory s] -> [Clause']
+extraDisjoint halo_conf subthys = map (clause axiom) $
+    -- Make all data constructors disjoint from pointers
+    [ makeDisjoint halo_conf d p
+    | ds <- tycons, d <- ds, p <- ptrs ] ++
+    -- Make all data constructors of different types disjoint
+    [ makeDisjoint halo_conf d1 d2
+    | (d1s,d2ss) <- zip tycons (drop 1 (tails tycons))
+    , d1 <- d1s , d2s <- d2ss , d2 <- d2s ]
+  where
+    isData (provides -> Data ty_con) = Just (ty_con_disj ty_con)
+    isData _                         = Nothing
+
+    isPtr (provides -> Pointer p)    = Just (pointer_disj p)
+    isPtr _                          = Nothing
+
+    tycons = mapMaybe isData subthys
+
+    ptrs   = mapMaybe isPtr subthys
+
+    ty_con_disj :: TyCon -> [Disjoint]
+    ty_con_disj ty_con =
+        [ Disjoint {..}
+        | let dcs = tyConDataCons ty_con
+        , dc <- dcs
+        , let (symbol,arity) = dcIdArity dc
+              min_guard      = True
+              is_ptr         = False
+        ]
+
+    pointer_disj :: Var -> Disjoint
+    pointer_disj p = Disjoint
+        { symbol    = p
+        , arity     = 0
+        , min_guard = True
+        , is_ptr    = True
+        }
+
 
 main :: IO ()
 main = do
