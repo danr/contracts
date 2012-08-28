@@ -92,10 +92,10 @@ main = do
     -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
 
-    let init_env = Env quiet timeout models typed_metas
-
     -- extra arguments to hcc
     hcc_args <- fromMaybe "" <$> readEnv "HCC_ARGS"
+
+    let init_env = Env{..}
 
     unless (null hcc_args) $ putStrLn $ "HCC_ARGS: " ++ hcc_args
 
@@ -144,6 +144,7 @@ data Env = Env
     , timeout     :: Int
     , models      :: Bool
     , typed_metas :: Bool
+    , hcc_args    :: String
     }
 
 put :: String -> M ()
@@ -189,7 +190,7 @@ processFile group_res group_size file_init = do
 
     let file = takeFileName file_init
 
-    Env{timeout,models,typed_metas} <- ask
+    Env{..} <- ask
 
     if models
         then do
@@ -197,6 +198,7 @@ processFile group_res group_size file_init = do
 
                 cmd = "hcc " ++ hs_file ++ " --paradox-file=" ++ file
                          ++ (guard typed_metas >> " --typed-metas")
+                         ++ " " ++ hcc_args
 
             liftIO $ do
                 putStrLn file
