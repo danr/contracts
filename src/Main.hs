@@ -388,7 +388,7 @@ extraDisjoint halo_conf subthys = map (clause axiom) $
         | let dcs = tyConDataCons ty_con
         , dc <- dcs
         , let (symbol,arity) = dcIdArity dc
-              min_guard      = True
+              min_guard      = False
               is_ptr         = False
         ]
 
@@ -396,7 +396,7 @@ extraDisjoint halo_conf subthys = map (clause axiom) $
     pointer_disj p = Disjoint
         { symbol    = p
         , arity     = 0
-        , min_guard = True
+        , min_guard = False
         , is_ptr    = True
         }
 

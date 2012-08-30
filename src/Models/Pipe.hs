@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-
 
     "Pipe" a problem to paradox with some timeout and print the result
@@ -24,21 +25,19 @@ import Data.Map (Map)
 import Control.Monad
 
 pipe :: Params -> Map String Type -> FilePath -> IO ()
-pipe params ty_env f = do
-    result <- runParadox (paradox_timeout params) f
+pipe Params{..} ty_env f = do
+    result <- runParadox paradox_timeout f
     case result of
         Just raw_model -> do
-            when (print_raw_model params) (putStrLn raw_model)
+            when print_raw_model $ putStrLn (raw_model ++ "\n" ++ f)
             let model = parseParadoxModel raw_model
-            putStrLn $ showModel
-                (ignore_types params)
-                (typed_metas params)
-                ty_env model
-        Nothing -> putStrLn "Killed paradox after 20 seconds."
+            putStrLn (showModel ignore_types typed_metas ty_env model)
+        Nothing ->
+            putStrLn $ "Killed paradox after " ++
+                show paradox_timeout ++ " seconds."
 
 runParadox :: Int -> String -> IO (Maybe String)
-runParadox t file = timed t "paradox" $
-    ["--no-progress","--model",file]
+runParadox t file = timed t "paradox" ["--no-progress","--model",file]
 
 timed :: Int -> FilePath -> [String] -> IO (Maybe String)
 timed t cmd args = do
