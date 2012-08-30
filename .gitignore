@@ -13,5 +13,6 @@ dist
 .tmptime
 .z3.tmp
 *.tptp
+*.smt
 *.tptp.z3
 testsuite/results

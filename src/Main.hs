@@ -76,6 +76,7 @@ import Halo.Fetch
 import Halo.FOL.Abstract
 import Halo.FOL.Linearise
 import Halo.FOL.Dump
+import Halo.FOL.LineariseSMT
 import Halo.FOL.MinAsNotUnr
 import Halo.FOL.RemoveMin
 import Halo.FOL.Rename
@@ -296,16 +297,25 @@ processFile params@Params{..} file = do
             , style_dollar_min = dollar_min
             }
 
+        dumpTPTP' :: [Clause'] -> (String,dump_error)
         dumpTPTP' x = (dumpTPTP x,error "Can't dump tptp and print model!")
 
-        toTPTP :: [Clause'] -> [HCCSubtheory] -> (String,Map String Var)
-        toTPTP extra_clauses
-            = (if quick_tptp then dumpTPTP'
-                    else first (linStrStyleTPTP style_conf) . renameClauses)
-            . (min_as_not_unr ? map minAsNotUnr)
+        prep :: [Clause'] -> [HCCSubtheory] -> [Clause']
+        prep extra_clauses
+            = (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
             . (++ extra_clauses)
             . concatMap toClauses
+
+        toTPTP :: [Clause'] -> [HCCSubtheory] -> (String,Map String Var)
+        toTPTP
+            = (if quick_tptp
+                   then dumpTPTP'
+                   else first (linStrStyleTPTP style_conf) . renameClauses)
+            .: prep
+
+        toSMT :: [Clause'] -> [HCCSubtheory] -> String
+        toSMT = (linSMT . fst . renameClauses) .: prep
 
     when dump_tptp . putStrLn . fst $ toTPTP [] subtheories
 
@@ -323,13 +333,19 @@ processFile params@Params{..} file = do
 
         when db_trans (printMsgs msgs_tr_contr)
 
-        -- Assemble tptp-files
+        -- Assemble tptp and smt files
 
         forM_ conjectures $ \Conjecture{..} -> do
 
             let important    = Specific PrimConAxioms:Data boolTyCon:
                                conj_dependencies
                 subtheories' = specialised_trim important
+
+                filename ext = show top_name ++ conjKindSuffix conj_kind
+                                ++ "." ++ ext
+
+                tptp_file = filename "tptp"
+                smt_file  = filename "smt"
 
                 -- If printing models, we can make everything disjoint:
                 -- a pass here that makes unrelated data types and
@@ -342,26 +358,32 @@ processFile params@Params{..} file = do
                 (tptp,rep_map) = toTPTP (disjoint_clauses ++ conj_clauses)
                                         subtheories'
 
-                filename = show top_name ++ conjKindSuffix conj_kind ++ ".tptp"
+                smt = toSMT (disjoint_clauses ++ conj_clauses) subtheories'
 
-                write_file = do
-                    whenLoud $ putStrLn $ "Writing " ++ show filename
+                write_files = do
+                    unless no_tptp $ do
+                        whenLoud $ putStrLn $ "Writing " ++ tptp_file
+                        writeFile tptp_file tptp
 
-                    when dump_subthys $ do
-                        putStrLn $ "Subtheories: "
-                        mapM_ print subtheories'
+                    unless (isJust paradox_file || no_smt) $ do
+                        whenLoud $ putStrLn $ "Writing " ++ smt_file
+                        writeFile smt_file smt
 
-                    writeFile filename tptp
+            when dump_subthys $ do
+                putStrLn $ "Subtheories: "
+                mapM_ print subtheories'
 
             case paradox_file of
-                Just f | f == filename -> do
-                    write_file
-                    putStrLn $ "Piping this file " ++ f ++ " to paradox, wish me luck!"
+                Just f | f == tptp_file -> do
+                    write_files
+                    putStrLn $ "Piping " ++ f ++ " to paradox, wish me luck!"
                     let env = M.map varType rep_map
                     pipe params env f
-                Nothing | maybe True (== filename) only -> write_file
-                _ -> return ()
+                _ -> write_files
 
+-- | Make constructors of different types and pointers disjoint
+--
+--   TODO: Move this out of Main
 extraDisjoint :: HaloConf -> [Subtheory s] -> [Clause']
 extraDisjoint halo_conf subthys = map (clause axiom) $
     -- Make all data constructors disjoint from pointers

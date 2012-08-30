@@ -10,7 +10,8 @@ import System.Console.CmdArgs
 
 data Params = Params
     { files             :: [FilePath]
-    , only              :: Maybe FilePath
+    , no_smt            :: Bool
+    , no_tptp           :: Bool
 
     , paradox_file      :: Maybe FilePath
     , paradox_timeout   :: Int
@@ -70,7 +71,8 @@ sanitizeParams p = p
 defParams :: Params
 defParams = Params
     { files             = []      &= args   &= typFile
-    , only              = Nothing &= help "Only produce this tptp file"
+    , no_smt            = False   &= help "Don't generate smt files"
+    , no_tptp           = False   &= help "Don't generate tptp files"
 
     , paradox_file      = Nothing &= groupname "\nPrinting models"
                                   &= help "Pretty-print this file's counter satisfiable model (uses paradox)"
@@ -87,13 +89,13 @@ defParams = Params
     , min_or_unr        = False               &= help "Add the axiom forall x . ~min(x) => cf(x)"
 
     , fof               = False   &= name "f" &= help "Always generate clauses in fof"
-    , comments          = False   &= name "C" &= help "Print comments in TPTP file"
+    , comments          = False   &= name "C" &= help "Print comments in tptp files"
     , core_optimise     = False   &= name "O" &= help "Run the core2core optimising pass"
     , dollar_min        = False   &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , fpi_split         = False   &= name "s" &= help "Split into many goals when doing fpi"
     , fpi_no_base       = False   &= name "b" &= help "If fpi is applicable, don't generate the base case"
     , fpi_no_plain      = False   &= name "i" &= help "If fpi is applicable, don't generate without induction"
-    , quick_tptp        = False   &= name "Q" &= help "Enable quicker generation of TPTP with variable names from Uniques. Uses cnf and $min and writes no comments."
+    , quick_tptp        = False   &= name "Q" &= help "Enable quicker generation of tptp with variable names from Uniques. Uses cnf and $min and writes no comments."
 
     , no_skolemisation  = False   &= groupname "\nTesting and comparison"
                                   &= help "Do not skolemise contract"
