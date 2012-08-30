@@ -16,11 +16,11 @@ import Data.Maybe
 import System.Environment
 import System.Process
 import System.FilePath
-import System.ShQQ
 import System.IO
 import System.Exit
 import System.CPUTime
 import System.Directory
+import Text.Printf
 
 readEnv :: String -> IO (Maybe String)
 readEnv s = fmap snd . find ((s ==) . fst) <$> getEnvironment
@@ -28,20 +28,41 @@ readEnv s = fmap snd . find ((s ==) . fst) <$> getEnvironment
 splitPrefix :: String -> String
 splitPrefix = reverse . dropWhile isDigit . drop 1 . dropWhile (/= '.') . reverse
 
-data Res = SAT | UNSAT deriving (Eq,Ord,Show)
+data Res
+    = SAT   { res_time :: Integer }
+    | UNSAT { res_time :: Integer }
+
+sat = SAT (-1)
+unsat = UNSAT (-1)
+
+isSAT,isUNSAT :: Res -> Bool
+isSAT SAT{} = True
+isSAT _     = False
+
+isUNSAT = not . isSAT
+
+showTime :: Integer -> String
+showTime i = printf "%.1fms" ((fromInteger i :: Double) / (1000 * 1000 * 1000))
+
+maybeShowTime :: Integer -> String
+maybeShowTime (-1) = ""
+maybeShowTime i    = " (" ++ showTime i ++ ")"
+
+instance Show Res where
+    show (SAT t)   = "SAT" ++ maybeShowTime t
+    show (UNSAT t) = "UNSAT" ++ maybeShowTime t
+
+instance Eq Res where
+    SAT{}   == SAT{}   = True
+    UNSAT{} == UNSAT{} = True
+    _       == _       = False
 
 parseRes :: String -> Res
 parseRes s
-    | any (`isInfixOf` s) (concatMap underscores $ words "sat broken ef fails oops") = SAT
-    | otherwise = UNSAT
+    | any (`isInfixOf` s) (concatMap underscores $ words "sat broken ef fails oops") = sat
+    | otherwise = unsat
   where
     underscores s = ["_"++s,s++"_"]
-
-parseOutput :: String -> Maybe Res
-parseOutput s
-    | "Unsatisfiable" `isInfixOf` s = Just UNSAT
-    | "Satisfiable"   `isInfixOf` s = Just SAT
-    | otherwise = Nothing
 
 runKoentool :: String -> Int -> String -> IO (Maybe Res)
 runKoentool tool t file = timed t tool Nothing $
@@ -58,7 +79,7 @@ runEprover t file = timed t "eprover" Nothing
 
 runZ3 t file = do
     let regexp = "s/\\$min/min/g"
-    [sh| sed $regexp $file > ${file}.z3 |]
+    system $ "sed " ++ regexp ++ " '" ++ file ++ "' > '" ++ file ++ ".z3'"
     timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3"]
 
 equinox = ("equinox",runEquinox)
@@ -109,7 +130,7 @@ main = do
                 ++ (guard profile >> " +RTS -prof")
 
     -- Find files, ensure that they are sorted
-    files <- words <$> [sh| find -iname '*.tptp' |]
+    files <- words <$> readProcess "find" ["-iname","*.tptp"] ""
 
     let file_groups = groupBy ((==) `on` splitPrefix) (sort files)
 
@@ -162,8 +183,8 @@ processGroup group@(first:_) = do
 
     Env{models} <- ask
 
-    let pursue | models    = group_res == SAT && group_size == 1
-               | otherwise = group_res == UNSAT || group_size == 1
+    let pursue | models    = group_res == sat && group_size == 1
+               | otherwise = group_res == unsat || group_size == 1
 
     when pursue $ do
 
@@ -178,12 +199,12 @@ processGroup group@(first:_) = do
         let just_results = catMaybes results
 
         -- If a SAT group couldn't be satisfied anywhere, it's a failure
-        when (group_res == SAT && all (UNSAT ==) just_results && not (null just_results)) $ do
+        when (group_res == sat && all (unsat ==) just_results && not (null just_results)) $ do
             regFailure first
             printFail
 
         -- If an UNSAT group was UNSAT everywhere, it's a success
-        when (group_res == UNSAT && all (Just UNSAT ==) results) $ put "Success!"
+        when (group_res == unsat && all (Just unsat ==) results) $ put "Success!"
 
 processFile :: Res -> Int -> FilePath -> M (Maybe Res)
 processFile group_res group_size file_init = do
@@ -206,12 +227,12 @@ processFile group_res group_size file_init = do
                 putStrLn cmd
                 system cmd
 
-            return $ Just SAT
+            return $ Just sat
         else do
 
             -- If SAT, put paradox first, otherwise last
             let provers = case group_res of
-                              { SAT -> (paradox:) ; UNSAT -> (++ [paradox]) }
+                              { SAT{} -> (paradox:) ; UNSAT{} -> (++ [paradox]) }
                         $ [z3,vampire,equinox,eprover]
 
                 put' | group_size > 1 = put . ("    "++)
@@ -230,8 +251,8 @@ processFile group_res group_size file_init = do
             -- Interpret the result
             case m_result of
                 Nothing -> regTimeout file >> put "All tools timed out"
-                Just SAT | group_res == UNSAT -> regFailure file >> printFail
-                Just SAT | group_res == SAT   -> put' "Success!"
+                Just SAT{} | group_res == unsat -> regFailure file >> printFail
+                Just SAT{} | group_res == sat   -> put' "Success!"
                 _ -> return ()
 
             return m_result
@@ -262,6 +283,7 @@ regTimeout f = tell (Out [] [f])
 timed :: Int -> FilePath -> (Maybe FilePath) -> [String] -> IO (Maybe Res)
 timed t cmd inf args = errHandle $ do
 
+    t0 <- getCPUTime
     (Just inh, Just outh, Just errh, pid) <-
          createProcess (proc cmd args)
                        { std_in  = CreatePipe
@@ -294,8 +316,9 @@ timed t cmd inf args = errHandle $ do
          takeMVar outMVar
          -- wait on the process
          ex <- waitForProcess pid
+         t1 <- getCPUTime
          hClose outh
-         putMVar exit_code_mvar (Just ex)
+         putMVar exit_code_mvar (Just (ex,t1-t0))
 
     kid <- forkIO $ do
          threadDelay (t * 1000 * 1000)
@@ -311,12 +334,19 @@ timed t cmd inf args = errHandle $ do
     killThread tid
     killThread kid
 
-    return $ case maybe_exit_code of
-                Just ExitSuccess -> parseOutput output
-                _                -> Nothing
+    return $ do
+        (ExitSuccess,t) <- maybe_exit_code
+        parseOutput output t
 
   where
 
     errHandle m = m `C.catch` \e -> do
         hPutStrLn stderr (show (e :: IOException))
         return Nothing
+
+parseOutput :: String -> Integer -> Maybe Res
+parseOutput s t
+    | "Unsatisfiable" `isInfixOf` s = Just $ UNSAT t
+    | "Satisfiable"   `isInfixOf` s = Just $ SAT t
+    | otherwise = Nothing
+
