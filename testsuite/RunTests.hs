@@ -42,7 +42,8 @@ isSAT _     = False
 isUNSAT = not . isSAT
 
 showTime :: Integer -> String
-showTime i = printf "%.1fms" ((fromInteger i :: Double) / (1000 * 1000 * 1000))
+-- showTime i = printf "%.1fms" ((fromInteger i :: Double) / (1000 * 1000 * 1000))
+showTime i = show (i `div` (1000 * 1000 * 1000)) ++ "ms"
 
 maybeShowTime :: Integer -> String
 maybeShowTime (-1) = ""
@@ -79,16 +80,27 @@ runEprover t file = timed t "eprover" Nothing
 
 runZ3 t file = do
     let regexp = "s/\\$min/min/g"
-    system $ "sed " ++ regexp ++ " '" ++ file ++ "' > '" ++ file ++ ".z3'"
+    system $ "sed " ++ regexp ++ " " ++ show file ++ " > " ++ show file ++ ".z3"
     timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3"]
 
-equinox = ("equinox",runEquinox)
+equinox = ("xequinox",runEquinox)
 paradox = ("paradox",runParadox)
 vampire = ("vampire",runVampire)
 eprover = ("eprover",runEprover)
 z3      = ("z3",runZ3)
 
+unsat_provers = [z3,vampire,equinox,eprover]
+
+getProvers :: Maybe String -> Res -> [(String,Int -> String -> IO (Maybe Res))]
+getProvers (Just s) _        = filter ((`elem` s) . head . fst) (unsat_provers ++ [paradox])
+getProvers Nothing group_res = case group_res of
+    { SAT{} -> (paradox:)
+    ; UNSAT{} -> (++ [paradox])
+    } $ unsat_provers
+
 main = do
+
+    hSetBuffering stdout LineBuffering
 
     -- Remove all tptp files
     system "find -iname '*.tptp' -exec rm {} +"
@@ -104,11 +116,18 @@ main = do
     -- don't use min if MIN=false
     profile     <- isJust <$> readEnv "PROFILE"
     readable    <- isJust <$> readEnv "READABLE"
-    quiet       <- isJust <$> readEnv "QUIET"
     opt         <- isJust <$> readEnv "OPTIMISE"
     models      <- isJust <$> readEnv "MODELS"
     typed_metas <- isJust <$> readEnv "TYPED_METAS"
+    timing      <- isJust <$> readEnv "TIMING"
+    only        <- readEnv "ONLY"
+    quiet       <- (timing ||) . isJust <$> readEnv "QUIET"
     no_min      <- (== Just "false") <$> readEnv "MIN"
+    provers     <- do
+        r <- readEnv "PROVERS"
+        return $ case r of
+            Nothing | timing -> Just "zevxp"
+            _                -> r
 
     -- Use 1s timeout, or read from TIMEOUT env variable
     timeout <- maybe 1 read <$> readEnv "TIMEOUT"
@@ -118,10 +137,13 @@ main = do
 
     let init_env = Env{..}
 
-    unless (null hcc_args) $ putStrLn $ "HCC_ARGS: " ++ hcc_args
+    -- print init_env
+
+    unless (null hcc_args || quiet) $ putStrLn $ "HCC_ARGS: " ++ hcc_args
 
     -- Generate all contracts
-    system $ "hcc -q --dollar-min --fpi-no-base --fpi-no-plain --fpi-split "
+    system $ "hcc --dollar-min --fpi-no-base --fpi-no-plain --fpi-split "
+                ++ (guard quiet >> " -q")
                 ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")
                 ++ (guard opt >> " --core-optimise ")
@@ -134,23 +156,28 @@ main = do
 
     let file_groups = groupBy ((==) `on` splitPrefix) (sort files)
 
+    when timing $ putStrLn $ csv $
+        "filename":map fst (getProvers provers
+            $ error "getProvers, timing, set PROVERS")
+
     Out{..} <- execWriterT $ (`runReaderT` init_env) $ mapM_ processGroup file_groups
 
     let no_fails = length failures
         no_tos   = length timeouts
 
-    putStrLn ""
-    putStrLn $ "Timeouts: " ++ show no_tos
-    when (no_tos > 0) $ do
-        putStrLn $ "Files timing out: "
-        mapM_ (putStrLn . ('\t':)) timeouts
+    unless timing $ do
+        putStrLn ""
+        putStrLn $ "Timeouts: " ++ show no_tos
+        when (no_tos > 0) $ do
+            putStrLn $ "Files timing out: "
+            mapM_ (putStrLn . ('\t':)) timeouts
 
-    putStrLn ""
-    putStrLn $ "Failures: " ++ show no_fails
-    when (no_fails > 0) $ do
-        printFail
-        putStrLn $ "Failing files: "
-        mapM_ (putStrLn . ('\t':)) failures
+        putStrLn ""
+        putStrLn $ "Failures: " ++ show no_fails
+        when (no_fails > 0) $ do
+            printFail
+            putStrLn $ "Failing files: "
+            mapM_ (putStrLn . ('\t':)) failures
 
 
 type M = ReaderT Env (WriterT Out IO)
@@ -166,12 +193,23 @@ data Env = Env
     , models      :: Bool
     , typed_metas :: Bool
     , hcc_args    :: String
+    , timing      :: Bool
+    , only        :: Maybe String
+    , provers     :: Maybe String
     }
+  deriving Show
 
+-- Verbose put
+vput :: String -> M ()
+vput s = do
+    Env{quiet} <- ask
+    unless quiet $ put s
+
+-- Just put! (Unless we're timing, then we want to do something else)
 put :: String -> M ()
 put s = do
-    Env{quiet} <- ask
-    unless quiet . liftIO . putStrLn $ s
+    Env{timing} <- ask
+    unless timing . liftIO . putStrLn $ s
 
 endl :: M ()
 endl = put ""
@@ -181,32 +219,62 @@ processGroup group@(first:_) = do
     let group_res = parseRes first
         group_size = length group
 
-    Env{models} <- ask
+    Env{models,timing,only} <- ask
 
-    let pursue | models    = group_res == sat && group_size == 1
-               | otherwise = group_res == unsat || group_size == 1
+    let pursue0 | models    = group_res == sat && group_size == 1
+                | otherwise = group_res == unsat || group_size == 1
+        pursue = pursue0 && ((group_res == sat && only /= Just "UNSAT") ||
+                             (group_res == unsat && only /= Just "SAT"))
 
     when pursue $ do
 
+        let file_desc = takeFileName first
+
         endl
-        liftIO $ putStrLn $ takeFileName $ first
+        put $ file_desc
               ++ (guard (group_size > 1) >> (", group size: " ++ show group_size))
               ++ ", should be " ++ show group_res
 
-        -- Run all files in the group, collect their [Maybe Res]
+        -- Run all files in the group, collect their [[Maybe Res]]
         results <- mapM (processFile group_res group_size) group
 
-        let just_results = catMaybes results
+        if timing
+            then do
+                -- get the result per prover... combine if it comes from a group
+                let results_per_prover = map combineMRes (transpose results)
+                liftIO $ putStrLn $ csv (file_desc:map showMRes results_per_prover)
+            else do
+                let results' = map msum results
+                    just_results = catMaybes results'
 
-        -- If a SAT group couldn't be satisfied anywhere, it's a failure
-        when (group_res == sat && all (unsat ==) just_results && not (null just_results)) $ do
-            regFailure first
-            printFail
+                -- If a SAT group couldn't be satisfied anywhere, it's a failure
+                when (group_res == sat && all (unsat ==) just_results && not (null just_results)) $ do
+                    regFailure first
+                    printFail
 
-        -- If an UNSAT group was UNSAT everywhere, it's a success
-        when (group_res == unsat && all (Just unsat ==) results) $ put "Success!"
+                -- If an UNSAT group was UNSAT everywhere, it's a success
+                when (group_res == unsat && all (Just unsat ==) results') $ put "Success!"
 
-processFile :: Res -> Int -> FilePath -> M (Maybe Res)
+csv :: [String] -> String
+csv = intercalate ","
+
+showMRes :: Maybe Res -> String
+showMRes Nothing  = "---"
+showMRes (Just r) = showTime (res_time r)
+
+combineMRes :: [Maybe Res] -> Maybe Res
+combineMRes = foldr1 combineTwoMRes
+
+combineTwoMRes :: Maybe Res -> Maybe Res -> Maybe Res
+combineTwoMRes = liftM2 combineTwoRes
+
+combineTwoRes :: Res -> Res -> Res
+combineTwoRes (UNSAT t1) (UNSAT t2) = UNSAT (t1 + t2)
+combineTwoRes (SAT t1)   (UNSAT t2) = SAT (t1 + t2)
+combineTwoRes (UNSAT t1) (SAT t2)   = SAT (t1 + t2)
+combineTwoRes (SAT t1)   (SAT t2)   = SAT (t1 + t2)
+
+processFile :: Res -> Int -> FilePath -> M [Maybe Res]
 processFile group_res group_size file_init = do
 
     let file = takeFileName file_init
@@ -227,35 +295,31 @@ processFile group_res group_size file_init = do
                 putStrLn cmd
                 system cmd
 
-            return $ Just sat
+            return $ [Just sat]
         else do
 
-            -- If SAT, put paradox first, otherwise last
-            let provers = case group_res of
-                              { SAT{} -> (paradox:) ; UNSAT{} -> (++ [paradox]) }
-                        $ [z3,vampire,equinox,eprover]
+            let iput | group_size > 1 = vput . ("    "++)
+                     | otherwise      = vput
 
-                put' | group_size > 1 = put . ("    "++)
-                     | otherwise      = put
+            when (group_size > 1) (vput $ takeFileName file)
 
-            when (group_size > 1) (put $ takeFileName file)
-
-            -- Run until we get a result from a tool
-            m_result <- unfoldM provers $ \(tool,prover) -> do
-                m_res <- liftIO $ prover timeout file
-                case m_res of
-                    Nothing  -> put' $ tool ++ " timed out"
-                    Just res -> put' $ show res ++ " from " ++ tool
-                return m_res
+            -- Run until we get a result from a tool, or if we're timing, run all
+            results <- breakAtJustOrNot (not timing) (getProvers provers group_res) $
+                \(tool_desc,prover) -> do
+                    m_res <- liftIO $ prover timeout file
+                    case m_res of
+                        Nothing  -> iput $ tool_desc ++ " timed out"
+                        Just res -> iput $ show res ++ " from " ++ tool_desc
+                    return m_res
 
             -- Interpret the result
-            case m_result of
-                Nothing -> regTimeout file >> put "All tools timed out"
+            unless timing $ case msum results of
+                Nothing -> regTimeout file >> iput "All tools timed out"
                 Just SAT{} | group_res == unsat -> regFailure file >> printFail
-                Just SAT{} | group_res == sat   -> put' "Success!"
+                Just SAT{} | group_res == sat   -> iput "Success!"
                 _ -> return ()
 
-            return m_result
+            return results
 
 printFail :: MonadIO m => m ()
 printFail = do
@@ -263,11 +327,17 @@ printFail = do
     liftIO $ putStrLn "!!! FAIL                                                                   !!!"
     liftIO $ putStrLn "=============================================================================="
 
-unfoldM :: Monad m => [a] -> (a -> m (Maybe b)) -> m (Maybe b)
-unfoldM []     _ = return Nothing
-unfoldM (x:xs) f = f x >>= \fx -> case fx of
-    Nothing -> unfoldM xs f
-    just    -> return just
+breakAtJustOrNot :: Monad m => Bool -> [a] -> (a -> m (Maybe b)) -> m [Maybe b]
+breakAtJustOrNot True  = untilJust
+breakAtJustOrNot False = forM
+
+untilJust :: Monad m => [a] -> (a -> m (Maybe b)) -> m [Maybe b]
+untilJust []     _ = return []
+untilJust (x:xs) f = do
+    fx <- f x
+    case fx of
+        Nothing -> (fx:) `liftM` untilJust xs f
+        just    -> return [just]
 
 instance Monoid Out where
     mempty = Out [] []
