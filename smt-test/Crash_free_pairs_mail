@@ -1,0 +1,122 @@
+Hi Leonardo,
+
+We’re a team in Cambridge doing verification of Haskell programs, and
+we have been using FO theorem provers and TPTP but are experimenting
+to use z3’s SMT format and, in particular, triggers. The trigger
+behaviour puzzles me, below is quite a standard example with tuples
+(pair) and projections (fst,snd). We also have catchable bottoms,
+crash, and non-catchable non-termination, unreachable. In addition,
+there is a predicate crashfree which is true if a value recursively
+does not contain any crashes. The file below axiomatises this theory,
+using triggers, and tries to show that (crash,unreachable) = false is
+satisfiable.
+
+(declare-sort D)                 ;; our domain
+(declare-fun crashfree (D) Bool) ;; the predicate of crash-freeness
+(declare-fun pair (D D) D)       ;; pairs and its projections
+(declare-fun fst (D) D)
+(declare-fun snd (D) D)
+(declare-fun crash () D)         ;; a program crash
+(declare-fun unreachable () D)   ;; non-termination
+
+;; Axioms for crash and unreachable,
+(assert (= true (crashfree unreachable)))
+(assert (= false (crashfree crash)))
+(assert (distinct unreachable crash))
+
+;; Pairs are not crashes
+(assert (forall
+         ((x D) (y D))
+         (distinct (pair x y) crash)
+         :pattern{ (pair x y) }))
+;; Pairs are not unreachable
+(assert (forall
+         ((x D) (y D))
+         (distinct (pair x y) unreachable)
+         :pattern{ (pair x y) }))
+
+;; First projection
+(assert (forall
+         ((x D) (y D)) (= (fst (pair x y)) x)
+         :pattern{ (pair x y) }))
+;; Second projection
+(assert (forall
+         ((x D) (y D))
+         (= (snd (pair x y)) y)
+         :pattern{ (pair x y) }))
+
+
+;; A pair is crash free iff both its components are crash free.
+(assert (forall
+         ((x D) (y D))
+         (= (crashfree (pair x y))
+            (&& (crashfree x) (crashfree y)))
+         :pattern{ (crashfree (pair x y)) }))
+
+;; The pair (Crash,Unreachable) is not crashfree.
+;; Should be countersatisfiable.
+(assert (= false (crashfree (pair crash unreachable))))
+(check-sat) ;; loops
+
+The reason why I think this should be satisfiable is because this TPTP
+theory, which I think should be equivalent, is satisfiable:
+
+cnf(x, axiom, ~trigger(pair(X,Y)) | fst(pair(X,Y)) = X).
+cnf(x, axiom, ~trigger(pair(X,Y)) | snd(pair(X,Y)) = Y).
+cnf(x, axiom, ~trigger(pair(X,Y)) | pair(X,Y) != crash).
+cnf(x, axiom, ~trigger(pair(X,Y)) | pair(X,Y) != unreachable).
+cnf(x, axiom, crashfree(unreachable)).
+cnf(x, axiom, ~crashfree(crash)).
+cnf(x, axiom, unreachable != crash).
+cnf(x, axiom, X = unreachable | ~crashfree(X) | trigger(X)).
+fof(x, axiom, ! [X,Y] : (crashfree(pair(X,Y)) => (crashfree(X) & crashfree(Y)))).
+fof(x, axiom, ! [X,Y] : ((trigger(pair(X,Y)) & ~crashfree(pair(X,Y)))
+                          => ((~crashfree(X) & trigger(X)) | (~crashfree(Y) & trigger(Y))))).
+cnf(x, axiom, trigger(pair(crash,unreachable))).
+cnf(x, axiom, ~crashfree(pair(crash,unreachable))).
+
+It has a model, such as this one given by paradox:
+
+crash = !2
+
+crashfree(!1) <=> $true
+crashfree(!2) <=> $false
+crashfree(!3) <=> $false
+crashfree(!4) <=> $false
+
+fst(!1) = !3
+fst(!2) = !2
+fst(!3) = !2
+fst(!4) = !1
+
+pair(!1,!1) = !1
+pair(!1,!2) = !4
+pair(!1,!3) = !4
+pair(!1,!4) = !4
+pair(!2,!1) = !3
+pair(!2,!2) = !4
+pair(!2,!3) = !4
+pair(!2,!4) = !4
+pair(!3,!1) = !4
+pair(!3,!2) = !4
+pair(!3,!3) = !4
+pair(!3,!4) = !4
+pair(!4,!1) = !4
+pair(!4,!2) = !4
+pair(!4,!3) = !4
+pair(!4,!4) = !4
+
+snd(!1) = !1
+snd(!2) = !1
+snd(!3) = !1
+snd(!4) = !2
+
+trigger(!1) <=> $false
+trigger(!2) <=> $true
+trigger(!3) <=> $true
+trigger(!4) <=> $false
+
+unreachable = !1
+
+Thankful for any help or pointers,
+Dan Rosén

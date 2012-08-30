@@ -1,0 +1,13 @@
+cnf(x, axiom, ~trigger(pair(X,Y)) | fst(pair(X,Y)) = X).
+cnf(x, axiom, ~trigger(pair(X,Y)) | snd(pair(X,Y)) = Y).
+cnf(x, axiom, ~trigger(pair(X,Y)) | pair(X,Y) != crash).
+cnf(x, axiom, ~trigger(pair(X,Y)) | pair(X,Y) != unreachable).
+cnf(x, axiom, crashfree(unreachable)).
+cnf(x, axiom, ~crashfree(crash)).
+cnf(x, axiom, unreachable != crash).
+cnf(x, axiom, X = unreachable | ~crashfree(X) | trigger(X)).
+fof(x, axiom, ! [X,Y] : (crashfree(pair(X,Y)) => (crashfree(X) & crashfree(Y)))).
+fof(x, axiom, ! [X,Y] : ((trigger(pair(X,Y)) & ~crashfree(pair(X,Y)))
+                          => ((~crashfree(X) & trigger(X)) | (~crashfree(Y) & trigger(Y))))).
+cnf(x, axiom, trigger(pair(crash,unreachable))).
+cnf(x, axiom, ~crashfree(pair(crash,unreachable))).
