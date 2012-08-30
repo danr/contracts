@@ -141,7 +141,7 @@ debugName (v,e) =
 processFile :: Params -> FilePath -> IO ()
 processFile params@Params{..} file = do
 
-    putStrLn $ "Visiting " ++ file
+    whenNormal $ putStrLn $ "Visiting " ++ file
 
     -- Get the initial core through Halo
 
@@ -345,7 +345,7 @@ processFile params@Params{..} file = do
                 filename = show top_name ++ conjKindSuffix conj_kind ++ ".tptp"
 
                 write_file = do
-                    whenNormal $ putStrLn $ "Writing " ++ show filename
+                    whenLoud $ putStrLn $ "Writing " ++ show filename
 
                     when dump_subthys $ do
                         putStrLn $ "Subtheories: "
