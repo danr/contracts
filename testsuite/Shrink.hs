@@ -106,6 +106,9 @@ fromJusts []     = []
 fromJusts (x:xs) = fromJust x : fromJusts xs
 
 fromJusts_cf_broken = fromJusts ::: CF :&: Pred (all isJust) --> CF
+--  `Using` all_cf
+--  `Using` (isJust ::: CF --> CF)
+--  `Using` (fromJust ::: CF :&: Pred isJust --> CF)
 
 -- Trying to prove it with allSat, which is all from both directions ;)
 all' :: (a -> Bool) -> [a] -> Bool

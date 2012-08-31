@@ -15,6 +15,7 @@ w_ef = w ::: CF
 w2_ef :: Statement ()
 w2_ef = w2 ::: CF
 
+w_tuple_ef = (w,()) ::: CF
 
 w_list_ef :: Statement [()]
 w_list_ef = [w] ::: CF
