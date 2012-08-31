@@ -133,11 +133,22 @@ debugName (v,e) =
         "\n\tisExportedId: " ++ show (isExportedId v) ++
         "\n\tidUnfolding: " ++ showOutputable (idUnfolding v) ++
         "\n\tfreeVars: " ++ showOutputable (exprFreeVars e) ++
-        "\n\tglobal free vars: " ++ showOutputable (exprSomeFreeVars isGlobalId e) ++
+        "\n\tglobal free vars: " ++
+            showOutputable (exprSomeFreeVars isGlobalId e) ++
         "\n\tglobal free vars unfoldings: " ++
-            (showOutputable . map (\x -> (x,idUnfolding x)) . varSetElems . exprSomeFreeVars isGlobalId $ e) ++
+            (showOutputable . map (\x -> (x,idUnfolding x))
+            . varSetElems . exprSomeFreeVars isGlobalId $ e) ++
+        "\n\tglobal free vars real unfoldings: " ++
+            (showOutputable . map (\x -> (x,realIdUnfolding x))
+            . varSetElems . exprSomeFreeVars isGlobalId $ e) ++
         "\n\tglobal free vars unfolding expressions: " ++
-            (showOutputable . map (\x -> (x,maybeUnfoldingTemplate (idUnfolding x))) . varSetElems . exprSomeFreeVars isGlobalId $ e)
+            (showOutputable
+            . map (\x -> (x,maybeUnfoldingTemplate (idUnfolding x)))
+            . varSetElems . exprSomeFreeVars isGlobalId $ e) ++
+        "\n\tglobal free vars real unfolding expressions: " ++
+            (showOutputable
+            . map (\x -> (x,maybeUnfoldingTemplate (realIdUnfolding x)))
+            . varSetElems . exprSomeFreeVars isGlobalId $ e)
 
 processFile :: Params -> FilePath -> IO ()
 processFile params@Params{..} file = do
@@ -315,7 +326,7 @@ processFile params@Params{..} file = do
             .: prep
 
         toSMT :: [Clause'] -> [HCCSubtheory] -> String
-        toSMT = (linSMT . fst . renameClauses) .: prep
+        toSMT = linSMT .: prep
 
     when dump_tptp . putStrLn . fst $ toTPTP [] subtheories
 
@@ -380,47 +391,6 @@ processFile params@Params{..} file = do
                     let env = M.map varType rep_map
                     pipe params env f
                 _ -> write_files
-
--- | Make constructors of different types and pointers disjoint
---
---   TODO: Move this out of Main
-extraDisjoint :: HaloConf -> [Subtheory s] -> [Clause']
-extraDisjoint halo_conf subthys = map (clause axiom) $
-    -- Make all data constructors disjoint from pointers
-    [ makeDisjoint halo_conf d p
-    | ds <- tycons, d <- ds, p <- ptrs ] ++
-    -- Make all data constructors of different types disjoint
-    [ makeDisjoint halo_conf d1 d2
-    | (d1s,d2ss) <- zip tycons (drop 1 (tails tycons))
-    , d1 <- d1s , d2s <- d2ss , d2 <- d2s ]
-  where
-    isData (provides -> Data ty_con) = Just (ty_con_disj ty_con)
-    isData _                         = Nothing
-
-    isPtr (provides -> Pointer p)    = Just (pointer_disj p)
-    isPtr _                          = Nothing
-
-    tycons = mapMaybe isData subthys
-
-    ptrs   = mapMaybe isPtr subthys
-
-    ty_con_disj :: TyCon -> [Disjoint]
-    ty_con_disj ty_con =
-        [ Disjoint {..}
-        | let dcs = tyConDataCons ty_con
-        , dc <- dcs
-        , let (symbol,arity) = dcIdArity dc
-              min_guard      = False
-              is_ptr         = False
-        ]
-
-    pointer_disj :: Var -> Disjoint
-    pointer_disj p = Disjoint
-        { symbol    = p
-        , arity     = 0
-        , min_guard = False
-        , is_ptr    = True
-        }
 
 
 main :: IO ()

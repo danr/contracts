@@ -71,9 +71,6 @@ sanitizeParams p = p
 defParams :: Params
 defParams = Params
     { files             = []      &= args   &= typFile
-    , no_smt            = False   &= help "Don't generate smt files"
-    , no_tptp           = False   &= help "Don't generate tptp files"
-
     , paradox_file      = Nothing &= groupname "\nPrinting models"
                                   &= help "Pretty-print this file's counter satisfiable model (uses paradox)"
     , paradox_timeout   = 20      &= help "Timeout to paradox (default 20s)"
@@ -84,6 +81,8 @@ defParams = Params
 
     , no_min            = False   &= groupname "\nSettings for generated theories"
                                   &= name "m" &= help "Remove all occurences of min in generated theories"
+    , no_smt            = False               &= help "Don't generate smt files"
+    , no_tptp           = False               &= help "Don't generate tptp files"
     , min_as_not_unr    = False   &= name "u" &= help "Replace all occurences of min in generated theories with not unr"
     , or_discr          = False   &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , min_or_unr        = False               &= help "Add the axiom forall x . ~min(x) => cf(x)"

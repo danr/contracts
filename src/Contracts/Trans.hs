@@ -131,8 +131,8 @@ trFixated deps stmt f = do
 
         step_stmt = mk_stmt Step
 
-    -- Also split the goal if possible
-    splits <- trSplit step_stmt
+    -- Also split the goal if possible and desired
+    splits <- if fpi_split then trSplit step_stmt else return []
 
     ret <- sequence
         [ do (tr,extra_deps) <- capturePtrs' (trStmt (mk_stmt cs))
@@ -142,8 +142,7 @@ trFixated deps stmt f = do
 
     return $ ret ++
         [ Conjecture split_clauses deps_split (FixpointStepSplit split_num)
-        | fpi_split
-        , Split{..} <- splits
+        | Split{..} <- splits
         , let fc = Function f_concl
               maybe_add_f
                   | inAssumption fc step_stmt
