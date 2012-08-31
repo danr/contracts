@@ -3,17 +3,20 @@
 # try z3, z3 (smt), eprover, vampire, equinox and only on UNSAT problems
 export PROVERS=zsevx
 export ONLY=UNSAT
-export TIMEOUT=1
+export TIMEOUT=15
 export TIMING=true
 
+# change this to only Simple.hs to see everything works well
 FILES="*.hs"
 
+# some different settings to try
 SETTING[0]='-'
 SETTING[1]='m'
 SETTING[2]='-var-scrut-constr'
 SETTING[3]='-case-lift-inner'
 SETTING[4]='-no-skolemisation'
 SETTING[5]='-no-pull-quants'
+SETTING[6]='-core-optimise'
 
 # store everything in res directory and subdirectories
 mkdir res -p
@@ -21,7 +24,7 @@ cd res
 
 for ARGS in ${SETTING[*]}
 do
-    export HCC_ARGS="-$ARGS"
+    export HCC_ARGS="'-$ARGS'"
     echo $HCC_ARGS
     echo $TIMING
     echo $PROVERS

@@ -405,8 +405,6 @@ timed t cmd inf args = errHandle $ do
          threadDelay (t * 1000 * 1000)
          killThread tid
          terminateProcess pid
-         -- Vampire isn't quite easy to kill unfortunately,
-         -- so we can't wait for the process here
          void $ waitForProcess pid
          putMVar exit_code_mvar Nothing
 
