@@ -67,29 +67,39 @@ parseRes s
 
 runKoentool :: String -> Int -> String -> IO (Maybe Res)
 runKoentool tool t file = timed t tool Nothing $
-    ["--no-progress","--tstp",file]
+    ["--no-progress","--tstp",file,"--time",show t]
 
 runEquinox = runKoentool "equinox"
 runParadox = runKoentool "paradox"
 
 runVampire t file = do
-    timed t "vampire_lin32" (Just file) $ ["--mode","casc"]
+    timed t "vampire_lin32" (Just file) $ ["--mode","casc","-t",show t]
 
 runEprover t file = timed t "eprover" Nothing
-    ["-tAuto","-xAuto","--tptp3-format","-s",file]
+    ["-tAuto","-xAuto","--tptp3-format","-s",file,"--cpu-limit="++show t]
 
 runZ3 t file = do
     let regexp = "s/\\$min/min/g"
     system $ "sed " ++ regexp ++ " " ++ show file ++ " > " ++ show file ++ ".z3"
-    timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3"]
+    timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3","-t:"++show t]
+
+runZ3smt t file = do
+    let file' = dropExtension file ++ ".smt"
+    exists <- doesFileExist file'
+    if exists
+        then timed t "z3" Nothing ["-smtc","-nw",file',"-t:"++show t]
+        else do
+            putStrLn $ file' ++ " does not exist!"
+            return Nothing
 
 equinox = ("xequinox",runEquinox)
 paradox = ("paradox",runParadox)
 vampire = ("vampire",runVampire)
 eprover = ("eprover",runEprover)
 z3      = ("z3",runZ3)
+z3smt   = ("smt-z3",runZ3smt)
 
-unsat_provers = [z3,vampire,equinox,eprover]
+unsat_provers = [z3smt,z3,vampire,equinox,eprover]
 
 getProvers :: Maybe String -> Res -> [(String,Int -> String -> IO (Maybe Res))]
 getProvers (Just s) _        = filter ((`elem` s) . head . fst) (unsat_provers ++ [paradox])
@@ -107,7 +117,8 @@ main = do
     system "find -iname '*.tptp.z3' -exec rm {} +"
 
     -- Get files from command line
-    hs_files <- unwords . delete "RunTests.hs" . delete "Contracts.hs" <$> getArgs
+    hs_files <- unwords . (\\ ["RunTests.hs","Contracts.hs","ResultSummary.hs"])
+            <$> getArgs
 
     -- Profile if PROFILE env variable is set
     -- generate tptp with pretty names if READABLE is set
@@ -396,7 +407,7 @@ timed t cmd inf args = errHandle $ do
          terminateProcess pid
          -- Vampire isn't quite easy to kill unfortunately,
          -- so we can't wait for the process here
-         forkIO $ void $ waitForProcess pid
+         void $ waitForProcess pid
          putMVar exit_code_mvar Nothing
 
     maybe_exit_code <- takeMVar exit_code_mvar
@@ -418,5 +429,7 @@ parseOutput :: String -> Integer -> Maybe Res
 parseOutput s t
     | "Unsatisfiable" `isInfixOf` s = Just $ UNSAT t
     | "Satisfiable"   `isInfixOf` s = Just $ SAT t
+    | "unsat"         `isInfixOf` s = Just $ UNSAT t
+    | "sat"           `isInfixOf` s = Just $ SAT t
     | otherwise = Nothing
 

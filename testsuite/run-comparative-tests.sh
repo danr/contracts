@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# only use z3, and only consider problems thought to be UNSAT
-export PROVERS=z
+# try z3, z3 (smt), eprover, vampire, equinox and only on UNSAT problems
+export PROVERS=zsevx
 export ONLY=UNSAT
 export TIMEOUT=1
 export TIMING=true
@@ -9,14 +9,15 @@ export TIMING=true
 FILES="*.hs"
 
 SETTING[0]='-'
-SETTING[1]='-var-scrut-constr'
-SETTING[2]='-case-lift-inner'
-SETTING[3]='-no-skolemisation'
-SETTING[4]='-no-pull-quants'
+SETTING[1]='m'
+SETTING[2]='-var-scrut-constr'
+SETTING[3]='-case-lift-inner'
+SETTING[4]='-no-skolemisation'
+SETTING[5]='-no-pull-quants'
 
-# store everything in results directory and subdirectories
-mkdir results -p
-cd results
+# store everything in res directory and subdirectories
+mkdir res -p
+cd res
 
 for ARGS in ${SETTING[*]}
 do

@@ -15,4 +15,4 @@ dist
 *.tptp
 *.smt
 *.tptp.z3
-testsuite/results
+testsuite/res
