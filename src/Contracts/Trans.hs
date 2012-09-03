@@ -221,7 +221,7 @@ bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
 
             -- Translate the constraints, but instead of having them
             -- as an antecedents, they are now asserted
-            tr_constrs <- axioms <$> trConstraints bind_constrs
+            tr_constrs <- axioms . map foralls <$> trConstraints bind_constrs
 
             -- Translate the relevant mins
             tr_min <- axioms <$> mapM (liftM (foralls . min') . trExpr) bind_mins
