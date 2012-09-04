@@ -3,10 +3,10 @@
     A prototype type, for debugging
 
 -}
-module Models.ProtoType where
+module Contracts.Models.ProtoType where
 
-import Models.Show (Typelike(..))
-import Models.Model
+import Contracts.Models.Show (Typelike(..))
+import Contracts.Models.Model
 
 import Data.Maybe
 import Control.Arrow (first)

@@ -89,7 +89,7 @@ import Halo.Subtheory
 import Halo.Trim
 import Halo.Util
 
-import Models.Pipe
+import Contracts.Models.Pipe
 
 import Contracts.Axioms
 import Contracts.Collect

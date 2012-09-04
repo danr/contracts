@@ -110,7 +110,7 @@ p_1_Cons(!4) = !1
 +++ END MODEL
 
 -}
-module Models.ParadoxParser (parseParadoxModel) where
+module Contracts.Models.ParadoxParser (parseParadoxModel) where
 
 import Control.Arrow
 
@@ -119,7 +119,7 @@ import Data.List
 import Data.List.Split -- split
 
 
-import Models.Model
+import Contracts.Models.Model
 
 parseParadoxModel :: String -> Model
 parseParadoxModel xs = Model

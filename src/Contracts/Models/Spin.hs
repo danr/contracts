@@ -10,12 +10,12 @@
     memo it with a Map over the domain.
 
 -}
-module Models.Spin where
+module Contracts.Models.Spin where
 
 import Control.Monad
 import Control.Applicative
 
-import Models.Model
+import Contracts.Models.Model
 
 -- | Gives the domain of a given size
 domain :: DomSize -> [Elt]

@@ -4,12 +4,12 @@
     ProtoType instance for Typelike.
 
 -}
-module Models.Test where
+module Contracts.Models.Test where
 
-import Models.Model
-import Models.Show
-import Models.ProtoType
-import Models.ParadoxParser
+import Contracts.Models.Model
+import Contracts.Models.Show
+import Contracts.Models.ProtoType
+import Contracts.Models.ParadoxParser
 
 import System.Environment
 

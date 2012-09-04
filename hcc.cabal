@@ -12,7 +12,7 @@ homepage:           github.com/danr/contracts
 executable          hcc
     ghc-options:    -O2 -package ghc -Wall -auto-all
     hs-source-dirs: src halo/src
-    main-is:        Main.hs
+    main-is:        Contracts/Main.hs
 
     build-depends:
         -- Shared

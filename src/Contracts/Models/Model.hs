@@ -4,7 +4,7 @@
     A prover-agnostic representation of the different components of a model
 
 -}
-module Models.Model where
+module Contracts.Models.Model where
 
 -- | We call everything that is deemed a function in FOL a Symbol here
 data Symbol

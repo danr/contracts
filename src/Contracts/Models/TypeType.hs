@@ -5,15 +5,15 @@
     The Typelike instance for GHC's Type.
 
 -}
-module Models.TypeType where
+module Contracts.Models.TypeType where
 
 import Type
 import Unify
 import Outputable
 import TysPrim
 
-import Models.Show (Typelike(..))
-import Models.Model
+import Contracts.Models.Show (Typelike(..))
+import Contracts.Models.Model
 
 import Halo.Shared
 

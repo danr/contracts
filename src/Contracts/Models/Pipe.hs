@@ -4,13 +4,13 @@
     "Pipe" a problem to paradox with some timeout and print the result
 
 -}
-module Models.Pipe where
+module Contracts.Models.Pipe where
 
 import Type
 
-import Models.Show
-import Models.TypeType ()
-import Models.ParadoxParser
+import Contracts.Models.Show
+import Contracts.Models.TypeType ()
+import Contracts.Models.ParadoxParser
 
 import Contracts.Params
 

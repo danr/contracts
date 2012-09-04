@@ -154,10 +154,10 @@ the function is not min, then don't write this case)
 
 
 -}
-module Models.Show where
+module Contracts.Models.Show where
 
-import Models.Model
-import Models.Spin
+import Contracts.Models.Model
+import Contracts.Models.Spin
 
 
 import qualified Data.Map as M
