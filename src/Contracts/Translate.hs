@@ -2,20 +2,20 @@
 {-
 
     Translates statements and contracts from the internal
-    representation defined in Contracts.Types to FOL.
+    representation defined in Contracts.InternalRepr to FOL.
 
     Splits goals into several conjectures.
 
 -}
-module Contracts.Trans where
+module Contracts.Translate where
 
 import CoreSyn
 import Var
 
-import Contracts.Types
+import Contracts.InternalRepr
 import Contracts.FixpointInduction
 import Contracts.Params
-import Contracts.Theory
+import Contracts.HCCTheory
 
 import Halo.Binds
 import Halo.ExprTrans
@@ -56,7 +56,7 @@ getFixInfo = asks env_fix_info
 getBindParts :: Var -> TransM [HCCBindPart]
 getBindParts x = asks (fromMaybe err . M.lookup x . env_bind_map)
   where
-    err = error $ "Contracts.Trans.getBindParts: no bind parts for " ++ show x
+    err = error $ "Contracts.Translate.getBindParts: no bind parts for " ++ show x
 
 data Skolem = Skolemise | Quantify
   deriving (Eq,Ord,Show)

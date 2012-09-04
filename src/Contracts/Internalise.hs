@@ -8,7 +8,7 @@
     The inliner must be run before, otherwise this will throw errors
 
 -}
-module Contracts.Collect where
+module Contracts.Internalise where
 
 import CoreSyn
 import Id
@@ -19,8 +19,8 @@ import UniqSupply
 import Unique
 import Var hiding (varName)
 
-import Contracts.SrcRep
-import Contracts.Types
+import Contracts.SourceRepr
+import Contracts.InternalRepr
 
 import Halo.Util
 import Halo.Shared
@@ -32,9 +32,9 @@ import Control.Monad.Writer
 import Control.Monad.Error
 import Control.Monad.State
 
-collectContracts :: [CoreBind]
+internaliseContracts :: [CoreBind]
                  -> UniqSM (Either String ([TopStmt],[CoreBind],[String]))
-collectContracts program = runErrorT $ do
+internaliseContracts program = runErrorT $ do
     let program' :: [CoreBind]
         untranslated_stmts :: [(Var,CoreExpr)]
         (program',untranslated_stmts) = partitionEithers $ map pick program
@@ -47,14 +47,14 @@ collectContracts program = runErrorT $ do
             pick' v e | isStatementType v && isExportedId v = Just (v,e)
             pick' _ _                                       = Nothing
 
-    (stmts,db_msgs) <- runCollectM $ do
-        write "Collecting statements:"
+    (stmts,db_msgs) <- runInternaliseM $ do
+        write "Internaliseing statements:"
         write (unlines (map (show . fst) untranslated_stmts))
         mapM (uncurry mkTopStmt) untranslated_stmts
 
     return (stmts,program',db_msgs)
 
-type CollectM =
+type InternaliseM =
     (WriterT [String]
     -- ^ Writing debug messages
     (StateT [String]
@@ -68,8 +68,8 @@ type CollectM =
 --
 --   TODO: Would rather want to get the debug messages together with
 --   the error message.
-runCollectM :: CollectM a -> ErrorT String UniqSM (a,[String])
-runCollectM m = runWriterT m `evalStateT` names
+runInternaliseM :: InternaliseM a -> ErrorT String UniqSM (a,[String])
+runInternaliseM m = runWriterT m `evalStateT` names
   where
     names = (`replicateM` ['a'..'z']) =<< [1..]
 
@@ -79,7 +79,7 @@ trimTyApp e@Var{} = Just (e,[])
 trimTyApp e@Lam{} = Just (e,[])
 trimTyApp _       = Nothing
 
-mkTopStmt :: Var -> CoreExpr -> CollectM TopStmt
+mkTopStmt :: Var -> CoreExpr -> InternaliseM TopStmt
 mkTopStmt name e = do
     write $ "Making a top statement for " ++ show name
     stmt <- unTreeStmt <$> mkStatement e
@@ -89,7 +89,7 @@ mkTopStmt name e = do
         , top_deps = stmtDeps stmt
         }
 
-mkStatement :: CoreExpr -> CollectM Statement
+mkStatement :: CoreExpr -> InternaliseM Statement
 mkStatement e = do
     let (_ty,args,e_stripped) = collectTyAndValBinders e
     unless (null args) $ throw $ unlines
@@ -122,7 +122,7 @@ mkStatement e = do
         t -> throw $ "Cannot translate this statement: " ++ showExpr e_stripped ++
                      "\n  current collectedArgs was" ++ showOutputable t
 
-mkContract :: CoreExpr -> CoreExpr -> CollectM Contract
+mkContract :: CoreExpr -> CoreExpr -> InternaliseM Contract
 mkContract f e = do
     write $ showExpr f ++ ": " ++ showExpr e
 
@@ -154,18 +154,18 @@ mkContract f e = do
                      "\n  current trimmedTyApp was" ++ showOutputable t
 
 -- | Get a Unique from this monad
-getUnique' :: CollectM Unique
+getUnique' :: InternaliseM Unique
 getUnique' = lift $ lift $ lift $ getUniqueM
 
 -- | Updates the unique in a Var and Type: i.e. make it different from
 --   the one we had, but otherwise identical.
-refresh :: Var -> Type -> CollectM Var
+refresh :: Var -> Type -> InternaliseM Var
 refresh v ty = do
     u <- getUnique'
     return (setVarType (setVarUnique v u) ty)
 
 -- | Makes a local variable witha given type
-mkFreshVar :: Type -> CollectM Var
+mkFreshVar :: Type -> InternaliseM Var
 mkFreshVar ty = do
     v <- gets head
     write $ "Making a fresh variable " ++ v ++ " with type " ++ showOutputable ty
@@ -175,9 +175,9 @@ mkFreshVar ty = do
     return (mkLocalId name ty)
 
 -- | Write a debug message
-write :: String -> CollectM ()
+write :: String -> InternaliseM ()
 write = tell . return
 
 -- | Throw an error
-throw :: String -> CollectM a
+throw :: String -> InternaliseM a
 throw = throwError . strMsg

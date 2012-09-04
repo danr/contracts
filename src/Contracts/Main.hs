@@ -32,7 +32,7 @@
           introducing any lambdas. Exception: after HOAS constructs
           like (:->), Pred and All, it is OK to introduce lambdas,
 
-        * Collect statements, i.e. go from Core -> internal representation,
+        * Internalise statements, i.e. go from Core -> internal representation,
 
         * Make fixed point induction versions of recursive functions,
 
@@ -92,14 +92,14 @@ import Halo.Util
 import Contracts.Models.Pipe
 
 import Contracts.Axioms
-import Contracts.Collect
+import Contracts.Internalise
 import Contracts.FixpointInduction
 import Contracts.Inliner
 import Contracts.Params
-import Contracts.Theory
-import Contracts.Trans
-import Contracts.Types
-import Contracts.SrcRep
+import Contracts.HCCTheory
+import Contracts.Translate
+import Contracts.InternalRepr
+import Contracts.SourceRepr
 
 import Control.Monad
 import Control.Monad.Reader
@@ -243,15 +243,15 @@ processFile params@Params{..} file = do
 
     when dump_inlined_core (printCore "Inlined core" inlined_prog)
 
-    -- Collect contracts
+    -- Internalise contracts
 
-    let (collect_either_res,us3) = initUs us2 (collectContracts inlined_prog)
+    let (internalise_either_res,us3) = initUs us2 (internaliseContracts inlined_prog)
 
-    (stmts,program,msgs_collect_contr) <- case collect_either_res of
+    (stmts,program,msgs_internalise_contr) <- case internalise_either_res of
         Right res -> return res
         Left err  -> putStrLn err >> exitFailure
 
-    when db_collect (printMsgs msgs_collect_contr)
+    when db_internalise (printMsgs msgs_internalise_contr)
     when dump_contracts (mapM_ print stmts)
 
     when dump_final_core (printCore "Final core without Statements" program)
@@ -342,7 +342,7 @@ processFile params@Params{..} file = do
         let (conjectures,msgs_tr_contr) = runHaloM halo_env $
                 runReaderT (trTopStmt top) (TrEnv params fix_info binds_map)
 
-        when db_trans (printMsgs msgs_tr_contr)
+        when db_contract_trans (printMsgs msgs_tr_contr)
 
         -- Assemble tptp and smt files
 

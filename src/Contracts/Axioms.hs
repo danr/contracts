@@ -20,7 +20,7 @@ import Halo.Names
 import Halo.Shared
 import Halo.Subtheory
 
-import Contracts.Theory
+import Contracts.HCCTheory
 import Contracts.Params
 
 import Control.Monad

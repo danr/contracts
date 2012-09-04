@@ -5,7 +5,7 @@
     and various related helper functions.
 
 -}
-module Contracts.Types where
+module Contracts.InternalRepr where
 
 import Var
 import CoreSyn
@@ -20,7 +20,7 @@ import Halo.Class
 import Data.Maybe
 import Data.List
 
-import Contracts.Theory
+import Contracts.HCCTheory
 
 -- | The contract data type
 data Contract

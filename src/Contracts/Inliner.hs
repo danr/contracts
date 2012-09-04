@@ -89,7 +89,7 @@ import CoreSyn
 import CoreFVs
 import UniqSet
 
-import Contracts.SrcRep
+import Contracts.SourceRepr
 
 import Halo.Util
 import Halo.Shared

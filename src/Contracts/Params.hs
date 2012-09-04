@@ -46,8 +46,8 @@ data Params = Params
     , db_names          :: Bool
     , db_lift           :: Bool
     , db_halo           :: Bool
-    , db_collect        :: Bool
-    , db_trans          :: Bool
+    , db_internalise    :: Bool
+    , db_contract_trans :: Bool
     , db_inliner        :: Bool
 
     , dump_init_core    :: Bool
@@ -105,13 +105,13 @@ defParams = Params
     , db_unfoldings     = False   &= groupname "\nDebugging output"
                                   &= help "Debug the unfoldings for found non-local global identifiers"
     , db_float_out      = False   &= help "Debug floating out (sets Opt_D_dump_simpl_stats and Opt_D_verbose_core2core)"
-    , db_classes        = False   &= help "Debug information about found classes found"
+    , db_classes        = False   &= help "Debug information about found classes"
     , db_ty_cons        = False   &= help "Debug some information about found TyCons"
     , db_names          = False   &= help "Debug information about the top level names in Core"
     , db_lift           = False   &= help "Debug the let-/case-lifter"
     , db_halo           = False   &= help "Debug the Haskell to Logic translator"
-    , db_collect        = False   &= help "Debug collecting contracts (Core -> internal repr)"
-    , db_trans          = False   &= help "Debug translating contracts (internal repr -> FOL)"
+    , db_internalise    = False   &= help "Debug internalising contracts (Core -> internal repr)"
+    , db_contract_trans = False   &= help "Debug translating contracts (internal repr -> FOL)"
     , db_inliner        = False   &= help "Debug inliner (show inlinings of defininitons expressions)"
 
     , dump_init_core    = False   &= help "Dump initial (possibly optimised) core from GHC"

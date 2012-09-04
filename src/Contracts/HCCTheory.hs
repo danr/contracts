@@ -5,7 +5,7 @@
     i.e. subtheories about CF,UNR and BAD.
 
 -}
-module Contracts.Theory where
+module Contracts.HCCTheory where
 
 import TyCon
 

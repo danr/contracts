@@ -4,7 +4,7 @@
     The source representation of contracts.
 
 -}
-module Contracts.SrcRep where
+module Contracts.SourceRepr where
 
 import Var
 import Outputable
