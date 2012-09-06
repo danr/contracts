@@ -48,7 +48,7 @@ internaliseContracts program = runErrorT $ do
             pick' _ _                                       = Nothing
 
     (stmts,db_msgs) <- runInternaliseM $ do
-        write "Internaliseing statements:"
+        write "Internalising statements:"
         write (unlines (map (show . fst) untranslated_stmts))
         mapM (uncurry mkTopStmt) untranslated_stmts
 

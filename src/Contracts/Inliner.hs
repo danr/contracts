@@ -207,7 +207,7 @@ inlineCall extra_power f es = do
             -- or recursive functions
             | inline_me && (extra_power || length es >= length xs)
             -> inline extra_power (apply xs es e)
-        _ -> foldl App (Var f) <$> mapM (inline extra_power) es
+        _ -> foldl App (Var f) <$> mapM (inline False) es
 
 apply :: [Var] -> [CoreExpr] -> CoreExpr -> CoreExpr
 apply [] [] e = e
