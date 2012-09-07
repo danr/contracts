@@ -1,22 +1,22 @@
-module Record where
+module MiniRecord where
 
 import Contracts
 import Prelude(Bool(..))
 
 data Record
     = Apa
-        { first  :: Bool
-        , second :: [Bool]
+        { first  :: ()
+        , second :: ()
         , fourth :: ()
         }
     | Bepa
-        { first  :: Bool
-        , third  :: Bool
+        { first  :: ()
+        , third  :: ()
         , fourth :: ()
         }
     | Cepa
-        { second :: [Bool]
-        , third  :: Bool
+        { second :: ()
+        , third  :: ()
         , fourth :: ()
         }
 

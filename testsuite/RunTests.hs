@@ -102,7 +102,9 @@ z3smt   = ("smt-z3",runZ3smt)
 unsat_provers = [z3smt,z3,vampire,equinox,eprover]
 
 getProvers :: Maybe String -> Res -> [(String,Int -> String -> IO (Maybe Res))]
-getProvers (Just s) _        = filter ((`elem` s) . head . fst) (unsat_provers ++ [paradox])
+getProvers (Just s) _ = [ p | c <- s
+                        , Just p <- [find ((c ==) . head . fst) (unsat_provers ++ [paradox])]
+                        ]
 getProvers Nothing group_res = case group_res of
     { SAT{} -> (paradox:)
     ; UNSAT{} -> (++ [paradox])
