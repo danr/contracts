@@ -389,17 +389,19 @@ processFile params@Params{..} file = do
                     write_files
                     putStrLn $ "Piping " ++ f ++ " to paradox, wish me luck!"
                     let env = M.map varType rep_map
-                    pipe params env f
+                    pipe params False env f
                 _ -> write_files
-
 
 main :: IO ()
 main = do
 
     params@Params{..} <- sanitizeParams <$> cmdArgs defParams
 
-    when (null files) $ do
-        putStrLn "No input files!"
-        putStrLn ""
+    case paradox_pipe of
+        Just f -> pipe params True M.empty f
+        Nothing -> do
+            when (null files) $ do
+                putStrLn "No input files!"
+                putStrLn ""
 
-    mapM_ (processFile params . dropExtension) files
+            mapM_ (processFile params . dropExtension) files

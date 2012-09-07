@@ -252,8 +252,8 @@ class Typelike t where
 type TyLookup t = Map String t
 
 -- | Environment needed is a map from the strings in the model to types
-showModel :: forall t . Typelike t => Bool -> Bool -> TyLookup t -> Model -> String
-showModel ignore_ty typed_metas ty_lookup Model{..} =
+showModel :: forall t . Typelike t => Bool -> Bool -> Bool -> TyLookup t -> Model -> String
+showModel ignore_ty no_pointer_skolem_info typed_metas ty_lookup Model{..} =
 
     let min_set,cf :: Elt -> Bool
         [min_set,cf] =
@@ -304,7 +304,7 @@ showModel ignore_ty typed_metas ty_lookup Model{..} =
             [ Function (Fun sk) (spinner dom_size a e app)
             | (sk,e,t) <- skolems
             , let a@(Arity n) = arity t
-            , n > 0
+            , not no_pointer_skolem_info && n > 0
             ]
 
         elt_repr = eltRepr ignore_ty ty_lookup typed_metas skolems ptrs min_set reprs
@@ -322,13 +322,19 @@ showModel ignore_ty typed_metas ty_lookup Model{..} =
 
     in  unlines $
             header "Skolems:"
-                [ showStrTbl [([],(cf e,show sk_repr))] sk t
+                [ showStrTbl [([],((cf e,True),show sk_repr))] sk t
                 | (sk,e,t) <- skolems
-                , arity t == 0
+                , no_pointer_skolem_info || arity t == 0
                 , let sk_repr = elt_repr False e t
                 ] ++
             header "Skolem pointers:" (show_funs unspun_pointers) ++
             header "Functions:" (show_funs functions)
+            {-
+            header "Crashfreeness:"
+                [ showStrTbl [([],((cf e,True),elt_repr True e t))]
+                | e <- [Elt 1..Elt dom_size]
+                ] ++
+                -}
 
 data Repr
     = Con String [Repr]
@@ -393,8 +399,6 @@ eltRepr ignore_ty ty_lookup typed_metas skolems ptrs min_set reprs
   where
     go :: [(Elt,t)] -> Bool -> Elt -> t -> [Repr]
     go visited as_skolem_ok e@(Elt d) ty =
-        -- If it is not interesting, print it as _
-        [ Uninteresting | not (min_set e) ] ++
 
         -- Try to print it as a nullary constructor
         [ Con c []
@@ -404,6 +408,9 @@ eltRepr ignore_ty ty_lookup typed_metas skolems ptrs min_set reprs
                                  (M.lookup c ty_lookup)
         , ignore_ty || con_ty `lg` ty
         ] ++
+
+        -- If it is not interesting, print it as _
+        [ Uninteresting | not (min_set e) ] ++
 
         -- Try to print it as a skolem variable if that's ok
         [ Var s
@@ -462,13 +469,12 @@ showFunTbl elt_repr min_set cf fun ty =
 
         show_res e t = show (elt_repr e t)
 
-        str_tbl = [ (zipWith show_arg args ty_args,(cf res,show_res res res_ty))
-                  | (args,res) <- tbl
-                  , min_set res ]
+        str_tbl = [ (zipWith show_arg args ty_args,((cf res,min_set res),show_res res res_ty))
+                  | (args,res) <- tbl ]
 
     in  showStrTbl str_tbl f ty
 
-showStrTbl :: Typelike t => [([String],(Bool,String))] -> String -> t -> String
+showStrTbl :: Typelike t => [([String],((Bool,Bool),String))] -> String -> t -> String
 showStrTbl str_tbl f ty =
     let args_lengths :: [Int]
         args_lengths = map (maximum . map length) (transpose args)
@@ -494,10 +500,11 @@ showStrTbl str_tbl f ty =
         _trim xs = xs
 
     in  indent $
-            (f' ++ " :: " ++ showTy ty) :
+--            (f' ++ " :: " ++ showTy ty) :
             [ intercalate " "
-                (mid (zipWith pad args args_lengths) ++ ['=':showCF cf:"",res])
-            | (args,(cf,res)) <- str_tbl
+                (mid (zipWith pad args args_lengths) ++ ['=':showCF cf:"",res]) ++
+                concat [ " (not min)" | not is_min ]
+            | (args,((cf,is_min),res)) <- str_tbl
             ]
 
 indent :: [String] -> String

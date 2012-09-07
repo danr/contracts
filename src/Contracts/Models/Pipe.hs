@@ -24,14 +24,15 @@ import Data.Map (Map)
 
 import Control.Monad
 
-pipe :: Params -> Map String Type -> FilePath -> IO ()
-pipe Params{..} ty_env f = do
+pipe :: Params -> Bool -> Map String Type -> FilePath -> IO ()
+pipe Params{..} no_pointer_skolem_info ty_env f = do
     result <- runParadox paradox_timeout f
     case result of
         Just raw_model -> do
             when print_raw_model $ putStrLn (raw_model ++ "\n" ++ f)
             let model = parseParadoxModel raw_model
-            putStrLn (showModel ignore_types typed_metas ty_env model)
+            putStrLn (showModel ignore_types no_pointer_skolem_info
+                                typed_metas ty_env model)
         Nothing ->
             putStrLn $ "Killed paradox after " ++
                 show paradox_timeout ++ " seconds."

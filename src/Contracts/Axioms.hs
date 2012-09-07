@@ -44,7 +44,8 @@ mkCF ty_cons = do
         { provides    = Specific (CrashFree ty_con)
         , depends     = []
         , description = "CF " ++ showSDoc (pprSourceTyCon ty_con)
-        , formulae    = concat $
+{-        , formulae    = concat $
+
             [
                 -- cf(K xs) ==> BigAnd_i (cf (x_i))
                 [ foralls $ cf kxbar ==> ands (map cf xbar')
@@ -55,7 +56,6 @@ mkCF ty_cons = do
                 [ foralls $ (min' kxbar /\ neg (cf kxbar)) `impliesOr`
                                  [ ands [neg (cf y),min' y] | y <- xbar' ]
                 ]
-
             | dc <- dcs
             , let (k,arg_types) = dcIdArgTypes dc
                   args          = zipWith setVarType varNames arg_types
@@ -64,6 +64,18 @@ mkCF ty_cons = do
                   xbar'         = map qvar (filter (not . is_primitive) args)
                   kxbar         = apply k xbar
             ]
+
+-}
+       -- simple formulation but does not work (not enough mins it seems)
+         , formulae    =
+             [ if arity > 0
+                     then forall' [x] $ cf x' <==> map cf projs
+                     else cf (apply k [])
+             | dc <- dcs
+             , let (k,arity) = dcIdArity dc
+                   projs     = [ proj i k x' | i <- [0..arity-1] ]
+             ]
+
         }
 
 -- | The essentials about BAD and UNR
@@ -73,12 +85,14 @@ primConAxioms Params{..} = Subtheory
     , depends     = []
     , description = "Axioms for BAD and UNR"
     , formulae    =
+--          map min' [true,false,bad] ++ -- no unr
          [ cf unr
          , neg (cf bad)
          , unr =/= bad
-         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
-         ] ++
-         [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
+--         , forall' [x] $ neg (cf x') ==> min' x'
+--         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
+         ]
+--     ++ [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
     }
 
 -- | App on BAD and UNR

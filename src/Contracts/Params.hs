@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable,PatternGuards #-}
 {-
 
     Command line parameters, using Neil Mitchell's cmdargs package.
@@ -14,6 +14,7 @@ data Params = Params
     , no_tptp           :: Bool
 
     , paradox_file      :: Maybe FilePath
+    , paradox_pipe      :: Maybe FilePath
     , paradox_timeout   :: Int
     , all_disjoint      :: Bool
     , ignore_types      :: Bool
@@ -65,7 +66,8 @@ data Params = Params
   deriving (Show,Data,Typeable)
 
 sanitizeParams :: Params -> Params
-sanitizeParams p | no_skolemisation p = p { fpi_split = False }
+sanitizeParams p | no_skolemisation p       = p { fpi_split = False }
+sanitizeParams p | Just _ <- paradox_pipe p = p { ignore_types = True }
 sanitizeParams p = p
 
 defParams :: Params
@@ -73,6 +75,7 @@ defParams = Params
     { files             = []      &= args   &= typFile
     , paradox_file      = Nothing &= groupname "\nPrinting models"
                                   &= help "Pretty-print this file's counter satisfiable model (uses paradox)"
+    , paradox_pipe      = Nothing &= help "Take this tptp file and pipe it to paradox, ignoring types"
     , paradox_timeout   = 20      &= help "Timeout to paradox (default 20s)"
     , all_disjoint      = False   &= help "Make all data constructors and pointers disjoint"
     , ignore_types      = False   &= help "Ignore type information when priting models"

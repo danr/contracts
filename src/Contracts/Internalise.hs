@@ -140,7 +140,7 @@ mkContract f e = do
             | isContrPi x -> mkPi c1_ty e1 y e2
 
         (Var x,[Type _c_ty,Type c1_ty,Type _c2_ty,Coercion _co,e1,Lam y e2])
-            | isContrPi x ->  mkPi c1_ty e1 y e2
+            | isContrPi x -> mkPi c1_ty e1 y e2
 
         (Var x,[_and_ty,e1,e2])
             | isContrAnd x -> And <$> mkContract f e1 <*> mkContract f e2

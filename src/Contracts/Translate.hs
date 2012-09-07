@@ -177,6 +177,7 @@ trSplit stmt = do
     -- stored in bind_mins instead
     let decl_parts = filter (not . minRhs . bind_rhs) bind_parts
 
+
     -- We will equate the result of the function to the arguments to
     -- the contract
     let contract_args :: [Var]
@@ -184,6 +185,13 @@ trSplit stmt = do
 
         all_args :: [CoreExpr]
         all_args = pap_args ++ map Var contract_args
+
+    write $ "trSplit on " ++ show stmt
+    write $ "    e:             " ++ showExpr e
+    write $ "    f:             " ++ show f
+    write $ "    pap_args:      " ++ showOutputable pap_args
+    write $ "    contract_args: " ++ showOutputable contract_args
+    write $ "    all_args:      " ++ showOutputable all_args
 
     -- The contract only needs to be translated once
     (tr_contr,ptr_deps) <- capturePtrs' (trStmt stmt)
@@ -213,6 +221,9 @@ bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
         -- vars in the arguments as skolem variables, now quantified
         -- over the whole theory instead
         tr_goal <- local (addSkolems skolems) $ do
+
+            write $ "Making these equal: " ++
+                        showOutputable (zip all_args bind_args)
 
             -- Make the arguments to the function equal to the
             -- contract variables from the telescope
@@ -278,7 +289,7 @@ trContract variance skolemise_init e_init contract = do
         vars               = map fst arguments
         e_result           = foldl (@@) e_init (map Var vars)
 
-    lift $ write $ "trContract (" ++ show skolemise ++ ") " ++ show variance
+    write $ "trContract (" ++ show skolemise ++ ") " ++ show variance
                 ++ "\n    e_init:    " ++ showExpr e_init
                 ++ "\n    e_result:  " ++ showExpr e_result
                 ++ "\n    contract:  " ++ show contract
@@ -288,23 +299,23 @@ trContract variance skolemise_init e_init contract = do
 
     tr_contract <- local' (skolemise == Skolemise ? addSkolems vars) $ do
 
-        lift $ write $ "Translating arguments of " ++ showExpr e_result
+        write $ "Translating arguments of " ++ showExpr e_result
 
         let tr_argument :: (Var,Contract) -> TransM Formula'
             tr_argument = uncurry (trContract (opposite variance) Quantify . Var)
 
         tr_arguments <- mapM tr_argument arguments
 
-        lift $ write $ "Translating result of " ++ showExpr e_result
+        write $ "Translating result of " ++ showExpr e_result
 
         tr_result <- case result of
 
             Pred p -> do
                 ex <- lift $ trExpr e_result
                 px <- lift $ trExpr p
-                return $ min' ex /\ min' px /\ (case variance of
-                    Neg -> ex =/= unr /\ (px === false \/ px === bad)
-                    Pos -> ex === unr \/ px === unr \/ px === true)
+                return $ case variance of
+                    Neg -> min' ex /\ min' px /\ ex =/= unr /\ px =/= true /\ px =/= unr
+                    Pos -> min' ex /\ min' px /\ (ex === unr \/ px === unr \/ px === true)
 
             CF -> do
                 e_tr <- lift $ trExpr e_result
@@ -324,13 +335,16 @@ trContract variance skolemise_init e_init contract = do
     case variance of
         Neg -> return $ (skolemise == Quantify ? exists' vars) (ands tr_contract)
         Pos -> do
+        {-
             min_guard <-
                 if null vars
                     then return id
                     else do
                         e_tr <- lift (trExpr e_result)
                         return (\f -> min' e_tr ==> f)
-            return $ forall' vars (min_guard (ors tr_contract))
+                        -}
+            return $ forall' vars (ors tr_contract)
+
 
 local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a
 local' k m = do
