@@ -12,6 +12,8 @@ else
     BC=`cd halo && git log --pretty=oneline -1 $BRANCH`
     if [ "$HC" != "$BC" ]; then
     	echo "Aborting: halo submodule not in sync with $BRANCH"
+	echo "HEAD   :" $HC
+	echo "$BRANCH:" $BC
     else
     	cd halo && git checkout $BRANCH
     fi
