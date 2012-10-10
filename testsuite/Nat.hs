@@ -35,7 +35,7 @@ S x   > S y   = x > y
 
 max :: Nat -> Nat -> Nat
 max Z y         = y
-max x Z         = x
+max (S x) Z     = S x
 max (S x) (S y) = S (max x y)
 
 min :: Nat -> Nat -> Nat

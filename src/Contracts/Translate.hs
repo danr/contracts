@@ -26,6 +26,8 @@ import Halo.Shared
 import Halo.Subtheory
 import Halo.Util
 
+import Halo.Names ( r, rTm )
+
 import Control.Monad.Reader
 
 import qualified Data.Map as M
@@ -159,7 +161,7 @@ trFixated deps stmt f = do
         ]
 
 data Split = Split
-    { split_clauses :: [Clause']
+    { split_clauses :: [VClause]
     , split_deps    :: [HCCContent]
     , split_num     :: Int
     }
@@ -195,7 +197,7 @@ trSplit stmt = do
     -- Enumerate the splits
     return (zipWith ($) splits [0..])
 
-bindToSplit :: Var -> [CoreExpr] -> [Clause'] -> [HCCContent]
+bindToSplit :: Var -> [CoreExpr] -> [VClause] -> [HCCContent]
             -> HCCBindPart -> TransM (Int -> Split)
 bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
 
@@ -221,10 +223,10 @@ bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
 
             -- Translate the constraints, but instead of having them
             -- as an antecedents, they are now asserted
-            tr_constrs <- axioms . map foralls <$> trConstraints bind_constrs
+            tr_constrs <- axioms . map qforalls <$> trConstraints bind_constrs
 
             -- Translate the relevant mins
-            tr_min <- axioms <$> mapM (liftM (foralls . min') . trExpr) bind_mins
+            tr_min <- axioms <$> mapM (liftM (qforalls . minPred) . trExpr) bind_mins
 
             return $ [comment "Imposed min"] ++ tr_min
                   ++ [comment "Equalities from arguments"] ++ tr_eqs
@@ -244,15 +246,15 @@ bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
         }
 
 -- | Translate a statement
-trStmt :: Statement -> TransM [Clause']
+trStmt :: Statement -> TransM [VClause]
 trStmt = fmap (clauseSplit axiom) . go Neg True
   where
-    go :: Variance -> Bool -> Statement -> TransM Formula'
+    go :: Variance -> Bool -> Statement -> TransM VFormula
     go v   top   (e ::: c)
         = trContract v (if top && v == Neg then Skolemise else Quantify) e c
     go Neg True  (All vs u)  = local' (addSkolems vs) (go Neg True u)
-    go Neg False (All vs u)  = exists' vs <$> go Neg True u
-    go Pos top   (All vs u)  = forall' vs <$> go Pos top u
+    go Neg False (All vs u)  = qexists vs <$> go Neg True u
+    go Pos top   (All vs u)  = qforall vs <$> go Pos top u
     go Neg top   (s :=> t)   = (/\) <$> go Pos False s <*> go Neg top t
     go Pos _     (s :=> t)   = (\/) <$> go Neg False s <*> go Pos False t
     go Neg True  (Using s u) = (/\) <$> go Neg True s <*> go Pos False u
@@ -260,7 +262,7 @@ trStmt = fmap (clauseSplit axiom) . go Neg True
 
 
 -- | Translate a contract for an expression
-trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
+trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM VFormula
 trContract variance skolemise_init e_init contract = do
 
     Params{no_pull_quants,no_skolemisation} <- getParams
@@ -290,7 +292,7 @@ trContract variance skolemise_init e_init contract = do
 
         lift $ write $ "Translating arguments of " ++ showExpr e_result
 
-        let tr_argument :: (Var,Contract) -> TransM Formula'
+        let tr_argument :: (Var,Contract) -> TransM VFormula
             tr_argument = uncurry (trContract (opposite variance) Quantify . Var)
 
         tr_arguments <- mapM tr_argument arguments
@@ -301,16 +303,30 @@ trContract variance skolemise_init e_init contract = do
 
             Pred p -> do
                 ex <- lift $ trExpr e_result
-                px <- lift $ trExpr p
-                return $ min' ex /\ min' px /\ (case variance of
-                    Neg -> ex =/= unr /\ (px === false \/ px === bad)
-                    Pos -> ex === unr \/ px === unr \/ px === true)
+                px_ex  <- lift $ trExpr (p @@ e_result)
+                px_rtm <- lift $ trExpr (p @@ (Var r))
+                
+                return $ minPred ex /\ minPred px_ex /\ (case variance of
+                    Neg -> neg (evalPred ex unr) /\
+                           neg (evalPred px_ex true \/ evalPred px_ex unr)
+                           -- (qexists [r] $
+                           --    evalPred ex rTm /\
+                           --         (neg (evalPred app_px true \/ evalPred app_px unr)))
+                    Pos -> evalPred ex unr \/
+                           (qexists [r] $
+                              evalPred ex rTm /\ (evalPred px_rtm true \/ evalPred px_rtm unr))
+                                                  )
+                    --   evalPred x r 
+                    --   -- (qexists [r] $ evalPred ex rTm /\ neg (rTm === unr)) /\
+                    --        (neg (evalPred ex unr \/ evalPred px true \/ evalPred px unr))
+                    --        -- (px === false \/ px === bad)
+                    -- Pos -> evalPred ex unr \/ evalPred px unr \/ evalPred px true)
 
             CF -> do
                 e_tr <- lift $ trExpr e_result
                 return $ case variance of
-                    Neg -> min' e_tr /\ neg (cf e_tr)
-                    Pos -> cf e_tr
+                    Neg -> minPred e_tr /\ neg (ecfPred e_tr)
+                    Pos -> ecfPred e_tr
 
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]
@@ -322,15 +338,15 @@ trContract variance skolemise_init e_init contract = do
         return $ tr_arguments ++ [tr_result]
 
     case variance of
-        Neg -> return $ (skolemise == Quantify ? exists' vars) (ands tr_contract)
+        Neg -> return $ (skolemise == Quantify ? qexists vars) (ands tr_contract)
         Pos -> do
             min_guard <-
                 if null vars
                     then return id
                     else do
                         e_tr <- lift (trExpr e_result)
-                        return (\f -> min' e_tr ==> f)
-            return $ forall' vars (min_guard (ors tr_contract))
+                        return (\f -> minPred e_tr ==> f)
+            return $ qforall vars (min_guard (ors tr_contract))
 
 local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a
 local' k m = do

@@ -308,24 +308,24 @@ processFile params@Params{..} file = do
             , style_dollar_min = dollar_min
             }
 
-        dumpTPTP' :: [Clause'] -> (String,dump_error)
+        dumpTPTP' :: [VClause] -> (String,dump_error)
         dumpTPTP' x = (dumpTPTP x,error "Can't dump tptp and print model!")
 
-        prep :: [Clause'] -> [HCCSubtheory] -> [Clause']
+        prep :: [VClause] -> [HCCSubtheory] -> [VClause]
         prep extra_clauses
             = (min_as_not_unr ? map minAsNotUnr)
             . (no_min ? removeMins)
             . (++ extra_clauses)
             . concatMap toClauses
 
-        toTPTP :: [Clause'] -> [HCCSubtheory] -> (String,Map String Var)
+        toTPTP :: [VClause] -> [HCCSubtheory] -> (String,Map String Var)
         toTPTP
             = (if quick_tptp
                    then dumpTPTP'
                    else first (linStrStyleTPTP style_conf) . renameClauses)
             .: prep
 
-        toSMT :: [Clause'] -> [HCCSubtheory] -> String
+        toSMT :: [VClause] -> [HCCSubtheory] -> String
         toSMT = linSMT .: prep
 
     when dump_tptp . putStrLn . fst $ toTPTP [] subtheories

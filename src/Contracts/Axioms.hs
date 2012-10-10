@@ -47,14 +47,17 @@ mkCF ty_cons = do
         , formulae    = concat $
             [
                 -- cf(K xs) ==> BigAnd_i (cf (x_i))
-                [ foralls $ cf kxbar ==> ands (map cf xbar')
+                [ qforalls $ cfPred kxbar ==> ands (map ecfPred xbar')
                 | not (null xbar') ] ++
 
                 -- min(K xs) /\ not (cf (K xs))
-                --    ==> BigOr_i (min(x_i) /\ not (cf (x_i))
-                [ foralls $ (min' kxbar /\ neg (cf kxbar)) `impliesOr`
-                                 [ ands [neg (cf y),min' y] | y <- xbar' ]
-                ]
+                --    ==> BigOr_i (min(x_i) /\ not (cf (x_i)))
+                [ qforalls $ (minPred kxbar /\ neg (cfPred kxbar)) `impliesOr`
+                                 [ ands [neg (ecfPred y),minPred y] | y <- xbar' ]  ] ++
+
+                [ qforalls $ ecfPred xTm <=> qexists [r] (ands [evalPred xTm rTm, cfPred rTm]) ] ++
+                --[ qforalls $ (ands [evalPred xTm rTm, cfPred rTm]) ==> cfPred xTm ] ++
+                [ qforalls $ ecfPred xTm /\ evalPred xTm rTm ==> cfPred rTm]
 
             | dc <- dcs
             , let (k,arg_types) = dcIdArgTypes dc
@@ -62,7 +65,7 @@ mkCF ty_cons = do
                   xbar          = map qvar args
                   is_primitive  = (`eqType` intPrimTy) . varType
                   xbar'         = map qvar (filter (not . is_primitive) args)
-                  kxbar         = apply k xbar
+                  kxbar         = conApp k xbar
             ]
         }
 
@@ -73,12 +76,16 @@ primConAxioms Params{..} = Subtheory
     , depends     = []
     , description = "Axioms for BAD and UNR"
     , formulae    =
-         [ cf unr
-         , neg (cf bad)
+         [ cfPred unr
+         , neg (cfPred bad)
          , unr =/= bad
-         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
+         , qforall [x] $ [ xTm =/= unr, cfPred xTm] ===> minPred xTm
          ] ++
-         [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
+         [ qforall [x] $ minPred xTm \/ xTm === unr | min_or_unr ]
+         ++
+         [ evalPred unr unr, evalPred bad bad
+           -- qforall [x] (qexists [r] $ evalPred xTm rTm)
+         ]
     }
 
 -- | App on BAD and UNR
@@ -88,15 +95,15 @@ primConApps = Subtheory
     , depends     = []
     , description = "App on BAD and UNR"
     , formulae    =
-         [ forall' [x] $ app bad x' === bad
-         , forall' [x] $ app unr x' === unr
+         [ qforall [x] $ app bad xTm === bad
+         , qforall [x] $ app unr xTm === unr
          ]
     }
 
 -- | Make constructors of different types and pointers disjoint
 --
 --   We use this to easier print well-typed models from paradox.
-extraDisjoint :: HaloConf -> [Subtheory s] -> [Clause']
+extraDisjoint :: HaloConf -> [Subtheory s] -> [VClause]
 extraDisjoint halo_conf subthys = map (clause axiom) $
     -- Make all data constructors disjoint from pointers
     [ makeDisjoint halo_conf d p

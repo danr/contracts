@@ -133,7 +133,9 @@ mkContract f e = do
 
     case collectArgs e of
         (Var x,[_cf_ty])     | isContrCF x -> return CF
-        (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
+--         (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred (p @@ f))
+-- DV: Warning, this might break Hell Loose:
+        (Var x,[_pred_ty,p]) | isContrPred x -> return (Pred p)
 
         -- I don't know why both these appear
         (Var x,[Type c1_ty,Type _c2_ty,e1,Lam y e2])

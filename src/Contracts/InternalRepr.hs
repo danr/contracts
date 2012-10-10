@@ -68,7 +68,7 @@ substContract xold xnew = substContractList [(xold,xnew)]
 -- | The translated clauses and its dependencies, and what kind of
 --   conjecture it is (plain / fixpoint base / fixpoint step)
 data Conjecture = Conjecture
-    { conj_clauses      :: [Clause']
+    { conj_clauses      :: [VClause]
     , conj_dependencies :: [HCCContent]
     , conj_kind         :: ConjectureKind
     }
@@ -84,7 +84,7 @@ data ConjectureKind
   deriving (Show,Eq,Ord)
 
 -- | Add more dependencies to a conjecture
-extendConj :: [Clause'] -> [HCCContent] -> Conjecture -> Conjecture
+extendConj :: [VClause] -> [HCCContent] -> Conjecture -> Conjecture
 extendConj cls deps c = c
     { conj_clauses      = cls ++ conj_clauses c
     , conj_dependencies = deps ++ conj_dependencies c
