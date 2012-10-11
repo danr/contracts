@@ -140,7 +140,8 @@ trFixated deps stmt f = do
         | cs <- [Base | not fpi_no_base] ++ [Step]
         ]
 
-    return $ ret ++
+    return $ ret ++ []
+    {-
         [ Conjecture split_clauses deps_split (FixpointStepSplit split_num)
         | Split{..} <- splits
         , let fc = Function f_concl
@@ -157,7 +158,8 @@ trFixated deps stmt f = do
               --   Similarily, if the function appears in a predicate, we need to
               --   keep it as well.
         ]
-
+     -}
+      
 data Split = Split
     { split_clauses :: [Clause']
     , split_deps    :: [HCCContent]
@@ -302,15 +304,15 @@ trContract variance skolemise_init e_init contract = do
             Pred p -> do
                 ex <- lift $ trExpr e_result
                 px <- lift $ trExpr p
-                return $ min' ex /\ min' px /\ (case variance of
-                    Neg -> ex =/= unr /\ (px === false \/ px === bad)
-                    Pos -> ex === unr \/ px === unr \/ px === true)
+                return $ (case variance of
+                    Neg -> min' ex /\ min' px /\ ex =/= unr /\ (px =/= true /\ px =/= unr)
+                    Pos -> min' ex /\ min' px /\ (ex === unr \/ px === unr \/ px === true))
 
             CF -> do
                 e_tr <- lift $ trExpr e_result
                 return $ case variance of
-                    Neg -> min' e_tr /\ neg (cf e_tr)
-                    Pos -> cf e_tr
+                    Neg -> minrec e_tr /\ neg (cf e_tr)
+                    Pos -> minrec e_tr /\ cf e_tr
 
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]
@@ -324,12 +326,14 @@ trContract variance skolemise_init e_init contract = do
     case variance of
         Neg -> return $ (skolemise == Quantify ? exists' vars) (ands tr_contract)
         Pos -> do
-            min_guard <-
-                if null vars
+            min_guard <- return (\f -> f)
+            {-
+               if null vars
                     then return id
                     else do
                         e_tr <- lift (trExpr e_result)
                         return (\f -> min' e_tr ==> f)
+            -}
             return $ forall' vars (min_guard (ors tr_contract))
 
 local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a

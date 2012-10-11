@@ -49,13 +49,16 @@ mkCF ty_cons = do
                 -- cf(K xs) ==> BigAnd_i (cf (x_i))
                 [ foralls $ cf kxbar ==> ands (map cf xbar')
                 | not (null xbar') ] ++
-
+                [ foralls $ ands (map cf xbar') ==> cf kxbar
+                | not (null xbar') ] ++
+                [ cf kxbar | null xbar' ]
+{- New CF:
                 -- min(K xs) /\ not (cf (K xs))
                 --    ==> BigOr_i (min(x_i) /\ not (cf (x_i))
                 [ foralls $ (min' kxbar /\ neg (cf kxbar)) `impliesOr`
                                  [ ands [neg (cf y),min' y] | y <- xbar' ]
                 ]
-
+-}
             | dc <- dcs
             , let (k,arg_types) = dcIdArgTypes dc
                   args          = zipWith setVarType varNames arg_types
@@ -76,8 +79,9 @@ primConAxioms Params{..} = Subtheory
          [ cf unr
          , neg (cf bad)
          , unr =/= bad
-         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
+-- New CF:         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
          ] ++
+         [forall' [x]  $ minrec x' ==> min' x'] ++ 
          [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
     }
 
