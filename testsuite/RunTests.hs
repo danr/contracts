@@ -87,7 +87,7 @@ runZ3smt t file = do
     let file' = dropExtension file ++ ".smt"
     exists <- doesFileExist file'
     if exists
-        then timed t "z3" Nothing ["-smtc","-nw",file',"-t:"++show t]
+        then timed t "z3" Nothing ["-smt","-nw",file',"-t:"++show t]
         else do
             putStrLn $ file' ++ " does not exist!"
             return Nothing
