@@ -123,7 +123,7 @@ neighbours dg@(_,fromVertex,_) v = ns
 lookupVertex :: DepGraph -> Var -> Vertex
 lookupVertex (_,_,toVertex) v = case toVertex v of
     Just x  -> x
-    Nothing -> error $ "Contracts.Inliner.lookupVertex: unbound " ++ show v
+    Nothing -> error $ "Contracts.Inliner.lookupVertex: unbound " ++ showOutputable v
 
 -- | Check if a function calls itself directly
 selfRecursive :: DepGraph -> Var -> Bool

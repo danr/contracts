@@ -7,12 +7,13 @@
 module Contracts.SourceRepr where
 
 import Var
-import Outputable
 import Type
 import Name
 import Module
 
 import Data.List
+
+import Halo.Shared
 
 -- | Is this name defined in the `Contracts' module?
 contractModuleName :: Name -> Bool
@@ -27,7 +28,7 @@ contrStrWith end str = "Contracts." `isPrefixOf` str && end `isSuffixOf` str
 statementType :: Type -> Bool
 statementType ty
     | Just (ty_con,[_ty]) <- splitTyConApp_maybe ty
-        = contrStrWith "Statement" . showSDoc . ppr $ ty_con
+        = contrStrWith "Statement" . showOutputable $ ty_con
     | otherwise = False
 
 isStatementType :: Var -> Bool
@@ -36,28 +37,28 @@ isStatementType v =
     in  statementType res && null args
 
 isStatementAssuming :: Var -> Bool
-isStatementAssuming = contrStrWith ":=>" . show
+isStatementAssuming = contrStrWith ":=>" . showOutputable
 
 isStatementAll :: Var -> Bool
-isStatementAll = contrStrWith "All" . show
+isStatementAll = contrStrWith "All" . showOutputable
 
 isStatementUsing :: Var -> Bool
-isStatementUsing = contrStrWith "Using" . show
+isStatementUsing = contrStrWith "Using" . showOutputable
 
 isStatementCon  :: Var -> Bool
-isStatementCon  = contrStrWith ":::" . show
+isStatementCon  = contrStrWith ":::" . showOutputable
 
 isContrPi       :: Var -> Bool
-isContrPi       = contrStrWith ":->" . show
+isContrPi       = contrStrWith ":->" . showOutputable
 
 isContrArr      :: Var -> Bool
-isContrArr      = contrStrWith "-->" . show
+isContrArr      = contrStrWith "-->" . showOutputable
 
 isContrCF       :: Var -> Bool
-isContrCF       = contrStrWith "CF" . show
+isContrCF       = contrStrWith "CF" . showOutputable
 
 isContrAnd      :: Var -> Bool
-isContrAnd      = contrStrWith ":&:" . show
+isContrAnd      = contrStrWith ":&:" . showOutputable
 
 isContrPred     :: Var -> Bool
-isContrPred     = contrStrWith "Pred" . show
+isContrPred     = contrStrWith "Pred" . showOutputable

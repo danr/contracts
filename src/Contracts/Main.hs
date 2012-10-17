@@ -53,7 +53,6 @@ import Class
 import CoreSyn
 import GHC
 import HscTypes
-import Outputable
 import TysWiredIn
 import UniqSupply
 import Var
@@ -120,12 +119,12 @@ printMsgs msgs = unless (null msgs) $ putStrLn (unlines msgs)
 printCore :: String -> [CoreBind] -> IO ()
 printCore msg core = do
     putStrLn $ msg ++ ":\n"
-    mapM_ (printDump . ppr) core
+    mapM_ (putStrLn . showOutputable) core
     putStrLn "\n"
 
 debugName :: (Var,CoreExpr) -> IO ()
 debugName (v,e) =
-    putStrLn $ show v ++ ":" ++
+    putStrLn $ showOutputable v ++ ":" ++
         "\n\tisId: " ++ show (isId v) ++
         "\n\tisLocalVar: " ++ show (isLocalVar v) ++
         "\n\tisLocalId: " ++ show (isLocalId v) ++
@@ -236,9 +235,9 @@ processFile params@Params{..} file = do
         forM_ (flattenBinds lifted_prog) $ \(v,e) -> do
             putStrLn $ "Inlineable: " ++ show (varInlineable v)
             putStrLn $ "Before inlining:"
-            putStrLn $ show v ++ " = " ++ showExpr e
+            putStrLn $ showOutputable v ++ " = " ++ showExpr e
             putStrLn $ "After inlining:"
-            putStrLn $ show v ++ " = " ++ showExpr (inlineExpr e)
+            putStrLn $ showOutputable v ++ " = " ++ showExpr (inlineExpr e)
             putStrLn ""
 
     when dump_inlined_core (printCore "Inlined core" inlined_prog)
@@ -352,7 +351,7 @@ processFile params@Params{..} file = do
                                conj_dependencies
                 subtheories' = specialised_trim important
 
-                filename ext = show top_name ++ conjKindSuffix conj_kind
+                filename ext = showOutputable top_name ++ conjKindSuffix conj_kind
                                 ++ "." ++ ext
 
                 tptp_file = filename "tptp"

@@ -49,7 +49,7 @@ internaliseContracts program = runErrorT $ do
 
     (stmts,db_msgs) <- runInternaliseM $ do
         write "Internalising statements:"
-        write (unlines (map (show . fst) untranslated_stmts))
+        write (unlines (map (showOutputable . fst) untranslated_stmts))
         mapM (uncurry mkTopStmt) untranslated_stmts
 
     return (stmts,program',db_msgs)
@@ -81,7 +81,7 @@ trimTyApp _       = Nothing
 
 mkTopStmt :: Var -> CoreExpr -> InternaliseM TopStmt
 mkTopStmt name e = do
-    write $ "Making a top statement for " ++ show name
+    write $ "Making a top statement for " ++ showOutputable name
     stmt <- unTreeStmt <$> mkStatement e
     return $ TopStmt
         { top_name = name
@@ -101,7 +101,7 @@ mkStatement e = do
 
         (Var x,as)
             | isStatementAll x , not (null as) , Lam y s <- last as -> do
-                write $ "Binding " ++ show y ++ " in a statement " ++ showExpr s
+                write $ "Binding " ++ showOutputable y ++ " in a statement " ++ showExpr s
                 mkAll y <$> mkStatement s
 
         (Var x,[_c_ty,f,c])

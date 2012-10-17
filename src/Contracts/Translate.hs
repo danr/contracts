@@ -56,7 +56,7 @@ getFixInfo = asks env_fix_info
 getBindParts :: Var -> TransM [HCCBindPart]
 getBindParts x = asks (fromMaybe err . M.lookup x . env_bind_map)
   where
-    err = error $ "Contracts.Translate.getBindParts: no bind parts for " ++ show x
+    err = error $ "Contracts.Translate.getBindParts: no bind parts for " ++ showOutputable x
 
 data Skolem = Skolemise | Quantify
   deriving (Eq,Ord,Show)
@@ -230,7 +230,7 @@ bindToSplit f all_args tr_contr contr_deps decl_part@BindPart{..} = do
                   ++ [comment "Equalities from arguments"] ++ tr_eqs
                   ++ [comment "Imposed constraints"] ++ tr_constrs
 
-        return ([comment $ "Bind part for " ++ show f] ++ tr_decl ++ tr_goal)
+        return ([comment $ "Bind part for " ++ showOutputable f] ++ tr_decl ++ tr_goal)
 
     -- Use the dependencies defined in the BindPart, but don't add the
     -- dependency to f, or else the full original definition is added
@@ -283,8 +283,8 @@ trContract variance skolemise_init e_init contract = do
                 ++ "\n    e_result:  " ++ showExpr e_result
                 ++ "\n    contract:  " ++ show contract
                 ++ "\n    result:    " ++ show result
-                ++ "\n    arguments: " ++ show arguments
-                ++ "\n    vars:      " ++ show vars
+                -- "\n    arguments: " ++ showOutputable arguments
+                -- "\n    vars:      " ++ showOutputable vars
 
     tr_contract <- local' (skolemise == Skolemise ? addSkolems vars) $ do
 

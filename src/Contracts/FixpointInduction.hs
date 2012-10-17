@@ -103,7 +103,7 @@ newtype FixInfo = FixInfo
     --   in the friendly cases.
     ,[Var])
     -- ^ Names of hypothesis functions
-  deriving (Monoid,Show)
+  deriving Monoid
 
 -- | Gets then vars of all hypothesis functions
 fpiHypVars :: FixInfo -> [Var]
@@ -116,7 +116,7 @@ fpiApplicable (FixInfo (m,_)) f = M.member f m
 fatalVar :: String -> Var -> a
 fatalVar s v = error $
     s ++ ": Internal error, cannot do fixed point induction on " ++
-    show v ++ " (be sure to query fpiApplicable first)"
+    showOutputable v ++ " (be sure to query fpiApplicable first)"
 
 -- | @fpiFocusName fix_info f case@ looks up what the function @f@
 --   is called in this case
@@ -126,7 +126,7 @@ fpiFocusName (FixInfo (m,_)) f fcase = case M.lookup f m of
     Just (m',_) -> fromMaybe err (M.lookup fcase m')
       where
         err = error $ "fpiFocusName: Internal error, cannot find " ++
-                show f ++ " in focal case " ++ show fcase
+                showOutputable f ++ " in focal case " ++ show fcase
 
 -- | @fpiFriendName fix_info f case g@ looks up what the function @g@
 --   is called in this case

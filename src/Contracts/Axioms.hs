@@ -6,7 +6,6 @@
 -}
 module Contracts.Axioms where
 
-import Outputable
 import TyCon
 import Type
 import TysPrim
@@ -43,7 +42,7 @@ mkCF ty_cons = do
     return $ Subtheory
         { provides    = Specific (CrashFree ty_con)
         , depends     = []
-        , description = "CF " ++ showSDoc (pprSourceTyCon ty_con)
+        , description = "CF " ++ showOutputable ty_con
         , formulae    = concat $
             [
                 -- cf(K xs) ==> BigAnd_i (cf (x_i))

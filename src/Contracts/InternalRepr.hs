@@ -47,7 +47,7 @@ instance Show Contract where
     show CF              = "CF"
     show (Pred e)        = "{" ++ showExpr e ++ "}"
     show (And e1 e2)     = show e1 ++ "&&" ++ show e2
-    show (Arrow v c1 c2) = "(" ++ show v ++ ":" ++ show c1 ++ ") -> " ++ show c2
+    show (Arrow v c1 c2) = "(" ++ showOutputable v ++ ":" ++ show c1 ++ ") -> " ++ show c2
 
 -- | Subst the contract structure
 --
@@ -72,7 +72,6 @@ data Conjecture = Conjecture
     , conj_dependencies :: [HCCContent]
     , conj_kind         :: ConjectureKind
     }
-  deriving Show
 
 -- | The different kinds of conjectures
 data ConjectureKind
@@ -129,12 +128,12 @@ substStatementList xs s0 = case s0 of
 
 instance Show Statement where
     show (e ::: c)   = showExpr e ++ " ::: " ++ show c
-    show (All vs s)  = "forall " ++ unwords (map show vs) ++ show s
+    show (All vs s)  = "forall " ++ unwords (map showOutputable vs) ++ show s
     show (s :=> t)   = show s ++ " :=> " ++ show t
     show (Using s t) = show s ++ " `Using` " ++ show t
 
 instance Show TopStmt where
-    show TopStmt{..} = show top_name ++ " = " ++ show top_stmt
+    show TopStmt{..} = showOutputable top_name ++ " = " ++ show top_stmt
                         ++ " [deps: " ++ unwords (map show top_deps) ++ "]"
 
 -- | Removes nested right branches of Usings
@@ -215,4 +214,3 @@ contrDeps CF              = []
 contrDeps (Pred e)        = exprDeps e
 contrDeps (And c1 c2)     = contrDeps c1 `union` contrDeps c2
 contrDeps (Arrow x c1 c2) = delete (Function x) (contrDeps c1 `union` contrDeps c2)
-
