@@ -78,10 +78,10 @@ runVampire t file = do
 runEprover t file = timed t "eprover" Nothing
     ["-tAuto","-xAuto","--tptp3-format","-s",file,"--cpu-limit="++show t]
 
-runZ3 t file = do
-    let regexp = "s/\\$min/min/g"
-    system $ "sed " ++ regexp ++ " " ++ show file ++ " > " ++ show file ++ ".z3"
-    timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3","-t:"++show t]
+--runZ3 t file = do
+--    let regexp = "s/\\$min/min/g"
+--    system $ "sed " ++ regexp ++ " " ++ show file ++ " > " ++ show file ++ ".z3"
+--    timed t "z3" Nothing ["-tptp","-nw",file ++ ".z3","-t:"++show t]
 
 runZ3smt t file = do
     let file' = dropExtension file ++ ".smt"
@@ -96,10 +96,10 @@ equinox = ("xequinox",runEquinox)
 paradox = ("paradox",runParadox)
 vampire = ("vampire",runVampire)
 eprover = ("eprover",runEprover)
-z3      = ("z3",runZ3)
+--z3      = ("z3",runZ3)
 z3smt   = ("smt-z3",runZ3smt)
 
-unsat_provers = [z3smt,z3,vampire,equinox,eprover]
+unsat_provers = [z3smt,vampire,equinox,eprover]
 
 getProvers :: Maybe String -> Res -> [(String,Int -> String -> IO (Maybe Res))]
 getProvers (Just s) _ = [ p | c <- s
