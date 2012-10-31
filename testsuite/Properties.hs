@@ -15,6 +15,12 @@ transitive (~~) = (All $ \x -> All $ \y -> All $ \z ->
     y ~~ z ::: CF :&: Pred id :=>
     x ~~ z ::: CF :&: Pred id)
 
+(~~) `antisymmetricOver` (===) = (All $ \x -> All $ \y ->
+    x ::: CF :=> y ::: CF :=>
+    x ~~ y ::: CF :&: Pred id :=>
+    y ~~ x ::: CF :&: Pred id :=>
+    x ::: CF :&: Pred (=== y))
+
 (*) `idempotentOver` (===)  = All $ \x ->
     x ::: CF :=> x * x ::: CF :&: Pred (=== x)
 

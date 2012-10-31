@@ -165,6 +165,14 @@ eq_sym_boolean = All (\x -> All (\y -> x ::: CF :=> y ::: CF :=>
 
 eq_sym_boolean2_ = (==) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred ((y == x) <=>)
 
+-- Properties of <=
+
+le_refl = reflexive (<=)
+
+le_antisym = (<=) `antisymmetricOver` (==)
+
+le_trans = transitive (<=)
+
 -- Some properties about max and min and plus
 
 max_idem          = max `idempotentOver` (==)
