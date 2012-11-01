@@ -17,6 +17,8 @@ import MonadUtils
 
 import Control.Monad
 
+import Halo.Shared
+
 vars@(a':b':rest') =
     [ mkLocalId
         (mkInternalName (mkUnique 'z' i) (mkOccName varName n) wiredInSrcSpan)
@@ -46,7 +48,7 @@ unifs = [ (vs,a,b,tcMatchTy emptyVarSet a b)
         , let vs = tyVarsOfType a
         ]
 
-showUnif (vs,a,b,match) = showSDoc $ hang
+showUnif (vs,a,b,match) = portableShowSDoc $ hang
     (text "tcMatchTy") 4 $
     vcat
         [ppr vs
@@ -60,7 +62,7 @@ unifs = [ (a,b,tcUnifyTys (const BindMe) [a] [b])
         , b <- tys
         ]
 
-showUnif (a,b,match) = showSDoc $ hang
+showUnif (a,b,match) = portableShowSDoc $ hang
     (text "tcUnifyTys") 4 $
     vcat
         [parens (ppr a)
