@@ -155,7 +155,7 @@ main = do
     unless (null hcc_args || quiet) $ putStrLn $ "HCC_ARGS: " ++ hcc_args
 
     -- Generate all contracts
-    system $ "hcc --dollar-min --fpi-no-base --fpi-no-plain --fpi-split "
+    system $ "hcc --dollar-min --fpi-no-base --fpi-split "
                 ++ (guard quiet >> " -q")
                 ++ (if readable then " --comments " else " --quick-tptp ")
                 ++ (guard no_min >> " --no-min ")

@@ -14,7 +14,16 @@ not False = True
 
 f . g = \x -> f (g x)
 
-head_contract = head ::: CF :&: Pred (not . null) --> CF
+
+notnull [] = False
+notnull xs = True
+
+
+head_contract_1 = head ::: CF :&: Pred (not . null) --> CF
+
+head_contract_2 = head ::: CF :&: Pred (\x -> not (null x)) --> CF
+
+head_contract_3 = head ::: CF :&: Pred notnull --> CF 
 
 head_broken_1 = head ::: CF --> CF
 head_broken_2 = head ::: Pred (not . null) --> CF
