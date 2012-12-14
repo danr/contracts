@@ -93,7 +93,7 @@ defParams = Params
     , dollar_min        = False   &= name "d" &= help "Let the min predicate be called $min, efficient for equinox, unparseable for z3"
     , fpi_split         = False   &= name "s" &= help "Split into many goals when doing fpi"
     , fpi_no_base       = False   &= name "b" &= help "If fpi is applicable, don't generate the base case"
-    , fpi_no_plain      = False   &= name "i" &= help "If fpi is applicable, don't generate without induction"
+    , fpi_no_plain      = True    &= name "i" &= help "If fpi is applicable, don't generate without induction"
     , quick_tptp        = False   &= name "Q" &= help "Enable quicker generation of tptp with variable names from Uniques. Uses cnf and $min and writes no comments."
 
     , no_skolemisation  = False   &= groupname "\nTesting and comparison"

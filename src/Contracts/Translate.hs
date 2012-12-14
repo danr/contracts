@@ -140,8 +140,7 @@ trFixated deps stmt f = do
         | cs <- [Base | not fpi_no_base] ++ [Step]
         ]
 
-    return $ ret ++ []
-    {-
+    return $ ret ++
         [ Conjecture split_clauses deps_split (FixpointStepSplit split_num)
         | Split{..} <- splits
         , let fc = Function f_concl
@@ -158,7 +157,6 @@ trFixated deps stmt f = do
               --   Similarily, if the function appears in a predicate, we need to
               --   keep it as well.
         ]
-     -}
       
 data Split = Split
     { split_clauses :: [Clause']
@@ -308,12 +306,12 @@ trContract variance skolemise_init e_init contract = do
                     Neg -> min' ex /\ min' px /\
                                    ex =/= unr /\ (px =/= true /\ px =/= unr)
                     Pos -> min' ex /\ min' px /\
-                                   (ex === unr /\  px === unr \/ px === true))
+                                   (ex === unr \/ (px === unr \/ px === true)))
             CF -> do
                 e_tr <- lift $ trExpr e_result
                 return $ case variance of
-                    Neg -> minrec e_tr /\ neg (cf e_tr)
-                    Pos -> minrec e_tr /\ cf e_tr
+                    Neg -> min' e_tr /\ neg (cf e_tr)
+                    Pos -> min' e_tr /\ cf e_tr
 
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]

@@ -80,9 +80,9 @@ primConAxioms Params{..} = Subtheory
          , neg (cf bad)
          , unr =/= bad
 -- New CF:         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
-         ] ++
-         [forall' [x]  $ minrec x' ==> min' x'] ++ 
-         [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
+         ] 
+--        ++ [forall' [x]  $ minrec x' ==> min' x'] ++ 
+--         [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
     }
 
 -- | App on BAD and UNR
