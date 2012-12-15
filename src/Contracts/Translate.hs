@@ -310,8 +310,8 @@ trContract variance skolemise_init e_init contract = do
             CF -> do
                 e_tr <- lift $ trExpr e_result
                 return $ case variance of
-                    Neg -> min' e_tr /\ neg (cf e_tr)
-                    Pos -> min' e_tr /\ cf e_tr
+                    Neg -> minrec e_tr /\ neg (cf e_tr)
+                    Pos -> minrec e_tr /\ cf e_tr
 
             And c1 c2 -> case variance of { Neg -> ors ; Pos -> ands }
                 <$> mapM (trContract variance skolemise e_result) [c1,c2]
