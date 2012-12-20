@@ -5,11 +5,13 @@ import Prelude (Bool(..),not,id,(&&), (||))
 
 data Nat = S Nat | Z
 
-recB True  = True
-recB False = True
 
 recN Z     = True
 recN (S x) = recN x
+
+recB True  = True
+recB False = True
+
 
 pl :: Nat -> Nat -> Nat
 pl Z y = y
@@ -150,13 +152,10 @@ plus_plus_broken
 eq_single x = eq x x
 eq_single_contr = eq_single ::: Pred recN --> Pred (\x -> x)
 
--- Now we add that ... 
+-- Now we add that ...
+-- This is UNSAT with or without min, YAY!
 plus_plus_ok
   = pl ::: (Pred recN :-> \x -> Pred recN :-> \y -> Pred (\z -> z `eq` (pl1 x y)))
        `Using` eq_ok
        `Using` eq_single_contr
-
- 
-
-
 
