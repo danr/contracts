@@ -133,9 +133,8 @@ g Z     = Z
 contr_even = g ::: (Pred recN --> Pred even)
 
 
-pl1 Z y = case foo y of _ -> y
+pl1 Z y = y
 pl1 (S x) y = S (pl1 x y)
-
 
 foo Z     = True
 foo (S x) = foo x
@@ -143,14 +142,21 @@ foo (S x) = foo x
 foo_eq_refl = foo ::: Pred recN :-> \x -> Pred (\z -> (eq x x))
 foo_ok = foo ::: Pred recN --> Pred recB
 
--- I dont quite understand why it is broken ...
+-- Broken because we don't know that eq is reflexive ...
 plus_plus_broken
   = pl ::: (Pred recN :-> \x -> Pred recN :-> \y -> Pred (\z -> z `eq` (pl1 x y)))
-       `Using` foo_eq_refl
-       `Using` foo_ok
+       `Using` eq_ok
 
+eq_single x = eq x x
+eq_single_contr = eq_single ::: Pred recN --> Pred (\x -> x)
 
+-- Now we add that ... 
+plus_plus_ok
+  = pl ::: (Pred recN :-> \x -> Pred recN :-> \y -> Pred (\z -> z `eq` (pl1 x y)))
+       `Using` eq_ok
+       `Using` eq_single_contr
 
+ 
 
 
 
