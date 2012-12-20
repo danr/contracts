@@ -324,7 +324,7 @@ trContract variance skolemise_init e_init contract = do
     case variance of
         Neg -> return $ (skolemise == Quantify ? exists' vars) (ands tr_contract)
         Pos -> do
---            min_guard <- return (\f -> f)
+{-            min_guard <- return (\f -> f) -}
             min_guard <- -- No guard: return (\f -> f)
                if null vars
                     then return id

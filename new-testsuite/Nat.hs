@@ -127,119 +127,30 @@ sufNot p (S x) = p x
 sufNot p Z     = True
 
 
+g (S x) = S (S (g x))
+g Z     = Z
+
+contr_even = g ::: (Pred recN --> Pred even)
+
+
+pl1 Z y = case foo y of _ -> y
+pl1 (S x) y = S (pl1 x y)
+
+
+foo Z     = True
+foo (S x) = foo x
+
+foo_eq_refl = foo ::: Pred recN :-> \x -> Pred (\z -> (eq x x))
+foo_ok = foo ::: Pred recN --> Pred recB
+
+-- I dont quite understand why it is broken ...
+plus_plus_broken
+  = pl ::: (Pred recN :-> \x -> Pred recN :-> \y -> Pred (\z -> z `eq` (pl1 x y)))
+       `Using` foo_eq_refl
+       `Using` foo_ok
 
 
 
 
--- half_leq1 = half ::: (Pred recN :-> \x -> Pred (\z -> recN z && leq z x))
---                  `Using` leq_succ
 
-{-
-eq_cf         = (==) ::: CF --> CF --> CF
 
-plus_cf       = (+) ::: CF --> CF --> CF
-
-mul_cf        = (*) ::: CF --> CF --> CF
-  `Using` plus_cf
-
-broken_mul_cf = (*) ::: CF --> CF --> CF
-
-le_cf         = (<=) ::: CF --> CF --> CF
-
-gt_cf         = (>) ::: CF --> CF --> CF
-
-ne_cf         = (/=) ::: CF --> CF --> CF
-  `Using` eq_cf
-
-broken_ne_cf  = (/=) ::: CF --> CF --> CF
-
-max_cf        = max ::: CF --> CF --> CF
-
-min_cf        = min ::: CF --> CF --> CF
-
-double_cf     = double ::: CF --> CF
-
-even_cf       = even ::: CF --> CF
-
-half_cf       = half ::: CF --> CF
-
-ack_cf        = ack ::: CF --> CF --> CF
-
-mult_cf                    = mult ::: CF --> CF --> CF --> CF
-  `Using` plus_cf
-
-broken_mult_cf_broken      = mult ::: CF --> CF --> CF --> CF
-
-fac_cf                     = fac ::: CF --> CF
-  `Using` mul_cf
-
-broken_fac_cf_broken       = fac ::: CF --> CF
-
-qfac_cf                    = qfac ::: CF --> CF --> CF
-  `Using` mul_cf
-
-broken_qfac_cf_broken      = qfac ::: CF --> CF --> CF
-
-exp_cf                     = exp ::: CF --> CF --> CF
-  `Using` mul_cf
-
-broken_exp_cf_broken       = exp ::: CF --> CF --> CF
-
-exp_accum_cf               = exp_accum ::: CF --> CF --> CF --> CF
-  `Using` mul_cf
-
-broken_exp_accum_cf_broken = exp_accum ::: CF --> CF --> CF --> CF
-
--- Some more involving properties about equality
-
-eq_refl = reflexive (==)
-
-eq_sym = symmetric (==)
-
-eq_trans = transitive (==)
-  `Using` eq_cf
-  `Using` eq_refl
-  `Using` eq_sym
-
-(<=>) :: Bool -> Bool -> Bool
-True  <=> True  = True
-False <=> False = True
-True  <=> False = False
-False <=> True  = False
-
-eq_refl_broken = All (\x -> x ::: CF :=> True ::: Pred ((x == x) <=>))
-
-eq_sym_boolean = All (\x -> All (\y -> x ::: CF :=> y ::: CF :=>
-    (y == x ::: CF :&: Pred ((x == y) <=>))))
-
-eq_sym_boolean2_ = (==) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred ((y == x) <=>)
-
--- Some properties about max and min and plus
-
-max_idem          = max `idempotentOver` (==)
-min_idem          = min `idempotentOver` (==)
-
-max_comm          = max `commutativeOver` (==) `Using` eq_refl
-max_comm_broken   = max `commutativeOver` (==)
-
-min_comm          = min `commutativeOver` (==)
-
-max_assoc         = max `associativeOver` (==) `Using` eq_refl
-max_assoc_broken  = max `associativeOver` (==)
-
-min_assoc         = min `associativeOver` (==) `Using` eq_refl
-min_assoc_broken  = min `associativeOver` (==)
-
-plus_assoc        = (+) `associativeOver` (==) `Using` eq_refl
-plus_assoc_broken = (+) `associativeOver` (==)
-
-plus_comm         = (+) `commutativeOver` (==) `Using` eq_refl
-plus_comm_broken  = (+) `commutativeOver` (==)
-
--- Some way of expressing that we do not have (<=) and (>) at the same time
-
-binary_le_gt = (<=) ::: CF :-> \x -> CF :-> \y -> CF :&: Pred (\b -> if b then not (x > y) else x > y)
-
-binary_gt_le = (>)  ::: CF :-> \x -> CF :-> \y -> CF :&: Pred (\b -> if b then not (x <= y) else x <= y)
-
--}
