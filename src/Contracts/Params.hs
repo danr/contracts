@@ -33,6 +33,7 @@ data Params = Params
     , quick_tptp        :: Bool
     , or_discr          :: Bool
     , min_or_unr        :: Bool
+    , min_arr_guard     :: Bool
 
     , no_skolemisation  :: Bool
     , no_pull_quants    :: Bool
@@ -86,6 +87,7 @@ defParams = Params
     , min_as_not_unr    = False   &= name "u" &= help "Replace all occurences of min in generated theories with not unr"
     , or_discr          = False   &= name "o" &= help "Use Or instead of And in the assumptions of discrimination axioms"
     , min_or_unr        = False               &= help "Add the axiom forall x . ~min(x) => cf(x)"
+    , min_arr_guard     = True    &= name "a" &= help "Add a min(f(x)) => ... guard in arrow contract translation"
 
     , fof               = False   &= name "f" &= help "Always generate clauses in fof"
     , comments          = False   &= name "C" &= help "Print comments in tptp files"

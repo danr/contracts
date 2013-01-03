@@ -263,7 +263,7 @@ trStmt = fmap (clauseSplit axiom) . go Neg True
 trContract :: Variance -> Skolem -> CoreExpr -> Contract -> TransM Formula'
 trContract variance skolemise_init e_init contract = do
 
-    Params{no_pull_quants,no_skolemisation} <- getParams
+    Params{no_pull_quants,no_skolemisation,min_arr_guard} <- getParams
 
     -- Skolemise unless no_skolemisation is on
     let skolemise
@@ -305,7 +305,8 @@ trContract variance skolemise_init e_init contract = do
                 return $ (case variance of
                     Neg -> min' ex /\ min' px /\
                                    ex =/= unr /\ (px =/= true /\ px =/= unr)
-                    Pos -> min' ex /\ min' px /\ (ex === unr \/ px === unr \/ px === true))
+                    Pos -> ((min' ex /\ ex === unr) \/
+                                (min' px /\ (px === unr \/ px === true))))
             CF -> do
                 e_tr <- lift $ trExpr e_result
                 return $ case variance of
@@ -324,14 +325,16 @@ trContract variance skolemise_init e_init contract = do
     case variance of
         Neg -> return $ (skolemise == Quantify ? exists' vars) (ands tr_contract)
         Pos -> do
-{-            min_guard <- return (\f -> f) -}
-            min_guard <- -- No guard: return (\f -> f)
+          min_guard <- 
+            if min_arr_guard then
                if null vars
                     then return id
                     else do
                         e_tr <- lift (trExpr e_result)
                         return (\f -> min' e_tr ==> f)
-            return $ forall' vars (min_guard (ors tr_contract))
+            else
+              return (\f -> f)
+          return $ forall' vars (min_guard (ors tr_contract))
 
 local' :: (HaloEnv -> HaloEnv) -> TransM a -> TransM a
 local' k m = do
