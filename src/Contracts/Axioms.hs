@@ -53,7 +53,8 @@ mkCF ty_cons = do
                 | not (null xbar') ] ++
                 [ cf kxbar | null xbar' ]
 {- New CF:
-                -- min(K xs) /\ not (cf (K xs))
+
+-- min(K xs) /\ not (cf (K xs))
                 --    ==> BigOr_i (min(x_i) /\ not (cf (x_i))
                 [ foralls $ (min' kxbar /\ neg (cf kxbar)) `impliesOr`
                                  [ ands [neg (cf y),min' y] | y <- xbar' ]
@@ -79,11 +80,25 @@ primConAxioms Params{..} = Subtheory
          [ cf unr
          , neg (cf bad)
          , unr =/= bad
+
+           
+         , forall' [ox] $ ox' === ox'
+         , forall' [ox,oy] $ ox' === oy' ==> oy' === ox'
+         , forall' [ox,oy,oz] $ (ands [ox' === oy', oy' === oz']) ==> ox' === oz'
+         , forall' [ox,oy] $ [ min' ox', ox' === oy' ] ===> min' oy' -- Congruence over min!
+         , forall' [ox,oy,oz] $ [min' (app ox' oy'), ox' === oz'] ===> min' (app oz' oy')
 -- New CF:         , forall' [x] $ [ x' =/= unr, cf x'] ===> min' x'
          ] 
           --  ++ [forall' [x]  $ minrec x' ==> min' x']
 --         [ forall' [x] $ min' x' \/ x' === unr | min_or_unr ]
     }
+  where ox = varNames !! 2
+        oy = varNames !! 3
+        oz = varNames !! 4
+        ox' = qvar ox
+        oy' = qvar oy
+        oz' = qvar oz
+
 
 -- | App on BAD and UNR
 primConApps :: HCCSubtheory
@@ -97,6 +112,7 @@ primConApps = Subtheory
          ]
     }
 
+           
 -- | Make constructors of different types and pointers disjoint
 --
 --   We use this to easier print well-typed models from paradox.
