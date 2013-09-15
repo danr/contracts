@@ -208,7 +208,7 @@ linApp      = text "app"
 
 -- | The min symbol
 linMin      :: SDoc
-linMin      = text "min"
+linMin      = text "hccmin"
 
 -- | The minrec symbol
 linMinRec   :: SDoc
@@ -220,7 +220,7 @@ linCF       = text "cf"
 
 -- | The IsType symbol
 linIsType   :: SDoc
-linIsType   = text "type"
+linIsType   = text "hcctype"
 
 -- | Projections
 linProj     :: Int -> Var -> SDoc
